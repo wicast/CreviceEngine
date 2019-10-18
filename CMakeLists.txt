@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(MyVKLearn)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 include_directories("D:\\SDKs\\glfw-3.3.bin.WIN64\\include" "D:\\SDKs\\glm" "D:\\VulkanSDK\\1.1.121.2\\Include")
 
