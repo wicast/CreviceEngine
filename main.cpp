@@ -44,6 +44,8 @@ public:
 private:
     GLFWwindow *window;
     VkInstance instance;
+    VkDevice device;
+    VkQueue graphicsQueue;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
@@ -98,32 +100,32 @@ private:
             std::cout << "\t" << extension.extensionName << std::endl;
         }
 
-        VkInstanceCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pApplicationInfo = &appInfo;
+        VkInstanceCreateInfo instanceCreateInfo = {};
+        instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        instanceCreateInfo.pApplicationInfo = &appInfo;
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
         if (enableValidationLayers) {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-            createInfo.ppEnabledLayerNames = validationLayers.data();
+            instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
             populateDebugMessengerCreateInfo(debugCreateInfo);
-            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+            instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
         } else {
-            createInfo.enabledLayerCount = 0;
-            createInfo.pNext = nullptr;
+            instanceCreateInfo.enabledLayerCount = 0;
+            instanceCreateInfo.pNext = nullptr;
         }
 
 
 
         auto glfwExtensions = getRequiredExtensions();
 
-        createInfo.enabledExtensionCount = glfwExtensions.size();
-        createInfo.ppEnabledExtensionNames = glfwExtensions.data();
+        instanceCreateInfo.enabledExtensionCount = glfwExtensions.size();
+        instanceCreateInfo.ppEnabledExtensionNames = glfwExtensions.data();
 
-        createInfo.enabledLayerCount = 0;
+        instanceCreateInfo.enabledLayerCount = 0;
 
-        VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
-        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+        VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+        if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
             throw std::runtime_error("failed to create instance!");
         }
 
@@ -236,6 +238,30 @@ private:
         return indices;
     }
 
+    void createLogicalDevice() {
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        VkDeviceQueueCreateInfo queueCreateInfo = {};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueCount = 1;
+        float queuePriority = 1.0f;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkPhysicalDeviceFeatures deviceFeatures = {};
+
+        VkDeviceCreateInfo deviceCreateInfo = {};
+        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.queueCreateInfoCount = 1;
+        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+        deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+
+        if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create logical device!");
+        }
+
+        vkGetDeviceQueue(device,indices.graphicsFamily.value(),0,&graphicsQueue);
+    }
+
     void initVulkan() {
         glfwInit();
 
@@ -246,6 +272,7 @@ private:
         createInstance();
         setupDebugMessenger();
         pickPhysicalDevice();
+        createLogicalDevice();
     }
 
     void mainLoop() {
@@ -259,6 +286,7 @@ private:
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
         vkDestroyInstance(instance, nullptr);
+        vkDestroyDevice(device, nullptr);
 
         glfwDestroyWindow(window);
 
