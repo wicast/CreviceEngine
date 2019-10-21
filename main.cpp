@@ -46,6 +46,7 @@ public:
 private:
     GLFWwindow *window;
     VkInstance instance;
+    //logical device
     VkDevice device;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
@@ -305,12 +306,12 @@ private:
     }
 
     void cleanup() {
+        vkDestroyDevice(device, nullptr);
         if (enableValidationLayers) {
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
         vkDestroySurfaceKHR(instance,surface, nullptr);
         vkDestroyInstance(instance, nullptr);
-        vkDestroyDevice(device, nullptr);
 
         glfwDestroyWindow(window);
 
