@@ -63,9 +63,9 @@ struct Vertex {
 };
 
 const std::vector<Vertex> vertices = {
-        {{0.0f, -0.5f}, {0.843f, 0.709f, 0.176f}},
-        {{0.5f, 0.5f}, {0.376f, 0.427f, 0.901f}},
-        {{-0.5f, 0.5f}, {0.901f, 0.376f, 0.376f}}
+        {{0.0f,  -0.5f}, {0.843f, 0.709f, 0.176f}},
+        {{0.5f,  0.5f},  {0.376f, 0.427f, 0.901f}},
+        {{-0.5f, 0.5f},  {0.901f, 0.376f, 0.376f}}
 };
 
 struct QueueFamilyIndices {
@@ -803,7 +803,8 @@ private:
             renderPassInfo.pClearValues = &clearColor;
             vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+            vkCmdBindPipeline(commandBuffers[i],
+                              VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
             VkBuffer vertexBuffers[] = {vertexBuffer};
             VkDeviceSize offsets[] = {0};
             vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
@@ -859,7 +860,7 @@ private:
         bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateBuffer(device,&bufferInfo, nullptr,&vertexBuffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to create vertex buffer!");
         }
 
@@ -870,13 +871,14 @@ private:
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate vertex buffer memory!");
         }
         vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
-        void* data;
+        void *data;
         vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
         memcpy(data, vertices.data(), (size_t) bufferInfo.size);
         vkUnmapMemory(device, vertexBufferMemory);
@@ -908,8 +910,8 @@ private:
         createSyncObjects();
     }
 
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+    static void framebufferResizeCallback(GLFWwindow *window, int width, int height) {
+        auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
 
@@ -917,7 +919,8 @@ private:
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
-        VkResult vkResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE,&imageIndex);
+        VkResult vkResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
+                                                  VK_NULL_HANDLE, &imageIndex);
         if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapChain();
             return;
@@ -964,10 +967,10 @@ private:
 
         presentInfo.pResults = nullptr; // Optional
         vkResult = vkQueuePresentKHR(presentQueue, &presentInfo);
-        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR || framebufferResized ) {
+        if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR || framebufferResized) {
             framebufferResized = false;
             recreateSwapChain();
-        } else if ( vkResult != VK_SUCCESS ){
+        } else if (vkResult != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
@@ -986,7 +989,7 @@ private:
         for (auto framebuffer : swapChainFramebuffers) {
             vkDestroyFramebuffer(device, framebuffer, nullptr);
         }
-        vkFreeCommandBuffers(device,commandPool,static_cast<uint32_t>(commandBuffers.size()),commandBuffers.data());
+        vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
@@ -1012,7 +1015,7 @@ private:
     void cleanup() {
         cleanupSwapChain();
 
-        vkDestroyBuffer(device,vertexBuffer, nullptr);
+        vkDestroyBuffer(device, vertexBuffer, nullptr);
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
             vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
