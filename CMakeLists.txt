@@ -3,7 +3,7 @@ project(MyVKLearn)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories("D:\\SDKs\\glfw-3.3.bin.WIN64\\include" "D:\\SDKs\\glm" "D:\\VulkanSDK\\1.1.126.0\\Include")
+include_directories("D:\\SDKs\\glfw-3.3.bin.WIN64\\include" "D:\\SDKs\\glm" "D:\\VulkanSDK\\1.1.126.0\\Include" "D:\\Coding\\VK\\MyVKLearn")
 
 add_executable(MyVKLearn
         main.cpp)
