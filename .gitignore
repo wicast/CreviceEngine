@@ -3,3 +3,9 @@
 /shaders/frag.spv
 /shaders/vert.spv
 /cmake-build-relwithdebinfo/
+/.xmake
+/.vscode/*
+!/.vscode/launch.json
+/build
+/vsxmake*
+compile_commands.json
