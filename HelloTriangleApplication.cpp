@@ -16,8 +16,8 @@
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-const std::string MODEL_PATH = "D:/Coding/VK/MyVKLearn_xmake/models/standed.obj";
-const std::string TEXTURE_PATH = "D:/Coding/VK/MyVKLearn_xmake/textures/badApple.png";
+const std::string MODEL_PATH = "../../../../models/standed.obj";
+const std::string TEXTURE_PATH = "../../../../textures/badApple.png";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -477,8 +477,8 @@ VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<ch
 }
 
 void HelloTriangleApplication::createGraphicsPipeline() {
-    auto vertShaderCode = readFile("D:/Coding/VK/MyVKLearn_xmake/shaders/vert.spv");
-    auto fragShaderCode = readFile("D:/Coding/VK/MyVKLearn_xmake/shaders/frag.spv");
+    auto vertShaderCode = readFile("../../../../shaders/vert.spv");
+    auto fragShaderCode = readFile("../../../../shaders/frag.spv");
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
