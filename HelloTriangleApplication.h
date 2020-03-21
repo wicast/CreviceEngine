@@ -20,7 +20,7 @@
 #include <glm/gtx/hash.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
+#include <Camera.h>
 
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -107,6 +107,12 @@ struct QueueFamilyIndices {
 class HelloTriangleApplication {
 private:
     GLFWwindow *window;
+    float lastX, lastY;
+    bool firstMouse = true;
+    std::chrono::steady_clock::time_point lastTime = std::chrono::high_resolution_clock::now();;
+    float frameDeltaTime;
+    float moveCount = 0;
+
     VkInstance instance;
     //logical device
     VkDevice device;
@@ -163,6 +169,8 @@ private:
 
     glm::vec3 camPosition = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 camDirect = glm::vec3(-1.f, 0.0f, 0.0f);
+    Camera camera;
+
     float camXMoveSpeed = 0.0f;
 
     void createInstance();
@@ -202,7 +210,7 @@ private:
 
     void createSurface();
 
-    void createImageViews();
+    void createSwapChainImageViews();
 
     VkShaderModule createShaderModule(const std::vector<char> &code);
 
@@ -279,6 +287,8 @@ private:
 
     void mainLoop();
 
+    void processInput(GLFWwindow *window);
+
     void cleanupSwapChain();
 
     void recreateSwapChain();
@@ -317,9 +327,17 @@ public:
             event_handling_instance->keycallback(window,key,scancode,action,mods);
     }
 
+
+    static void mouse_callback_dispatch(GLFWwindow* window, double xpos, double ypos) {
+        if(event_handling_instance)
+            event_handling_instance->mouse_callback(window, xpos,  ypos);
+    }
+
     void setEventHandling() { event_handling_instance = this; }
 
     void keycallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+
+    void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
     void run();
 };

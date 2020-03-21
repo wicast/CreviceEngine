@@ -446,6 +446,9 @@ void HelloTriangleApplication::createSwapChain() {
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
     swapChainPresentMode = presentMode;
+
+    lastX = swapChainExtent.width/2;
+    lastY = swapChainExtent.width/2;
 }
 
 void HelloTriangleApplication::createSurface() {
@@ -454,7 +457,7 @@ void HelloTriangleApplication::createSurface() {
     }
 }
 
-void HelloTriangleApplication::createImageViews() {
+void HelloTriangleApplication::createSwapChainImageViews() {
     swapChainImageViews.resize(swapChainImages.size());
     for (size_t i = 0; i < swapChainImages.size(); i++) {
         swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat,
@@ -1431,7 +1434,7 @@ void HelloTriangleApplication::initVulkan() {
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapChain();
-    createImageViews();
+    createSwapChainImageViews();
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -1456,15 +1459,16 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
 
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    frameDeltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastTime).count();
+    lastTime = currentTime;
 
-    if (camXMoveSpeed != 0.0f) {
-        camPosition += camDirect * camXMoveSpeed;
-    }
+    // if (camXMoveSpeed != 0.0f) {
+    //     camPosition += camDirect * camXMoveSpeed;
+    // }
     UniformBufferObject ubo = {};
     ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 //    ubo.model = glm::rotate(ubo.model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(camPosition, camPosition + camDirect, glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = camera.GetViewMatrix();
 //    ubo.view = glm::translate(ubo.view, glm::vec3(time/sqrt(1), 0, time/sqrt(1)));
     ubo.proj = glm::perspective(glm::radians(45.f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
                                 20.0f);
@@ -1542,8 +1546,12 @@ void HelloTriangleApplication::drawFrame() {
 }
 
 void HelloTriangleApplication::mainLoop() {
-    glfwSetKeyCallback(window, HelloTriangleApplication::keycallback_dispatch);
+    // glfwSetKeyCallback(window, HelloTriangleApplication::keycallback_dispatch);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, HelloTriangleApplication::mouse_callback_dispatch);
+
     while (!glfwWindowShouldClose(window)) {
+        processInput(window);
         glfwPollEvents();
         drawFrame();
     }
@@ -1575,7 +1583,7 @@ void HelloTriangleApplication::recreateSwapChain() {
     cleanupSwapChain();
 
     createSwapChain();
-    createImageViews();
+    createSwapChainImageViews();
     createRenderPass();
     createGraphicsPipeline();
     createDepthResources();
@@ -1621,28 +1629,57 @@ void HelloTriangleApplication::cleanup() {
     glfwTerminate();
 }
 
-void HelloTriangleApplication::keycallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_W && (action == GLFW_PRESS)) {
-        camXMoveSpeed = 0.0005f;
-        std::cout << "A" << std::endl;
-    } else if (key == GLFW_KEY_W && (action == GLFW_RELEASE)) {
-        camXMoveSpeed = 0.0f;
-        std::cout << "S" << std::endl;
-    } else if (key == GLFW_KEY_S && (action == GLFW_PRESS)) {
-        camXMoveSpeed = -0.0005f;
-        std::cout << "S" << std::endl;
-    } else if (key == GLFW_KEY_S && (action == GLFW_RELEASE)) {
-        camXMoveSpeed = 0.0f;
-        std::cout << "W" << std::endl;
-    } else if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_RELEASE)) {
-        std::cout << "W" << std::endl;
-    } else if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_RELEASE)) {
-        std::cout << "D" << std::endl;
-    } else if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_RELEASE)) {
-        std::cout << "E" << std::endl;
-    } else if (key == GLFW_KEY_Q && (action == GLFW_PRESS || action == GLFW_RELEASE)) {
-        std::cout << "Q" << std::endl;
+
+void HelloTriangleApplication::mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
     }
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+
+    lastX = xpos;
+    lastY = ypos;
+    
+    camera.ProcessMouseMovement(xoffset,yoffset, true);
+
+}
+
+void HelloTriangleApplication::keycallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, frameDeltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, frameDeltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, frameDeltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, frameDeltaTime);
+
+    moveCount++;
+    std::cout<< moveCount << std::endl;
+}
+
+void HelloTriangleApplication::processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, frameDeltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, frameDeltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, frameDeltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, frameDeltaTime);
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    camera.ProcessKeyboard(UP, frameDeltaTime);
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    camera.ProcessKeyboard(DOWN, frameDeltaTime);
+    moveCount++;
+    // std::cout<< moveCount << std::endl;
 }
 
 void HelloTriangleApplication::run() {
