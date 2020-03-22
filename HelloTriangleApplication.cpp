@@ -16,8 +16,9 @@
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-const std::string MODEL_PATH = "../../../../models/standed.obj";
-const std::string TEXTURE_PATH = "../../../../textures/badApple.png";
+const std::string MODEL_PATH = "../../../../models/box.obj";
+const std::string MODEL2_PATH = "../../../../models/box2.obj";
+const std::string TEXTURE_PATH = "../../../../textures/container2.png";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -347,6 +348,10 @@ QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice 
     for (const auto &queueFamily : queueFamilies) {
         if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphicsFamily = i;
+        }
+        if (queueFamily.queueCount> 0 && queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT)
+        {
+            indices.transferFamily = i;
         }
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
@@ -762,7 +767,7 @@ void HelloTriangleApplication::createCommandBuffers() {
 
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                                 &descriptorSets[i], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(obj1Indices.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffers[i]);
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -862,7 +867,7 @@ HelloTriangleApplication::createBuffer(VkDeviceSize size, VkBufferUsageFlags usa
 }
 
 void HelloTriangleApplication::createVertexBuffer() {
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+    VkDeviceSize bufferSize = sizeof(obj1Vertices[0]) * obj1Vertices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -873,7 +878,7 @@ void HelloTriangleApplication::createVertexBuffer() {
 
     void *data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), (size_t) bufferSize);
+    memcpy(data, obj1Vertices.data(), (size_t) bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -930,7 +935,7 @@ void HelloTriangleApplication::endSingleTimeCommands(VkCommandBuffer commandBuff
 }
 
 void HelloTriangleApplication::createIndexBuffer() {
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+    VkDeviceSize bufferSize = sizeof(obj1Indices[0]) * obj1Indices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -940,7 +945,7 @@ void HelloTriangleApplication::createIndexBuffer() {
 
     void *data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), (size_t) bufferSize);
+    memcpy(data, obj1Indices.data(), (size_t) bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -1029,8 +1034,8 @@ void HelloTriangleApplication::createDescriptorSets() {
 
         VkDescriptorImageInfo imageInfo = {};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = textureImageView;
-        imageInfo.sampler = textureSampler;
+        imageInfo.imageView = obj1TextureImageView;
+        imageInfo.sampler = obj1TextureSampler;
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
 
@@ -1055,7 +1060,7 @@ void HelloTriangleApplication::createDescriptorSets() {
     }
 }
 
-void HelloTriangleApplication::createTextureImage() {
+void HelloTriangleApplication::createObjectTextureImage() {
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -1079,15 +1084,15 @@ void HelloTriangleApplication::createTextureImage() {
     createImage(texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                textureImage, textureImageMemory);
+                obj1TextureImage, obj1TextureImageMemory);
 
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+    transitionImageLayout(obj1TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth),
+    copyBufferToImage(stagingBuffer, obj1TextureImage, static_cast<uint32_t>(texWidth),
                       static_cast<uint32_t>(texHeight));
-    generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight, mipLevels);
+    generateMipmaps(obj1TextureImage, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight, mipLevels);
 
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    transitionImageLayout(obj1TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
@@ -1272,7 +1277,7 @@ void HelloTriangleApplication::copyBufferToImage(VkBuffer buffer, VkImage image,
 }
 
 void HelloTriangleApplication::createTextureImageView() {
-    textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT,
+    obj1TextureImageView = createImageView(obj1TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT,
                                        mipLevels);
 }
 
@@ -1366,7 +1371,7 @@ void HelloTriangleApplication::createTextureSampler() {
     samplerInfo.maxLod = static_cast<float>(mipLevels);
     samplerInfo.mipLodBias = 0; // Optional
 
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &obj1TextureSampler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");
     }
 }
@@ -1382,13 +1387,13 @@ void HelloTriangleApplication::createDepthResources() {
                           VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 }
 
-void HelloTriangleApplication::loadModel() {
+void HelloTriangleApplication::loadModelFor(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::string modelPath) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelPath.c_str())) {
         throw std::runtime_error(warn + err);
     }
 
@@ -1419,6 +1424,10 @@ void HelloTriangleApplication::loadModel() {
     }
 }
 
+void HelloTriangleApplication::loadObj1Model() {
+    loadModelFor(obj1Vertices, obj1Indices, MODEL_PATH);
+}
+
 void HelloTriangleApplication::initVulkan() {
     glfwInit();
 
@@ -1441,10 +1450,10 @@ void HelloTriangleApplication::initVulkan() {
     createCommandPool();
     createDepthResources();
     createFramebuffers();
-    createTextureImage();
+    createObjectTextureImage();
     createTextureImageView();
     createTextureSampler();
-    loadModel();
+    loadObj1Model();
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
@@ -1597,10 +1606,10 @@ void HelloTriangleApplication::recreateSwapChain() {
 void HelloTriangleApplication::cleanup() {
     cleanupSwapChain();
 
-    vkDestroySampler(device, textureSampler, nullptr);
-    vkDestroyImageView(device, textureImageView, nullptr);
-    vkDestroyImage(device, textureImage, nullptr);
-    vkFreeMemory(device, textureImageMemory, nullptr);
+    vkDestroySampler(device, obj1TextureSampler, nullptr);
+    vkDestroyImageView(device, obj1TextureImageView, nullptr);
+    vkDestroyImage(device, obj1TextureImage, nullptr);
+    vkFreeMemory(device, obj1TextureImageMemory, nullptr);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);

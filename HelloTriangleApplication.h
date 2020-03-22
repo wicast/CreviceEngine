@@ -43,6 +43,7 @@
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
+    glm::vec3 normal;
     glm::vec2 texCoord;
 
     static VkVertexInputBindingDescription getBindingDescription() {
@@ -53,8 +54,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
+    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
 
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
@@ -64,16 +65,20 @@ struct Vertex {
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(Vertex, color);
-        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[2].binding = 0;
         attributeDescriptions[2].location = 2;
         attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[3].offset = offsetof(Vertex, normal);
 
         return attributeDescriptions;
     }
 
     bool operator==(const Vertex &other) const {
-        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+        return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
     }
 };
 
@@ -97,9 +102,10 @@ struct SwapChainSupportDetails {
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
+    std::optional<uint32_t> transferFamily;
 
     bool isComplete() {
-        return graphicsFamily.has_value() && presentFamily.has_value();;
+        return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value();
     }
 };
 
@@ -135,21 +141,22 @@ private:
     VkPipeline graphicsPipeline;
 
     uint32_t mipLevels;
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
+    VkImage obj1TextureImage;
+    VkDeviceMemory obj1TextureImageMemory;
+    VkImageView obj1TextureImageView;
+    VkSampler obj1TextureSampler;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
 
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
+    std::vector<Vertex> obj1Vertices;
+    std::vector<uint32_t> obj1Indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
+
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
@@ -167,11 +174,12 @@ private:
 
     bool framebufferResized = false;
 
+    //Scene setups
     glm::vec3 camPosition = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 camDirect = glm::vec3(-1.f, 0.0f, 0.0f);
     Camera camera;
 
-    float camXMoveSpeed = 0.0f;
+    
 
     void createInstance();
 
@@ -256,7 +264,7 @@ private:
 
     void createDescriptorSets();
 
-    void createTextureImage();
+    void createObjectTextureImage();
 
     void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 
@@ -277,7 +285,9 @@ private:
 
     void createDepthResources();
 
-    void loadModel();
+    void loadModelFor(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::string modelPath);
+
+    void loadObj1Model();
 
     void initVulkan();
 
