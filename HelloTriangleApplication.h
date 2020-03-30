@@ -40,6 +40,15 @@
 #include <set>
 #include <fstream>
 
+
+struct MyImage {
+    uint32_t mipLevels;
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
+    VkImageView textureImageView;
+    VkSampler textureSampler;
+};
+
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
@@ -145,6 +154,8 @@ private:
     VkDeviceMemory obj1TextureImageMemory;
     VkImageView obj1TextureImageView;
     VkSampler obj1TextureSampler;
+
+    MyImage specImage;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;

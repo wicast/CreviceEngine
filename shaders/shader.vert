@@ -21,5 +21,6 @@ void main() {
     fragColor = inColor;
     fragTexCoord = inTexCoord;
     normal = mat3(transpose(inverse(ubo.model))) * aNormal;
+    // normal = aNormal;
 }
 
