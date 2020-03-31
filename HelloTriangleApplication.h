@@ -19,6 +19,8 @@
 
 #include <glm/gtx/hash.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 
 #include <Camera.h>
 

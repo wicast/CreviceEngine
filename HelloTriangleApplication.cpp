@@ -60,6 +60,11 @@ struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+
+    glm::vec3 viewPos;
+
+    glm::vec3 lightPositon;
+    glm::vec3 lightDiffuse;
 };
 
 
@@ -1509,6 +1514,12 @@ void HelloTriangleApplication::loadModelFor(std::vector<Vertex>& vertices, std::
                     1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
             };
 
+            vertex.normal = {
+                attrib.normals[3 * index.normal_index + 0],
+                attrib.normals[3 * index.normal_index + 1],
+                attrib.normals[3 * index.normal_index + 2]
+            };
+
             vertex.color = {1.0f, 1.0f, 1.0f};
             if (uniqueVertices.count(vertex) == 0) {
                 uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
@@ -1577,8 +1588,16 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
 //    ubo.view = glm::translate(ubo.view, glm::vec3(time/sqrt(1), 0, time/sqrt(1)));
     ubo.proj = glm::perspective(glm::radians(45.f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
                                 20.0f);
+
+    // ubo.model[1][1] *= -1;
     ubo.proj[1][1] *= -1;
 
+    ubo.viewPos = camera.Position;
+
+    // std::cout << glm::to_string(camera.Position) << std::endl;
+
+    ubo.lightPositon = glm::vec3(5,5,5);
+    ubo.lightDiffuse = {1.f, 1.f, 1.f};
     void *data;
     vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
