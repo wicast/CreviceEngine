@@ -6,10 +6,14 @@ set_languages("cxx17")
 
 target("MyVKLearn")
     set_kind("binary")
-    add_files("*.cpp", "common/*.cpp")
-    add_includedirs("$(projectdir)","$(projectdir)/common", "D:/SDKs/glm", "D:/VulkanSDK/1.1.126.0/Include")
+    add_files("*.cpp", "common/*.cpp", "render/*.cpp", "scene/*.cpp")
+    add_includedirs("$(projectdir)", 
+    "$(projectdir)/common",
+    "$(projectdir)/scene",
+    "$(projectdir)/render",
+    "D:/SDKs/glm", "D:/VulkanSDK/1.2.131.2/Include")
 
-    add_linkdirs("D:/VulkanSDK/1.1.126.0/Lib/")
+    add_linkdirs("D:/VulkanSDK/1.2.131.2/Lib/")
     add_links("vulkan-1")
 
     if is_plat("mingw") then 

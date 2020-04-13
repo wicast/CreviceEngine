@@ -4,10 +4,6 @@
 
 #include "HelloTriangleApplication.h"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-
-#include <tiny_obj_loader.h>
-
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <stb_image.h>
@@ -63,7 +59,7 @@ struct UniformBufferObject {
 
     glm::vec3 viewPos;
 
-    glm::vec3 lightPositon;
+    glm::vec3 lightPosition;
     glm::vec3 lightDiffuse;
 };
 
@@ -112,6 +108,10 @@ bool HelloTriangleApplication::checkValidationLayerSupport() {
     return true;
 }
 
+
+void HelloTriangleApplication::createResourceManager(){
+    resourceManager = ResourceManager{};
+}
 
 void HelloTriangleApplication::createInstance() {
     if (enableValidationLayers && !checkValidationLayerSupport()) {
@@ -736,6 +736,8 @@ void HelloTriangleApplication::createCommandBuffers() {
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
 
+    Mesh mesh = resourceManager.getMesh(obj1);
+
     if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate command buffers!");
     }
@@ -773,7 +775,7 @@ void HelloTriangleApplication::createCommandBuffers() {
 
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                                 &descriptorSets[i], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(obj1Indices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffers[i]);
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -873,7 +875,9 @@ HelloTriangleApplication::createBuffer(VkDeviceSize size, VkBufferUsageFlags usa
 }
 
 void HelloTriangleApplication::createVertexBuffer() {
-    VkDeviceSize bufferSize = sizeof(obj1Vertices[0]) * obj1Vertices.size();
+    Mesh mesh = resourceManager.getMesh(obj1);
+
+    VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -884,7 +888,7 @@ void HelloTriangleApplication::createVertexBuffer() {
 
     void *data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, obj1Vertices.data(), (size_t) bufferSize);
+    memcpy(data, mesh.vertices.data(), (size_t) bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -941,7 +945,9 @@ void HelloTriangleApplication::endSingleTimeCommands(VkCommandBuffer commandBuff
 }
 
 void HelloTriangleApplication::createIndexBuffer() {
-    VkDeviceSize bufferSize = sizeof(obj1Indices[0]) * obj1Indices.size();
+    Mesh mesh = resourceManager.getMesh(obj1);
+
+    VkDeviceSize bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -951,7 +957,7 @@ void HelloTriangleApplication::createIndexBuffer() {
 
     void *data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, obj1Indices.data(), (size_t) bufferSize);
+    memcpy(data, mesh.indices.data(), (size_t) bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -1488,51 +1494,9 @@ void HelloTriangleApplication::createDepthResources() {
                           VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 }
 
-void HelloTriangleApplication::loadModelFor(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::string modelPath) {
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelPath.c_str())) {
-        throw std::runtime_error(warn + err);
-    }
-
-    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
-
-    for (const auto &shape : shapes) {
-        for (const auto &index : shape.mesh.indices) {
-            Vertex vertex = {};
-            vertex.pos = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]
-            };
-
-            vertex.texCoord = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            };
-
-            vertex.normal = {
-                attrib.normals[3 * index.normal_index + 0],
-                attrib.normals[3 * index.normal_index + 1],
-                attrib.normals[3 * index.normal_index + 2]
-            };
-
-            vertex.color = {1.0f, 1.0f, 1.0f};
-            if (uniqueVertices.count(vertex) == 0) {
-                uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-                vertices.push_back(vertex);
-            }
-
-            indices.push_back(uniqueVertices[vertex]);
-        }
-    }
-}
 
 void HelloTriangleApplication::loadObj1Model() {
-    loadModelFor(obj1Vertices, obj1Indices, MODEL_PATH);
+    obj1 = resourceManager.loadFromObj(MODEL_PATH);
 }
 
 void HelloTriangleApplication::initVulkan() {
@@ -1544,6 +1508,7 @@ void HelloTriangleApplication::initVulkan() {
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
+    createResourceManager();
     createInstance();
     setupDebugMessenger();
     createSurface();
@@ -1593,11 +1558,9 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
     ubo.proj[1][1] *= -1;
 
     ubo.viewPos = camera.Position;
-
-    // std::cout << glm::to_string(camera.Position) << std::endl;
-
-    ubo.lightPositon = glm::vec3(5,5,5);
-    ubo.lightDiffuse = {1.f, 1.f, 1.f};
+    
+    ubo.lightPosition = glm::vec3(5.0f,5.0f,5.0f);
+    ubo.lightDiffuse = {0.250f, 0.235f, 0.168f};
     void *data;
     vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));

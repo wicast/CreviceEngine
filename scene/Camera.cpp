@@ -1,4 +1,4 @@
-#include <Camera.h>
+#include "scene/Camera.h"
 
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
