@@ -21,7 +21,7 @@ target("MyVKLearn")
         add_includedirs("D:/SDKs/glfw-3.3.2.bin.WIN64/include")
         add_links("glfw3")
     elseif is_plat("windows") then
-        add_cxxflags("/EHsc")
+        add_cxxflags("/EHsc /utf-8")
         add_linkdirs("D:/SDKs/glfw-3.3.2.bin.WIN64/lib-vc2019")
         add_includedirs("D:/SDKs/glfw-3.3.2.bin.WIN64/include")
         add_links("glfw3")

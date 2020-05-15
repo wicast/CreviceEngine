@@ -4,6 +4,7 @@
 
 namespace myvk {
     struct MyTexture {
+        unsigned char * pixels;
         uint32_t mipLevels;
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;

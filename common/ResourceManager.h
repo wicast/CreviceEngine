@@ -9,16 +9,24 @@
 
 #include <random>
 
+//TODO special dependency
+#include <vulkan/vulkan.h>
 
 typedef uint32_t RID;
 
 class ResourceManager {
     
+private:
+    VkDevice vkDevice;
 
 public:
     std::map<RID, myvk::MyTexture> textures;
     std::map<RID, myvk::ShaderPack> shaders;
     std::map<RID, Mesh> meshs;
+
+    void addVkDevice(VkDevice device) {
+        vkDevice = device;
+    }
 
     RID addTexture(myvk::MyTexture tex) {
         RID rid = rand();
@@ -31,6 +39,16 @@ public:
         shaders.insert(std::pair<RID, myvk::ShaderPack>(rid, shader));
         return rid;
     }
+
+    myvk::ShaderPack getShaderPack(RID rid) {
+         return shaders.find(rid)->second;
+    }
+
+    void destoryShaderPack(RID rid);
+
+    RID createShaderPack(const std::string &vertPath,const std::string &fragPath);
+
+    VkShaderModule createShaderModule(const std::vector<char> &code);
 
     RID loadFromObj(std::string modelPath);
 
