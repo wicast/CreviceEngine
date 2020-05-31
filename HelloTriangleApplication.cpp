@@ -19,13 +19,13 @@ const std::string SPEC_TEXTURE_PATH = "../../../../textures/container2_specular.
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector<const char *> validationLayers = {
-        "VK_LAYER_KHRONOS_validation"
-};
+// const std::vector<const char *> validationLayers = {
+//         "VK_LAYER_KHRONOS_validation"
+// };
 
-const std::vector<const char *> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+// const std::vector<const char *> deviceExtensions = {
+//         VK_KHR_SWAPCHAIN_EXTENSION_NAME
+// };
 
 
 #ifdef NDEBUG
@@ -53,14 +53,14 @@ const bool enableValidationLayers = true;
 //};
 
 struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
 
-    glm::vec3 viewPos;
+    alignas(16) glm::vec3 viewPos;
 
-    glm::vec3 lightPosition;
-    glm::vec3 lightDiffuse;
+    alignas(16) glm::vec3 lightPosition;
+    alignas(16) glm::vec3 lightDiffuse;
 };
 
 HelloTriangleApplication *HelloTriangleApplication::event_handling_instance;
@@ -96,156 +96,175 @@ void HelloTriangleApplication::createResourceManager(){
 
 }
 
-void HelloTriangleApplication::createInstance() {
-    if (enableValidationLayers && !checkValidationLayerSupport()) {
-        throw std::runtime_error("validation layers requested, but not available!");
-    }
-
-    VkApplicationInfo appInfo = {};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Hello Triangle";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
-
-
-    uint32_t extensionCount = 0;
-    //get extension Count
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-    std::vector<VkExtensionProperties> extensions(extensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-    std::cout << "available extensions:" << std::endl;
-
-    for (const auto &extension : extensions) {
-        std::cout << "\t" << extension.extensionName << std::endl;
-    }
-
-    VkInstanceCreateInfo instanceCreateInfo = {};
-    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instanceCreateInfo.pApplicationInfo = &appInfo;
-
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-    if (enableValidationLayers) {
-        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-        populateDebugMessengerCreateInfo(debugCreateInfo);
-        instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *) &debugCreateInfo;
-    } else {
-        instanceCreateInfo.enabledLayerCount = 0;
-        instanceCreateInfo.pNext = nullptr;
-    }
-
-
-    auto glfwExtensions = getRequiredExtensions();
-
-    instanceCreateInfo.enabledExtensionCount = glfwExtensions.size();
-    instanceCreateInfo.ppEnabledExtensionNames = glfwExtensions.data();
-
-    instanceCreateInfo.enabledLayerCount = 0;
-
-    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
-    if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create instance!");
-    }
-
+void HelloTriangleApplication::createGpuResourceManager(){
+    gpuResourceManager.initManager(vkContext);
 }
 
-void HelloTriangleApplication::setupDebugMessenger() {
-    if (!enableValidationLayers) return;
-    VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-    populateDebugMessengerCreateInfo(createInfo);
+// void HelloTriangleApplication::createInstance() {
+//     if (enableValidationLayers && !checkValidationLayerSupport()) {
+//         throw std::runtime_error("validation layers requested, but not available!");
+//     }
 
-    if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-        throw std::runtime_error("failed to set up debug messenger!");
-    }
-}
-
-void HelloTriangleApplication::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
-    createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity =
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType =
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = debugCallback;
-}
+//     VkApplicationInfo appInfo = {};
+//     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+//     appInfo.pApplicationName = "Hello Triangle";
+//     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+//     appInfo.pEngineName = "No Engine";
+//     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+//     appInfo.apiVersion = VK_API_VERSION_1_0;
 
 
-VkResult HelloTriangleApplication::CreateDebugUtilsMessengerEXT(VkInstance instance,
-                                                                const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-                                                                const VkAllocationCallbacks *pAllocator,
-                                                                VkDebugUtilsMessengerEXT *pDebugMessenger) {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
-                                                                           "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    } else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
+//     uint32_t extensionCount = 0;
+//     //get extension Count
+//     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+//     std::vector<VkExtensionProperties> extensions(extensionCount);
+//     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+//     std::cout << "available extensions:" << std::endl;
+
+//     for (const auto &extension : extensions) {
+//         std::cout << "\t" << extension.extensionName << std::endl;
+//     }
+
+//     VkInstanceCreateInfo instanceCreateInfo = {};
+//     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+//     instanceCreateInfo.pApplicationInfo = &appInfo;
+
+//     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+//     if (enableValidationLayers) {
+//         instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+//         instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+//         populateDebugMessengerCreateInfo(debugCreateInfo);
+//         instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *) &debugCreateInfo;
+//     } else {
+//         instanceCreateInfo.enabledLayerCount = 0;
+//         instanceCreateInfo.pNext = nullptr;
+//     }
 
 
-void
-HelloTriangleApplication::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
-                                                        const VkAllocationCallbacks *pAllocator) {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
-                                                                            "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        func(instance, debugMessenger, pAllocator);
-    }
-}
+//     auto glfwExtensions = getRequiredExtensions();
 
-std::vector<const char *> HelloTriangleApplication::getRequiredExtensions() {
+//     instanceCreateInfo.enabledExtensionCount = glfwExtensions.size();
+//     instanceCreateInfo.ppEnabledExtensionNames = glfwExtensions.data();
+
+//     instanceCreateInfo.enabledLayerCount = 0;
+
+//     if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS) {
+//         throw std::runtime_error("failed to create instance!");
+//     }
+
+// }
+
+//TODO createSurface with several function
+void HelloTriangleApplication::createVkContext() {
+vkContext.enableValidationLayers = enableValidationLayers;
+
     uint32_t glfwExtensionCount = 0;
     const char **glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    vkContext.createInstance(vkUtil::getRequiredExtensions(vkContext.enableValidationLayers, glfwExtensions, glfwExtensionCount));
+    createSurface();
+    vkContext.pickPhysicalDevice();
+	vkContext.createLogicalDevice();
 
-    if (enableValidationLayers) {
-        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
-
-    return extensions;
+    vkContext.setupDebugMessenger();
 }
 
-void HelloTriangleApplication::pickPhysicalDevice() {
-    uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    if (deviceCount == 0) {
-        throw std::runtime_error("failed to find GPUs with Vulkan support!");
-    }
-    std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+// void HelloTriangleApplication::setupDebugMessenger() {
+//     if (!enableValidationLayers) return;
+//     VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
+//     populateDebugMessengerCreateInfo(createInfo);
 
-    for (const auto &device : devices) {
-        if (isDeviceSuitable(device)) {
-            physicalDevice = device;
-            break;
-        }
-    }
+//     if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+//         throw std::runtime_error("failed to set up debug messenger!");
+//     }
+// }
 
-    if (physicalDevice == VK_NULL_HANDLE) {
-        throw std::runtime_error("failed to find a suitable GPU!");
-    }
-}
+// void HelloTriangleApplication::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
+//     createInfo = {};
+//     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+//     createInfo.messageSeverity =
+//             VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+//             VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+//     createInfo.messageType =
+//             VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+//             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+//     createInfo.pfnUserCallback = debugCallback;
+// }
 
-bool HelloTriangleApplication::isDeviceSuitable(VkPhysicalDevice device) {
-    QueueFamilyIndices indices = findQueueFamilies(device);
-    bool extensionsSupported = checkDeviceExtensionSupport(device);
 
-    bool swapChainAdequate = false;
-    if (extensionsSupported) {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
-        swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-    }
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-}
+// VkResult HelloTriangleApplication::CreateDebugUtilsMessengerEXT(VkInstance instance,
+//                                                                 const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+//                                                                 const VkAllocationCallbacks *pAllocator,
+//                                                                 VkDebugUtilsMessengerEXT *pDebugMessenger) {
+//     auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+//                                                                            "vkCreateDebugUtilsMessengerEXT");
+//     if (func != nullptr) {
+//         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+//     } else {
+//         return VK_ERROR_EXTENSION_NOT_PRESENT;
+//     }
+// }
+
+
+// void
+// HelloTriangleApplication::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+//                                                         const VkAllocationCallbacks *pAllocator) {
+//     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+//                                                                             "vkDestroyDebugUtilsMessengerEXT");
+//     if (func != nullptr) {
+//         func(instance, debugMessenger, pAllocator);
+//     }
+// }
+
+// std::vector<const char *> HelloTriangleApplication::getRequiredExtensions() {
+//     uint32_t glfwExtensionCount = 0;
+//     const char **glfwExtensions;
+//     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+//     std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+//     if (enableValidationLayers) {
+//         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+//     }
+
+//     return extensions;
+// }
+
+// void HelloTriangleApplication::pickPhysicalDevice() {
+//     uint32_t deviceCount = 0;
+//     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+//     if (deviceCount == 0) {
+//         throw std::runtime_error("failed to find GPUs with Vulkan support!");
+//     }
+//     std::vector<VkPhysicalDevice> devices(deviceCount);
+//     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+//     for (const auto &device : devices) {
+//         if (isDeviceSuitable(device)) {
+//             physicalDevice = device;
+//             break;
+//         }
+//     }
+
+//     if (physicalDevice == VK_NULL_HANDLE) {
+//         throw std::runtime_error("failed to find a suitable GPU!");
+//     }
+// }
+
+// bool HelloTriangleApplication::isDeviceSuitable(VkPhysicalDevice device) {
+//     QueueFamilyIndices indices = findQueueFamilies(device);
+//     bool extensionsSupported = checkDeviceExtensionSupport(device);
+
+//     bool swapChainAdequate = false;
+//     if (extensionsSupported) {
+//         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+//         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+//     }
+//     VkPhysicalDeviceFeatures supportedFeatures;
+//     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+//     return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+// }
 
 VkSurfaceFormatKHR
 HelloTriangleApplication::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
@@ -292,106 +311,105 @@ VkExtent2D HelloTriangleApplication::chooseSwapExtent(const VkSurfaceCapabilitie
 
 SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(VkPhysicalDevice device) {
     SwapChainSupportDetails details;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, vkContext.surface, &details.capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkContext.surface, &formatCount, nullptr);
     if (formatCount != 0) {
         details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkContext.surface, &formatCount, details.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkContext.surface, &presentModeCount, nullptr);
     if (presentModeCount != 0) {
         details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkContext.surface, &presentModeCount, details.presentModes.data());
     }
 
     return details;
 }
 
-bool HelloTriangleApplication::checkDeviceExtensionSupport(VkPhysicalDevice device) {
-    uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-    std::set<std::string> requiredExtension(deviceExtensions.begin(), deviceExtensions.end());
-    for (const auto &extension:availableExtensions) {
-        requiredExtension.erase(extension.extensionName);
-    }
+// bool HelloTriangleApplication::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+//     uint32_t extensionCount;
+//     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+//     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+//     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+//     std::set<std::string> requiredExtension(deviceExtensions.begin(), deviceExtensions.end());
+//     for (const auto &extension:availableExtensions) {
+//         requiredExtension.erase(extension.extensionName);
+//     }
 
-    return requiredExtension.empty();
-}
+//     return requiredExtension.empty();
+// }
 
-QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice device) {
-    QueueFamilyIndices indices;
-    // Logic to find queue family indices to populate struct with
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+// QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice device) {
+//     QueueFamilyIndices indices;
+//     // Logic to find queue family indices to populate struct with
+//     uint32_t queueFamilyCount = 0;
+//     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-    int i = 0;
+//     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+//     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+//     int i = 0;
 
-    for (const auto &queueFamily : queueFamilies) {
-        if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphicsFamily = i;
-        }
-        if (queueFamily.queueCount> 0 && queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT)
-        {
-            indices.transferFamily = i;
-        }
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-        if (queueFamily.queueCount > 0 && presentSupport) {
-            indices.presentFamily = i;
-        }
-        if (indices.isComplete()) break;
+//     for (const auto &queueFamily : queueFamilies) {
+//         if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+//             indices.graphicsFamily = i;
+//         }
+//         if (queueFamily.queueCount> 0 && queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT)
+//         {
+//             indices.transferFamily = i;
+//         }
+//         VkBool32 presentSupport = false;
+//         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, vkContext.surface, &presentSupport);
+//         if (queueFamily.queueCount > 0 && presentSupport) {
+//             indices.presentFamily = i;
+//         }
+//         if (indices.isComplete()) break;
 
-        i++;
-    }
-    return indices;
-}
+//         i++;
+//     }
+//     return indices;
+// }
 
-void HelloTriangleApplication::createLogicalDevice() {
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+// void HelloTriangleApplication::createLogicalDevice() {
+//     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+//     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+//     std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
-    float queuePriority = 1.0f;
-    for (uint32_t queueFamily : uniqueQueueFamilies) {
-        VkDeviceQueueCreateInfo queueCreateInfo = {};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = queueFamily;
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-        queueCreateInfos.push_back(queueCreateInfo);
-    }
+//     float queuePriority = 1.0f;
+//     for (uint32_t queueFamily : uniqueQueueFamilies) {
+//         VkDeviceQueueCreateInfo queueCreateInfo = {};
+//         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+//         queueCreateInfo.queueFamilyIndex = queueFamily;
+//         queueCreateInfo.queueCount = 1;
+//         queueCreateInfo.pQueuePriorities = &queuePriority;
+//         queueCreateInfos.push_back(queueCreateInfo);
+//     }
 
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
+//     VkPhysicalDeviceFeatures deviceFeatures = {};
+//     deviceFeatures.samplerAnisotropy = VK_TRUE;
 
-    VkDeviceCreateInfo deviceCreateInfo = {};
-    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-    deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-    deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t >(deviceExtensions.size());
-    deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+//     VkDeviceCreateInfo deviceCreateInfo = {};
+//     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+//     deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+//     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+//     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+//     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t >(deviceExtensions.size());
+//     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create logical device!");
-    }
+//     if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
+//         throw std::runtime_error("failed to create logical device!");
+//     }
 
-    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+//     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+//     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 
-    resourceManager.addVkDevice(device);
-}
+// }
 
 void HelloTriangleApplication::createSwapChain() {
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(vkContext.physicalDevice);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -405,7 +423,7 @@ void HelloTriangleApplication::createSwapChain() {
 
     VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
     swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapChainCreateInfo.surface = surface;
+    swapChainCreateInfo.surface = vkContext.surface;
     swapChainCreateInfo.minImageCount = imageCount;
     swapChainCreateInfo.imageFormat = surfaceFormat.format;
     swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -413,7 +431,7 @@ void HelloTriangleApplication::createSwapChain() {
     swapChainCreateInfo.imageArrayLayers = 1;
     swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    QueueFamilyIndices indices = vkUtil::findQueueFamilies(vkContext.physicalDevice,vkContext.surface);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
     if (indices.graphicsFamily != indices.presentFamily) {
@@ -431,13 +449,13 @@ void HelloTriangleApplication::createSwapChain() {
     swapChainCreateInfo.clipped = VK_TRUE;
     swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(device, &swapChainCreateInfo, nullptr, &swapChain) != VK_SUCCESS) {
+    if (vkCreateSwapchainKHR(vkContext.device, &swapChainCreateInfo, nullptr, &swapChain) != VK_SUCCESS) {
         throw std::runtime_error("failed to create swap chain!");
     }
 
-    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(vkContext.device, swapChain, &imageCount, nullptr);
     swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+    vkGetSwapchainImagesKHR(vkContext.device, swapChain, &imageCount, swapChainImages.data());
 
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
@@ -448,7 +466,7 @@ void HelloTriangleApplication::createSwapChain() {
 }
 
 void HelloTriangleApplication::createSurface() {
-    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(vkContext.instance, window, nullptr, &vkContext.surface) != VK_SUCCESS) {
         throw std::runtime_error("failed to create window surface!");
     }
 }
@@ -468,7 +486,7 @@ VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<ch
     createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+    if (vkCreateShaderModule(vkContext.device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
         throw std::runtime_error("failed to create shader module!");
     }
 
@@ -476,8 +494,8 @@ VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<ch
 }
 
 void HelloTriangleApplication::createGraphicsPipeline() {
-    RID shaderRid = resourceManager.createShaderPack("../../../../shaders/vert.spv","../../../../shaders/frag.spv");
-    myvk::ShaderPack shaderpack = resourceManager.getShaderPack(shaderRid);
+    RID shaderRid = gpuResourceManager.createShaderPack("../../../../shaders/vert.spv","../../../../shaders/frag.spv");
+    myvk::ShaderPack shaderpack = gpuResourceManager.getShaderPack(shaderRid);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -578,7 +596,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout(vkContext.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
@@ -602,7 +620,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional
 
-    if (vkCreateGraphicsPipelines(device,
+    if (vkCreateGraphicsPipelines(vkContext.device,
                                   VK_NULL_HANDLE,
                                   1, &pipelineInfo,
                                   nullptr,
@@ -611,7 +629,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
 
-    resourceManager.destoryShaderPack(shaderRid);
+    gpuResourceManager.destoryShaderPack(shaderRid);
 }
 
 void HelloTriangleApplication::createRenderPass() {
@@ -668,7 +686,7 @@ void HelloTriangleApplication::createRenderPass() {
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
-    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+    if (vkCreateRenderPass(vkContext.device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("failed create render pass");
     }
 }
@@ -688,7 +706,7 @@ void HelloTriangleApplication::createFramebuffers() {
         framebufferInfo.width = swapChainExtent.width;
         framebufferInfo.height = swapChainExtent.height;
         framebufferInfo.layers = 1;
-        if (vkCreateFramebuffer(device, &framebufferInfo,
+        if (vkCreateFramebuffer(vkContext.device, &framebufferInfo,
                                 nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create framebuffer!");
         }
@@ -697,14 +715,14 @@ void HelloTriangleApplication::createFramebuffers() {
 }
 
 void HelloTriangleApplication::createCommandPool() {
-    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+    QueueFamilyIndices queueFamilyIndices = vkUtil::findQueueFamilies(vkContext.physicalDevice,vkContext.surface);
 
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
     poolInfo.flags = 0; // Optional
 
-    if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+    if (vkCreateCommandPool(vkContext.device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create command pool!");
     }
 }
@@ -719,7 +737,7 @@ void HelloTriangleApplication::createCommandBuffers() {
 
     Mesh mesh = resourceManager.getMesh(obj1);
 
-    if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(vkContext.device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate command buffers!");
     }
 
@@ -778,9 +796,9 @@ void HelloTriangleApplication::createSyncObjects() {
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+        if (vkCreateSemaphore(vkContext.device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(vkContext.device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(vkContext.device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
 
             throw std::runtime_error("failed to create semaphores for a frame!");
         }
@@ -789,7 +807,7 @@ void HelloTriangleApplication::createSyncObjects() {
 
 uint32_t HelloTriangleApplication::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(vkContext.physicalDevice, &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
@@ -805,7 +823,7 @@ HelloTriangleApplication::findSupportedFormat(const std::vector<VkFormat> &candi
                                               VkFormatFeatureFlags features) {
     for (VkFormat format : candidates) {
         VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+        vkGetPhysicalDeviceFormatProperties(vkContext.physicalDevice, format, &props);
         if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
             return format;
         } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
@@ -836,23 +854,23 @@ HelloTriangleApplication::createBuffer(VkDeviceSize size, VkBufferUsageFlags usa
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+    if (vkCreateBuffer(vkContext.device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to create buffer!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(vkContext.device, buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(vkContext.device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate buffer memory!");
     }
 
-    vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    vkBindBufferMemory(vkContext.device, buffer, bufferMemory, 0);
 }
 
 void HelloTriangleApplication::createVertexBuffer() {
@@ -868,9 +886,9 @@ void HelloTriangleApplication::createVertexBuffer() {
                  stagingBuffer, stagingBufferMemory);
 
     void *data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(vkContext.device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, mesh.vertices.data(), (size_t) bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(vkContext.device, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -878,8 +896,8 @@ void HelloTriangleApplication::createVertexBuffer() {
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(vkContext.device, stagingBuffer, nullptr);
+    vkFreeMemory(vkContext.device, stagingBufferMemory, nullptr);
 }
 
 void HelloTriangleApplication::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
@@ -900,7 +918,7 @@ VkCommandBuffer HelloTriangleApplication::beginSingleTimeCommands() {
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(vkContext.device, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -919,10 +937,10 @@ void HelloTriangleApplication::endSingleTimeCommands(VkCommandBuffer commandBuff
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
+    vkQueueSubmit(vkContext.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(vkContext.graphicsQueue);
 
-    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(vkContext.device, commandPool, 1, &commandBuffer);
 }
 
 void HelloTriangleApplication::createIndexBuffer() {
@@ -937,17 +955,17 @@ void HelloTriangleApplication::createIndexBuffer() {
                  stagingBufferMemory);
 
     void *data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(vkContext.device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, mesh.indices.data(), (size_t) bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(vkContext.device, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
     copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(vkContext.device, stagingBuffer, nullptr);
+    vkFreeMemory(vkContext.device, stagingBufferMemory, nullptr);
 }
 
 void HelloTriangleApplication::createDescriptorSetLayout() {
@@ -978,7 +996,7 @@ void HelloTriangleApplication::createDescriptorSetLayout() {
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
-    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(vkContext.device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor set layout!");
     }
 
@@ -1011,7 +1029,7 @@ void HelloTriangleApplication::createDescriptorPool() {
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
 
-    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(vkContext.device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor pool!");
     }
 }
@@ -1025,7 +1043,7 @@ void HelloTriangleApplication::createDescriptorSets() {
     allocInfo.pSetLayouts = layouts.data();
 
     descriptorSets.resize(swapChainImages.size());
-    if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
+    if (vkAllocateDescriptorSets(vkContext.device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 
@@ -1071,7 +1089,7 @@ void HelloTriangleApplication::createDescriptorSets() {
         descriptorWrites[2].descriptorCount = 1;
         descriptorWrites[2].pImageInfo = &specImageInfo;
 
-        vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0,
+        vkUpdateDescriptorSets(vkContext.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0,
                                nullptr);
     }
 }
@@ -1092,9 +1110,9 @@ void HelloTriangleApplication::createObjectTextureImage() {
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  stagingBuffer, stagingBufferMemory);
     void *data;
-    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(vkContext.device, stagingBufferMemory, 0, imageSize, 0, &data);
     memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(vkContext.device, stagingBufferMemory);
     stbi_image_free(pixels);
 
     createImage(texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
@@ -1111,8 +1129,8 @@ void HelloTriangleApplication::createObjectTextureImage() {
     transitionImageLayout(obj1TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(vkContext.device, stagingBuffer, nullptr);
+    vkFreeMemory(vkContext.device, stagingBufferMemory, nullptr);
 
 
 
@@ -1130,9 +1148,9 @@ void HelloTriangleApplication::createObjectTextureImage() {
                  stagingBuffer, stagingBufferMemory);
 
     void* data1;
-    vkMapMemory(device, stagingBufferMemory, 0, specImageSize, 0, &data1);
+    vkMapMemory(vkContext.device, stagingBufferMemory, 0, specImageSize, 0, &data1);
     memcpy(data1, specPixels, static_cast<size_t>(specImageSize));
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(vkContext.device, stagingBufferMemory);
     stbi_image_free(specPixels);
 
     createImage(specWidth, specHeight, specImage.mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
@@ -1149,14 +1167,14 @@ void HelloTriangleApplication::createObjectTextureImage() {
     transitionImageLayout(specImage.textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, specImage.mipLevels);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(vkContext.device, stagingBuffer, nullptr);
+    vkFreeMemory(vkContext.device, stagingBufferMemory, nullptr);
 }
 
 void HelloTriangleApplication::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight,
                                                uint32_t mipLevels) {
     VkFormatProperties formatProperties;
-    vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
+    vkGetPhysicalDeviceFormatProperties(vkContext.physicalDevice, imageFormat, &formatProperties);
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
         throw std::runtime_error("texture image format does not support linear blitting!");
     }
@@ -1356,23 +1374,23 @@ void HelloTriangleApplication::createImage(uint32_t width, uint32_t height, uint
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+    if (vkCreateImage(vkContext.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device, image, &memRequirements);
+    vkGetImageMemoryRequirements(vkContext.device, image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(vkContext.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate image memory!");
     }
 
-    vkBindImageMemory(device, image, imageMemory, 0);
+    vkBindImageMemory(vkContext.device, image, imageMemory, 0);
 }
 
 VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags,
@@ -1389,7 +1407,7 @@ VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat fo
     viewInfo.subresourceRange.layerCount = 1;
 
     VkImageView imageView;
-    if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+    if (vkCreateImageView(vkContext.device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture image view!");
     }
 
@@ -1426,7 +1444,7 @@ void HelloTriangleApplication::createTextureSampler() {
     samplerInfo.maxLod = static_cast<float>(mipLevels);
     samplerInfo.mipLodBias = 0; // Optional
 
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &obj1TextureSampler) != VK_SUCCESS) {
+    if (vkCreateSampler(vkContext.device, &samplerInfo, nullptr, &obj1TextureSampler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");
     }
 
@@ -1459,7 +1477,7 @@ void HelloTriangleApplication::createTextureSampler() {
     samplerInfo2.maxLod = static_cast<float>(specImage.mipLevels);
     samplerInfo2.mipLodBias = 0; // Optional
 
-    if (vkCreateSampler(device, &samplerInfo2, nullptr, &specImage.textureSampler) != VK_SUCCESS) {
+    if (vkCreateSampler(vkContext.device, &samplerInfo2, nullptr, &specImage.textureSampler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");
     }
 }
@@ -1490,11 +1508,12 @@ void HelloTriangleApplication::initVulkan() {
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
     createResourceManager();
-    createInstance();
-    setupDebugMessenger();
-    createSurface();
-    pickPhysicalDevice();
-    createLogicalDevice();
+    createVkContext();
+    createGpuResourceManager();
+    // createInstance();
+    
+    // pickPhysicalDevice();
+    // createLogicalDevice();
     createSwapChain();
     createSwapChainImageViews();
     createRenderPass();
@@ -1543,16 +1562,16 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
     ubo.lightPosition = glm::vec3(5.0f,5.0f,5.0f);
     ubo.lightDiffuse = {0.250f, 0.235f, 0.168f};
     void *data;
-    vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+    vkMapMemory(vkContext.device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
+    vkUnmapMemory(vkContext.device, uniformBuffersMemory[currentImage]);
 }
 
 void HelloTriangleApplication::drawFrame() {
-    vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(vkContext.device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult vkResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
+    VkResult vkResult = vkAcquireNextImageKHR(vkContext.device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
                                               VK_NULL_HANDLE, &imageIndex);
     if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapChain();
@@ -1562,7 +1581,7 @@ void HelloTriangleApplication::drawFrame() {
     }
 
     if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-        vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(vkContext.device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
     }
     imagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
@@ -1585,8 +1604,8 @@ void HelloTriangleApplication::drawFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    vkResetFences(device, 1, &inFlightFences[currentFrame]);
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+    vkResetFences(vkContext.device, 1, &inFlightFences[currentFrame]);
+    if (vkQueueSubmit(vkContext.graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
@@ -1602,7 +1621,7 @@ void HelloTriangleApplication::drawFrame() {
     presentInfo.pImageIndices = &imageIndex;
 
     presentInfo.pResults = nullptr; // Optional
-    vkResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+    vkResult = vkQueuePresentKHR(vkContext.presentQueue, &presentInfo);
     if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR || framebufferResized) {
         framebufferResized = false;
         recreateSwapChain();
@@ -1623,30 +1642,30 @@ void HelloTriangleApplication::mainLoop() {
         glfwPollEvents();
         drawFrame();
     }
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(vkContext.device);
 }
 
 void HelloTriangleApplication::cleanupSwapChain() {
     for (auto framebuffer : swapChainFramebuffers) {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
+        vkDestroyFramebuffer(vkContext.device, framebuffer, nullptr);
     }
-    vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-    vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-    vkDestroyRenderPass(device, renderPass, nullptr);
+    vkFreeCommandBuffers(vkContext.device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    vkDestroyPipeline(vkContext.device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(vkContext.device, pipelineLayout, nullptr);
+    vkDestroyRenderPass(vkContext.device, renderPass, nullptr);
     for (auto imageView : swapChainImageViews) {
-        vkDestroyImageView(device, imageView, nullptr);
+        vkDestroyImageView(vkContext.device, imageView, nullptr);
     }
     for (size_t i = 0; i < swapChainImages.size(); i++) {
-        vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-        vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
+        vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
     }
-    vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
+    vkDestroyDescriptorPool(vkContext.device, descriptorPool, nullptr);
+    vkDestroySwapchainKHR(vkContext.device, swapChain, nullptr);
 }
 
 void HelloTriangleApplication::recreateSwapChain() {
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(vkContext.device);
 
     cleanupSwapChain();
 
@@ -1665,32 +1684,32 @@ void HelloTriangleApplication::recreateSwapChain() {
 void HelloTriangleApplication::cleanup() {
     cleanupSwapChain();
 
-    vkDestroySampler(device, obj1TextureSampler, nullptr);
-    vkDestroyImageView(device, obj1TextureImageView, nullptr);
-    vkDestroyImage(device, obj1TextureImage, nullptr);
-    vkFreeMemory(device, obj1TextureImageMemory, nullptr);
-    vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-    vkDestroyBuffer(device, indexBuffer, nullptr);
-    vkFreeMemory(device, indexBufferMemory, nullptr);
+    vkDestroySampler(vkContext.device, obj1TextureSampler, nullptr);
+    vkDestroyImageView(vkContext.device, obj1TextureImageView, nullptr);
+    vkDestroyImage(vkContext.device, obj1TextureImage, nullptr);
+    vkFreeMemory(vkContext.device, obj1TextureImageMemory, nullptr);
+    vkDestroyDescriptorSetLayout(vkContext.device, descriptorSetLayout, nullptr);
+    vkDestroyBuffer(vkContext.device, indexBuffer, nullptr);
+    vkFreeMemory(vkContext.device, indexBufferMemory, nullptr);
 
-    vkDestroyBuffer(device, vertexBuffer, nullptr);
-    vkFreeMemory(device, vertexBufferMemory, nullptr);
+    vkDestroyBuffer(vkContext.device, vertexBuffer, nullptr);
+    vkFreeMemory(vkContext.device, vertexBufferMemory, nullptr);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
-        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-        vkDestroyFence(device, inFlightFences[i], nullptr);
+        vkDestroySemaphore(vkContext.device, renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(vkContext.device, imageAvailableSemaphores[i], nullptr);
+        vkDestroyFence(vkContext.device, inFlightFences[i], nullptr);
     }
 
-    vkDestroyCommandPool(device, commandPool, nullptr);
+    vkDestroyCommandPool(vkContext.device, commandPool, nullptr);
 
-    vkDestroyDevice(device, nullptr);
+    vkDestroyDevice(vkContext.device, nullptr);
 
     if (enableValidationLayers) {
-        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        vkUtil::DestroyDebugUtilsMessengerEXT(vkContext.instance, vkContext.debugMessenger, nullptr);
     }
 
-    vkDestroySurfaceKHR(instance, surface, nullptr);
-    vkDestroyInstance(instance, nullptr);
+    vkDestroySurfaceKHR(vkContext.instance, vkContext.surface, nullptr);
+    vkDestroyInstance(vkContext.instance, nullptr);
 
     glfwDestroyWindow(window);
 

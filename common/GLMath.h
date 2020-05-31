@@ -2,8 +2,10 @@
 #define MYVKLEARN_GLMATH_H
 
 #define GLM_FORCE_RADIANS
-//TODO mingw64 not working
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+
+//TODO mingw64 auto alignment not working
+// #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 

@@ -35,6 +35,8 @@
 #include <fstream>
 
 #include "common/ResourceManager.h"
+#include "render/Context.h"
+#include "render/GpuResourceManager.h"
 
 struct MyImage {
     uint32_t mipLevels;
@@ -97,21 +99,21 @@ struct MyImage {
 //     };
 // }
 
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
+// struct SwapChainSupportDetails {
+//     VkSurfaceCapabilitiesKHR capabilities;
+//     std::vector<VkSurfaceFormatKHR> formats;
+//     std::vector<VkPresentModeKHR> presentModes;
+// };
 
-struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-    std::optional<uint32_t> transferFamily;
+// struct QueueFamilyIndices {
+//     std::optional<uint32_t> graphicsFamily;
+//     std::optional<uint32_t> presentFamily;
+//     std::optional<uint32_t> transferFamily;
 
-    bool isComplete() {
-        return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value();
-    }
-};
+//     bool isComplete() {
+//         return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value();
+//     }
+// };
 
 
 class HelloTriangleApplication {
@@ -123,14 +125,16 @@ private:
     float frameDeltaTime;
     float moveCount = 0;
 
-    VkInstance instance;
-    //logical device
-    VkDevice device;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-    VkDebugUtilsMessengerEXT debugMessenger;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkSurfaceKHR surface;
+    VkContext vkContext;
+
+    // VkInstance instance;
+    // //logical device
+    // VkDevice device;
+    // VkQueue graphicsQueue;
+    // VkQueue presentQueue;
+    // VkDebugUtilsMessengerEXT debugMessenger;
+    // VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    // VkSurfaceKHR surface;
 
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
@@ -157,6 +161,7 @@ private:
     VkImageView depthImageView;
 
     ResourceManager resourceManager;
+    GpuResourceManager gpuResourceManager;
 
     std::vector<Vertex> obj1Vertices;
     std::vector<uint32_t> obj1Indices;
@@ -192,11 +197,14 @@ private:
 
     void createResourceManager();
 
-    void createInstance();
+    // void createInstance();
 
-    void setupDebugMessenger();
+    void createVkContext();
 
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
+    void createGpuResourceManager();
+    // void setupDebugMessenger();
+
+    // void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
                                           const VkAllocationCallbacks *pAllocator,
@@ -205,11 +213,11 @@ private:
     void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
                                        const VkAllocationCallbacks *pAllocator);
 
-    std::vector<const char *> getRequiredExtensions();
+    // std::vector<const char *> getRequiredExtensions();
 
-    void pickPhysicalDevice();
+    // void pickPhysicalDevice();
 
-    bool isDeviceSuitable(VkPhysicalDevice device);
+    // bool isDeviceSuitable(VkPhysicalDevice device);
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
@@ -219,11 +227,11 @@ private:
 
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    // bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    // QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
-    void createLogicalDevice();
+    // void createLogicalDevice();
 
     void createSwapChain();
 

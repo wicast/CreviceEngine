@@ -30,16 +30,6 @@ class RenderServer {
         resourceManager = resm;
     }
 
-
-
-    RID createTextureFromPic(std::string picPath);
-    RID createShader(std::string vertPath, std::string fragPath);
-    RID removeShader(RID rid);
-
-    
-
-    private:
-    VkShaderModule createShaderModule(const std::vector<char> &code);
 };
 
 #endif

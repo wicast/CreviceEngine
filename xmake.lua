@@ -7,10 +7,7 @@ set_languages("cxx17")
 target("MyVKLearn")
     set_kind("binary")
     add_files("*.cpp", "common/*.cpp", "render/*.cpp", "scene/*.cpp")
-    add_includedirs("$(projectdir)", 
-    "$(projectdir)/common",
-    "$(projectdir)/scene",
-    "$(projectdir)/render",
+    add_includedirs("$(projectdir)",
     "D:/SDKs/glm", "D:/VulkanSDK/1.2.131.2/Include")
 
     add_linkdirs("D:/VulkanSDK/1.2.131.2/Lib/")
