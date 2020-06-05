@@ -4,371 +4,270 @@
 #ifndef MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
 #define MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
 
-
 #include <vulkan/vulkan.h>
 
 #define GLFW_INCLUDE_VULKAN
 
-
 #include <GLFW/glfw3.h>
 
-#include "common/GLMath.h"
-
-
-#include "scene/Camera.h"
-
-
-
-#include <chrono>
-
-#include <iostream>
-#include <stdexcept>
 #include <algorithm>
-#include <chrono>
-#include <vector>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
 #include <array>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
 #include <optional>
 #include <set>
-#include <fstream>
+#include <stdexcept>
+#include <vector>
 
+#include "common/GLMath.h"
 #include "common/ResourceManager.h"
 #include "render/Context.h"
 #include "render/GpuResourceManager.h"
+#include "scene/Camera.h"
 
 struct MyImage {
-    uint32_t mipLevels;
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
+  uint32_t mipLevels;
+  VkImage textureImage;
+  VkDeviceMemory textureImageMemory;
+  VkImageView textureImageView;
+  VkSampler textureSampler;
 };
-
-// struct Vertex {
-//     glm::vec3 pos;
-//     glm::vec3 color;
-//     glm::vec3 normal;
-//     glm::vec2 texCoord;
-
-//     static VkVertexInputBindingDescription getBindingDescription() {
-//         VkVertexInputBindingDescription bindingDescription = {};
-//         bindingDescription.binding = 0;
-//         bindingDescription.stride = sizeof(Vertex);
-//         bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-//         return bindingDescription;
-//     }
-
-//     static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-//         std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
-
-//         attributeDescriptions[0].binding = 0;
-//         attributeDescriptions[0].location = 0;
-//         attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-//         attributeDescriptions[0].offset = offsetof(Vertex, pos);
-//         attributeDescriptions[1].binding = 0;
-//         attributeDescriptions[1].location = 1;
-//         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-//         attributeDescriptions[1].offset = offsetof(Vertex, color);
-//         attributeDescriptions[2].binding = 0;
-//         attributeDescriptions[2].location = 2;
-//         attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-//         attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-//         attributeDescriptions[3].binding = 0;
-//         attributeDescriptions[3].location = 3;
-//         attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-//         attributeDescriptions[3].offset = offsetof(Vertex, normal);
-
-//         return attributeDescriptions;
-//     }
-
-//     bool operator==(const Vertex &other) const {
-//         return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
-//     }
-// };
-
-// namespace std {
-//     template<>
-//     struct hash<Vertex> {
-//         size_t operator()(Vertex const &vertex) const {
-//             return ((hash<glm::vec3>()(vertex.pos) ^
-//                      (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-//                    (hash<glm::vec2>()(vertex.texCoord) << 1);
-//         }
-//     };
-// }
-
-// struct SwapChainSupportDetails {
-//     VkSurfaceCapabilitiesKHR capabilities;
-//     std::vector<VkSurfaceFormatKHR> formats;
-//     std::vector<VkPresentModeKHR> presentModes;
-// };
-
-// struct QueueFamilyIndices {
-//     std::optional<uint32_t> graphicsFamily;
-//     std::optional<uint32_t> presentFamily;
-//     std::optional<uint32_t> transferFamily;
-
-//     bool isComplete() {
-//         return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value();
-//     }
-// };
-
 
 class HelloTriangleApplication {
-private:
-    GLFWwindow *window;
-    float lastX, lastY;
-    bool firstMouse = true;
-    std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();;
-    float frameDeltaTime;
-    float moveCount = 0;
+ private:
+  GLFWwindow *window;
+  float lastX, lastY;
+  bool firstMouse = true;
+  std::chrono::high_resolution_clock::time_point lastTime =
+      std::chrono::high_resolution_clock::now();
+  ;
+  float frameDeltaTime;
+  float moveCount = 0;
 
-    VkContext vkContext;
+  VkContext vkContext;
 
-    // VkInstance instance;
-    // //logical device
-    // VkDevice device;
-    // VkQueue graphicsQueue;
-    // VkQueue presentQueue;
-    // VkDebugUtilsMessengerEXT debugMessenger;
-    // VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    // VkSurfaceKHR surface;
+  VkSwapchainKHR swapChain;
+  std::vector<VkImage> swapChainImages;
+  VkPresentModeKHR swapChainPresentMode;
+  VkFormat swapChainImageFormat;
+  VkExtent2D swapChainExtent;
+  std::vector<VkImageView> swapChainImageViews;
 
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkPresentModeKHR swapChainPresentMode;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
+  VkDescriptorSetLayout descriptorSetLayout;
+  VkPipelineLayout pipelineLayout;
+  VkRenderPass renderPass;
+  VkPipeline graphicsPipeline;
 
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkPipelineLayout pipelineLayout;
-    VkRenderPass renderPass;
-    VkPipeline graphicsPipeline;
+  uint32_t mipLevels;
+  VkImage obj1TextureImage;
+  VkDeviceMemory obj1TextureImageMemory;
+  VkImageView obj1TextureImageView;
+  VkSampler obj1TextureSampler;
 
-    uint32_t mipLevels;
-    VkImage obj1TextureImage;
-    VkDeviceMemory obj1TextureImageMemory;
-    VkImageView obj1TextureImageView;
-    VkSampler obj1TextureSampler;
+  MyImage specImage;
 
-    MyImage specImage;
+  VkImage depthImage;
+  VkDeviceMemory depthImageMemory;
+  VkImageView depthImageView;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
+  ResourceManager resourceManager;
+  GpuResourceManager gpuResourceManager;
 
-    ResourceManager resourceManager;
-    GpuResourceManager gpuResourceManager;
+  std::vector<Vertex> obj1Vertices;
+  std::vector<uint32_t> obj1Indices;
 
-    std::vector<Vertex> obj1Vertices;
-    std::vector<uint32_t> obj1Indices;
+  RID obj1;
 
-    RID obj1;
+  VkBuffer vertexBuffer;
+  VkDeviceMemory vertexBufferMemory;
+  VkBuffer indexBuffer;
+  VkDeviceMemory indexBufferMemory;
 
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+  std::vector<VkBuffer> uniformBuffers;
+  std::vector<VkDeviceMemory> uniformBuffersMemory;
 
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
+  std::vector<VkFramebuffer> swapChainFramebuffers;
+  VkCommandPool commandPool;
+  VkDescriptorPool descriptorPool;
+  std::vector<VkDescriptorSet> descriptorSets;
+  std::vector<VkCommandBuffer> commandBuffers;
 
-    std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkCommandPool commandPool;
-    VkDescriptorPool descriptorPool;
-    std::vector<VkDescriptorSet> descriptorSets;
-    std::vector<VkCommandBuffer> commandBuffers;
+  std::vector<VkSemaphore> imageAvailableSemaphores;
+  std::vector<VkSemaphore> renderFinishedSemaphores;
+  size_t currentFrame = 0;
+  std::vector<VkFence> imagesInFlight;
+  std::vector<VkFence> inFlightFences;
 
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    size_t currentFrame = 0;
-    std::vector<VkFence> imagesInFlight;
-    std::vector<VkFence> inFlightFences;
+  bool framebufferResized = false;
 
-    bool framebufferResized = false;
+  // Scene setups
+  glm::vec3 camPosition = glm::vec3(1.0f, 0.0f, 0.0f);
+  glm::vec3 camDirect = glm::vec3(-1.f, 0.0f, 0.0f);
+  Camera camera;
 
-    //Scene setups
-    glm::vec3 camPosition = glm::vec3(1.0f, 0.0f, 0.0f);
-    glm::vec3 camDirect = glm::vec3(-1.f, 0.0f, 0.0f);
-    Camera camera;
+  void createResourceManager();
 
-    void createResourceManager();
+  void createVkContext();
 
-    // void createInstance();
+  void createGpuResourceManager();
 
-    void createVkContext();
+  VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+      const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
-    void createGpuResourceManager();
-    // void setupDebugMessenger();
+  VkPresentModeKHR chooseSwapPresentMode(
+      const std::vector<VkPresentModeKHR> &availablePresentModes);
 
-    // void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
+  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
-    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-                                          const VkAllocationCallbacks *pAllocator,
-                                          VkDebugUtilsMessengerEXT *pDebugMessenger);
+  SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
-    void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
-                                       const VkAllocationCallbacks *pAllocator);
+  void createSwapChain();
 
-    // std::vector<const char *> getRequiredExtensions();
+  void createSurface();
 
-    // void pickPhysicalDevice();
+  void createSwapChainImageViews();
 
-    // bool isDeviceSuitable(VkPhysicalDevice device);
+  VkShaderModule createShaderModule(const std::vector<char> &code);
 
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+  void createGraphicsPipeline();
 
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+  void createRenderPass();
 
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
+  void createFramebuffers();
 
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+  void createCommandPool();
 
-    // bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+  void createCommandBuffers();
 
-    // QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+  void createSyncObjects();
 
-    // void createLogicalDevice();
+  uint32_t findMemoryType(uint32_t typeFilter,
+                          VkMemoryPropertyFlags properties);
 
-    void createSwapChain();
+  VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
+                               VkImageTiling tiling,
+                               VkFormatFeatureFlags features);
 
-    void createSurface();
+  VkFormat findDepthFormat();
 
-    void createSwapChainImageViews();
+  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                    VkMemoryPropertyFlags properties, VkBuffer &buffer,
+                    VkDeviceMemory &bufferMemory);
 
-    VkShaderModule createShaderModule(const std::vector<char> &code);
+  bool hasStencilComponent(VkFormat format);
 
-    void createGraphicsPipeline();
+  void createVertexBuffer();
 
-    void createRenderPass();
+  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-    void createFramebuffers();
+  VkCommandBuffer beginSingleTimeCommands();
 
-    void createCommandPool();
+  void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
-    void createCommandBuffers();
+  void createIndexBuffer();
 
-    void createSyncObjects();
+  void createDescriptorSetLayout();
 
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+  void createUniformBuffers();
 
-    VkFormat
-    findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+  void createDescriptorPool();
 
-    VkFormat findDepthFormat();
+  void createDescriptorSets();
 
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer,
-                      VkDeviceMemory &bufferMemory);
+  void createObjectTextureImage();
 
-    bool hasStencilComponent(VkFormat format);
+  void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
+                       int32_t texHeight, uint32_t mipLevels);
 
-    void createVertexBuffer();
+  void transitionImageLayout(VkImage image, VkFormat format,
+                             VkImageLayout oldLayout, VkImageLayout newLayout,
+                             uint32_t transitionImageLayout);
 
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                         uint32_t height);
 
-    VkCommandBuffer beginSingleTimeCommands();
+  void createTextureImageView();
 
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+  void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
+                   VkFormat format, VkImageTiling tiling,
+                   VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                   VkImage &image, VkDeviceMemory &imageMemory);
 
-    void createIndexBuffer();
+  VkImageView createImageView(VkImage image, VkFormat format,
+                              VkImageAspectFlags aspectFlags,
+                              uint32_t mipLevels);
 
-    void createDescriptorSetLayout();
+  void createTextureSampler();
 
-    void createUniformBuffers();
+  void createDepthResources();
 
-    void createDescriptorPool();
+  // void loadModelFor(std::vector<Vertex>& vertices, std::vector<uint32_t>&
+  // indices, std::string modelPath);
 
-    void createDescriptorSets();
+  void loadObj1Model();
 
-    void createObjectTextureImage();
+  void initVulkan();
 
-    void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+  void updateUniformBuffer(uint32_t currentImage);
 
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
-                               uint32_t transitionImageLayout);
+  void drawFrame();
 
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+  void mainLoop();
 
-    void createTextureImageView();
+  void processInput(GLFWwindow *window);
 
-    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling,
-                     VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image,
-                     VkDeviceMemory &imageMemory);
+  void cleanupSwapChain();
 
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+  void recreateSwapChain();
 
-    void createTextureSampler();
+  void cleanup();
 
-    void createDepthResources();
+  static VKAPI_ATTR VkBool32 VKAPI_CALL
+  debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                VkDebugUtilsMessageTypeFlagsEXT messageType,
+                const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                void *pUserData) {
+    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
-    // void loadModelFor(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::string modelPath);
+    return VK_FALSE;
+  }
 
-    void loadObj1Model();
+  static void framebufferResizeCallback(GLFWwindow *window, int width,
+                                        int height) {
+    auto app = reinterpret_cast<HelloTriangleApplication *>(
+        glfwGetWindowUserPointer(window));
+    app->framebufferResized = true;
+  }
 
-    void initVulkan();
+  bool checkValidationLayerSupport();
 
-    void updateUniformBuffer(uint32_t currentImage);
+ public:
+  static HelloTriangleApplication *event_handling_instance;
 
-    void drawFrame();
+  static void keycallback_dispatch(GLFWwindow *window, int key, int scancode,
+                                   int action, int mods) {
+    if (event_handling_instance)
+      event_handling_instance->keycallback(window, key, scancode, action, mods);
+  }
 
-    void mainLoop();
+  static void mouse_callback_dispatch(GLFWwindow *window, double xpos,
+                                      double ypos) {
+    if (event_handling_instance)
+      event_handling_instance->mouse_callback(window, xpos, ypos);
+  }
 
-    void processInput(GLFWwindow *window);
+  void setEventHandling() { event_handling_instance = this; }
 
-    void cleanupSwapChain();
+  void keycallback(GLFWwindow *window, int key, int scancode, int action,
+                   int mods);
 
-    void recreateSwapChain();
+  void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 
-    void cleanup();
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-            VkDebugUtilsMessageTypeFlagsEXT messageType,
-            const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-            void *pUserData) {
-
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
-        return VK_FALSE;
-    }
-
-    static void framebufferResizeCallback(GLFWwindow *window, int width, int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
-        app->framebufferResized = true;
-    }
-
-    bool checkValidationLayerSupport();
-
-public:
-    static HelloTriangleApplication *event_handling_instance;
-
-    static void keycallback_dispatch(
-            GLFWwindow *window,
-            int key,
-            int scancode,
-            int action,
-            int mods)
-    {
-        if(event_handling_instance)
-            event_handling_instance->keycallback(window,key,scancode,action,mods);
-    }
-
-
-    static void mouse_callback_dispatch(GLFWwindow* window, double xpos, double ypos) {
-        if(event_handling_instance)
-            event_handling_instance->mouse_callback(window, xpos,  ypos);
-    }
-
-    void setEventHandling() { event_handling_instance = this; }
-
-    void keycallback(GLFWwindow *window, int key, int scancode, int action, int mods);
-
-    void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-
-    void run();
+  void run();
 };
 
-#endif //MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
+#endif  // MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
