@@ -26,6 +26,7 @@
 #include "common/GLMath.h"
 #include "common/ResourceManager.h"
 #include "render/Context.h"
+#include "render/vulkan/windowContext.h"
 #include "render/GpuResourceManager.h"
 #include "scene/Camera.h"
 
@@ -39,9 +40,11 @@ struct MyImage {
 
 class HelloTriangleApplication {
  private:
-  GLFWwindow *window;
-  float lastX, lastY;
-  bool firstMouse = true;
+  // GLFWwindow *window;
+  // float lastX, lastY;
+  WindowContext windowContext;
+
+  // bool firstMouse = true;
   std::chrono::high_resolution_clock::time_point lastTime =
       std::chrono::high_resolution_clock::now();
   ;
@@ -49,13 +52,6 @@ class HelloTriangleApplication {
   float moveCount = 0;
 
   VkContext vkContext;
-
-  VkSwapchainKHR swapChain;
-  std::vector<VkImage> swapChainImages;
-  VkPresentModeKHR swapChainPresentMode;
-  VkFormat swapChainImageFormat;
-  VkExtent2D swapChainExtent;
-  std::vector<VkImageView> swapChainImageViews;
 
   VkDescriptorSetLayout descriptorSetLayout;
   VkPipelineLayout pipelineLayout;
@@ -115,21 +111,7 @@ class HelloTriangleApplication {
 
   void createGpuResourceManager();
 
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(
-      const std::vector<VkSurfaceFormatKHR> &availableFormats);
-
-  VkPresentModeKHR chooseSwapPresentMode(
-      const std::vector<VkPresentModeKHR> &availablePresentModes);
-
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
-
-  SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-
-  void createSwapChain();
-
   void createSurface();
-
-  void createSwapChainImageViews();
 
   VkShaderModule createShaderModule(const std::vector<char> &code);
 
