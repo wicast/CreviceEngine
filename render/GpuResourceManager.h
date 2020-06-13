@@ -49,9 +49,28 @@ class GpuResourceManager {
   myvk::ShaderPack getShaderPack(RID rid) { return shaders.find(rid)->second; }
 
   void destoryShaderPack(RID rid);
-  RID createShaderPack(const std::string &vertPath,
-                       const std::string &fragPath);
-  VkShaderModule createShaderModule(const std::vector<char> &code);
+  RID createShaderPack(const std::string& vertPath,
+                       const std::string& fragPath);
+  VkShaderModule createShaderModule(const std::vector<char>& code);
+
+  void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
+                   VkFormat format, VkImageTiling tiling,
+                   VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                   VkImage& image, VkDeviceMemory& imageMemory);
+
+  VkImageView createImageView(VkImage image, VkFormat format,
+                              VkImageAspectFlags aspectFlags,
+                              uint32_t mipLevels);
+
+  void createSwapChainImageViews(WindowContext& windowContext,
+                                 uint32_t mipLevels = 1);
+
+  uint32_t findMemoryType(uint32_t typeFilter,
+                          VkMemoryPropertyFlags properties);
+
+  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+                              GLFWwindow* window);
+  void createSwapChain(WindowContext& windowContext);
 };
 
 #endif

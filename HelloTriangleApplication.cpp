@@ -40,31 +40,6 @@ struct UniformBufferObject {
 
 HelloTriangleApplication *HelloTriangleApplication::event_handling_instance;
 
-bool HelloTriangleApplication::checkValidationLayerSupport() {
-  uint32_t layerCount;
-  vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-  std::vector<VkLayerProperties> availableLayers(layerCount);
-  vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-  for (const char *layerName : validationLayers) {
-    bool layerFound = false;
-
-    for (const auto &layerProperties : availableLayers) {
-      if (strcmp(layerName, layerProperties.layerName) == 0) {
-        layerFound = true;
-        break;
-      }
-    }
-
-    if (!layerFound) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 void HelloTriangleApplication::createResourceManager() {
   resourceManager = ResourceManager{};
 }
@@ -445,21 +420,6 @@ void HelloTriangleApplication::createSyncObjects() {
   }
 }
 
-uint32_t HelloTriangleApplication::findMemoryType(
-    uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-  VkPhysicalDeviceMemoryProperties memProperties;
-  vkGetPhysicalDeviceMemoryProperties(vkContext.physicalDevice, &memProperties);
-
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags &
-                                    properties) == properties) {
-      return i;
-    }
-  }
-
-  throw std::runtime_error("failed to find suitable memory type!");
-}
-
 VkFormat HelloTriangleApplication::findSupportedFormat(
     const std::vector<VkFormat> &candidates, VkImageTiling tiling,
     VkFormatFeatureFlags features) {
@@ -511,8 +471,8 @@ void HelloTriangleApplication::createBuffer(VkDeviceSize size,
   VkMemoryAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex =
-      findMemoryType(memRequirements.memoryTypeBits, properties);
+  allocInfo.memoryTypeIndex = gpuResourceManager.findMemoryType(
+      memRequirements.memoryTypeBits, properties);
 
   if (vkAllocateMemory(vkContext.device, &allocInfo, nullptr, &bufferMemory) !=
       VK_SUCCESS) {
@@ -793,12 +753,13 @@ void HelloTriangleApplication::createObjectTextureImage() {
   vkUnmapMemory(vkContext.device, stagingBufferMemory);
   stbi_image_free(pixels);
 
-  createImage(texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
-              VK_IMAGE_TILING_OPTIMAL,
-              VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, obj1TextureImage,
-              obj1TextureImageMemory);
+  gpuResourceManager.createImage(
+      texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+          VK_IMAGE_USAGE_SAMPLED_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, obj1TextureImage,
+      obj1TextureImageMemory);
 
   transitionImageLayout(obj1TextureImage, VK_FORMAT_R8G8B8A8_UNORM,
                         VK_IMAGE_LAYOUT_UNDEFINED,
@@ -840,12 +801,13 @@ void HelloTriangleApplication::createObjectTextureImage() {
   vkUnmapMemory(vkContext.device, stagingBufferMemory);
   stbi_image_free(specPixels);
 
-  createImage(specWidth, specHeight, specImage.mipLevels,
-              VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-              VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, specImage.textureImage,
-              specImage.textureImageMemory);
+  gpuResourceManager.createImage(
+      specWidth, specHeight, specImage.mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+          VK_IMAGE_USAGE_SAMPLED_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, specImage.textureImage,
+      specImage.textureImageMemory);
 
   transitionImageLayout(specImage.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
                         VK_IMAGE_LAYOUT_UNDEFINED,
@@ -1029,79 +991,12 @@ void HelloTriangleApplication::copyBufferToImage(VkBuffer buffer, VkImage image,
 }
 
 void HelloTriangleApplication::createTextureImageView() {
-  obj1TextureImageView =
-      createImageView(obj1TextureImage, VK_FORMAT_R8G8B8A8_UNORM,
-                      VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-  specImage.textureImageView =
-      createImageView(specImage.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
-                      VK_IMAGE_ASPECT_COLOR_BIT, specImage.mipLevels);
-}
-
-void HelloTriangleApplication::createImage(uint32_t width, uint32_t height,
-                                           uint32_t mipLevels, VkFormat format,
-                                           VkImageTiling tiling,
-                                           VkImageUsageFlags usage,
-                                           VkMemoryPropertyFlags properties,
-                                           VkImage &image,
-                                           VkDeviceMemory &imageMemory) {
-  VkImageCreateInfo imageInfo = {};
-  imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-  imageInfo.imageType = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width = width;
-  imageInfo.extent.height = height;
-  imageInfo.extent.depth = 1;
-  imageInfo.mipLevels = mipLevels;
-  imageInfo.arrayLayers = 1;
-  imageInfo.format = format;
-  imageInfo.tiling = tiling;
-  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  imageInfo.usage = usage;
-  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-  if (vkCreateImage(vkContext.device, &imageInfo, nullptr, &image) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to create image!");
-  }
-
-  VkMemoryRequirements memRequirements;
-  vkGetImageMemoryRequirements(vkContext.device, image, &memRequirements);
-
-  VkMemoryAllocateInfo allocInfo = {};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex =
-      findMemoryType(memRequirements.memoryTypeBits, properties);
-
-  if (vkAllocateMemory(vkContext.device, &allocInfo, nullptr, &imageMemory) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate image memory!");
-  }
-
-  vkBindImageMemory(vkContext.device, image, imageMemory, 0);
-}
-
-VkImageView HelloTriangleApplication::createImageView(
-    VkImage image, VkFormat format, VkImageAspectFlags aspectFlags,
-    uint32_t mipLevels) {
-  VkImageViewCreateInfo viewInfo = {};
-  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  viewInfo.image = image;
-  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-  viewInfo.format = format;
-  viewInfo.subresourceRange.aspectMask = aspectFlags;
-  viewInfo.subresourceRange.baseMipLevel = 0;
-  viewInfo.subresourceRange.levelCount = mipLevels;
-  viewInfo.subresourceRange.baseArrayLayer = 0;
-  viewInfo.subresourceRange.layerCount = 1;
-
-  VkImageView imageView;
-  if (vkCreateImageView(vkContext.device, &viewInfo, nullptr, &imageView) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to create texture image view!");
-  }
-
-  return imageView;
+  obj1TextureImageView = gpuResourceManager.createImageView(
+      obj1TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT,
+      mipLevels);
+  specImage.textureImageView = gpuResourceManager.createImageView(
+      specImage.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+      VK_IMAGE_ASPECT_COLOR_BIT, specImage.mipLevels);
 }
 
 void HelloTriangleApplication::createTextureSampler() {
@@ -1176,13 +1071,13 @@ void HelloTriangleApplication::createTextureSampler() {
 
 void HelloTriangleApplication::createDepthResources() {
   VkFormat depthFormat = findDepthFormat();
-  createImage(
+  gpuResourceManager.createImage(
       windowContext.swapChainExtent.width, windowContext.swapChainExtent.height,
       1, depthFormat, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-  depthImageView =
-      createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+  depthImageView = gpuResourceManager.createImageView(
+      depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
   transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 }
@@ -1205,8 +1100,8 @@ void HelloTriangleApplication::initVulkan() {
   createResourceManager();
   createVkContext();
   createGpuResourceManager();
-  VkContext::createSwapChain(vkContext, windowContext);
-  VkContext::createSwapChainImageViews(vkContext, windowContext, 1);
+  gpuResourceManager.createSwapChain(windowContext);
+  gpuResourceManager.createSwapChainImageViews(windowContext, 1);
   createRenderPass();
   createDescriptorSetLayout();
   createGraphicsPipeline();
@@ -1374,8 +1269,8 @@ void HelloTriangleApplication::recreateSwapChain() {
 
   cleanupSwapChain();
 
-  VkContext::createSwapChain(vkContext, windowContext);
-  VkContext::createSwapChainImageViews(vkContext, windowContext, 1);
+  gpuResourceManager.createSwapChain(windowContext);
+  gpuResourceManager.createSwapChainImageViews(windowContext, 1);
   createRenderPass();
   createGraphicsPipeline();
   createDepthResources();
@@ -1441,17 +1336,20 @@ void HelloTriangleApplication::mouse_callback(GLFWwindow *window, double xpos,
 
 void HelloTriangleApplication::keycallback(GLFWwindow *window, int key,
                                            int scancode, int action, int mods) {
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    camera.ProcessKeyboard(FORWARD, frameDeltaTime);
-  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    camera.ProcessKeyboard(BACKWARD, frameDeltaTime);
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    camera.ProcessKeyboard(LEFT, frameDeltaTime);
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    camera.ProcessKeyboard(RIGHT, frameDeltaTime);
+  // if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+  //   camera.ProcessKeyboard(FORWARD, frameDeltaTime);
+  // if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+  //   camera.ProcessKeyboard(BACKWARD, frameDeltaTime);
+  // if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+  //   camera.ProcessKeyboard(LEFT, frameDeltaTime);
+  // if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+  //   camera.ProcessKeyboard(RIGHT, frameDeltaTime);
 
-  moveCount++;
-  std::cout << moveCount << std::endl;
+  // if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+  //   glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+  // moveCount++;
+  // std::cout << moveCount << std::endl;
 }
 
 void HelloTriangleApplication::processInput(GLFWwindow *window) {
@@ -1470,7 +1368,11 @@ void HelloTriangleApplication::processInput(GLFWwindow *window) {
     camera.ProcessKeyboard(UP, frameDeltaTime);
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
     camera.ProcessKeyboard(DOWN, frameDeltaTime);
-  moveCount++;
+
+  if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+    glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+    glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   // std::cout<< moveCount << std::endl;
 }
 

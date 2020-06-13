@@ -26,8 +26,8 @@
 #include "common/GLMath.h"
 #include "common/ResourceManager.h"
 #include "render/Context.h"
-#include "render/vulkan/windowContext.h"
 #include "render/GpuResourceManager.h"
+#include "render/vulkan/windowContext.h"
 #include "scene/Camera.h"
 
 struct MyImage {
@@ -49,7 +49,6 @@ class HelloTriangleApplication {
       std::chrono::high_resolution_clock::now();
   ;
   float frameDeltaTime;
-  float moveCount = 0;
 
   VkContext vkContext;
 
@@ -127,9 +126,6 @@ class HelloTriangleApplication {
 
   void createSyncObjects();
 
-  uint32_t findMemoryType(uint32_t typeFilter,
-                          VkMemoryPropertyFlags properties);
-
   VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
                                VkImageTiling tiling,
                                VkFormatFeatureFlags features);
@@ -174,15 +170,6 @@ class HelloTriangleApplication {
 
   void createTextureImageView();
 
-  void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
-                   VkFormat format, VkImageTiling tiling,
-                   VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                   VkImage &image, VkDeviceMemory &imageMemory);
-
-  VkImageView createImageView(VkImage image, VkFormat format,
-                              VkImageAspectFlags aspectFlags,
-                              uint32_t mipLevels);
-
   void createTextureSampler();
 
   void createDepthResources();
@@ -208,24 +195,12 @@ class HelloTriangleApplication {
 
   void cleanup();
 
-  static VKAPI_ATTR VkBool32 VKAPI_CALL
-  debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                VkDebugUtilsMessageTypeFlagsEXT messageType,
-                const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                void *pUserData) {
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
-    return VK_FALSE;
-  }
-
   static void framebufferResizeCallback(GLFWwindow *window, int width,
                                         int height) {
     auto app = reinterpret_cast<HelloTriangleApplication *>(
         glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
   }
-
-  bool checkValidationLayerSupport();
 
  public:
   static HelloTriangleApplication *event_handling_instance;
@@ -244,6 +219,7 @@ class HelloTriangleApplication {
 
   void setEventHandling() { event_handling_instance = this; }
 
+  // TODO unused???
   void keycallback(GLFWwindow *window, int key, int scancode, int action,
                    int mods);
 
