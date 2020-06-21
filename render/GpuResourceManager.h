@@ -11,7 +11,7 @@
 class GpuResourceManager {
  private:
  public:
-  VkContext vkContext;
+  VkContext* vkContext;
 
   // TODO:conbine
   std::map<RID, VkBuffer> uniformBuffers;
@@ -32,7 +32,7 @@ class GpuResourceManager {
   std::map<RID, myvk::ShaderPack> shaders;
   std::map<RID, myvk::MyTexture> textures;
 
-  void initManager(VkContext vkContext);
+  void initManager(VkContext* vkContext);
 
   RID addTexture(myvk::MyTexture tex) {
     RID rid = rand();
@@ -71,6 +71,27 @@ class GpuResourceManager {
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
                               GLFWwindow* window);
   void createSwapChain(WindowContext& windowContext);
+
+  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                    VkMemoryPropertyFlags properties, VkBuffer& buffer,
+                    VkDeviceMemory& bufferMemory);
+
+  RID createMyTexture(std::string path);
+
+  myvk::MyTexture getTexture(RID rid) { return textures.find(rid)->second; }
+  void destoryTexture(RID rid);
+
+  void createTextureSampler(uint32_t mipLevels, VkSampler& obj1TextureSampler);
+
+  void transitionImageLayout(VkImage image, VkFormat format,
+                             VkImageLayout oldLayout, VkImageLayout newLayout,
+                             uint32_t mipLevels);
+
+  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                         uint32_t height);
+
+  void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
+                       int32_t texHeight, uint32_t mipLevels);
 };
 
 #endif

@@ -30,14 +30,6 @@
 #include "render/vulkan/windowContext.h"
 #include "scene/Camera.h"
 
-struct MyImage {
-  uint32_t mipLevels;
-  VkImage textureImage;
-  VkDeviceMemory textureImageMemory;
-  VkImageView textureImageView;
-  VkSampler textureSampler;
-};
-
 class HelloTriangleApplication {
  private:
   // GLFWwindow *window;
@@ -57,13 +49,8 @@ class HelloTriangleApplication {
   VkRenderPass renderPass;
   VkPipeline graphicsPipeline;
 
-  uint32_t mipLevels;
-  VkImage obj1TextureImage;
-  VkDeviceMemory obj1TextureImageMemory;
-  VkImageView obj1TextureImageView;
-  VkSampler obj1TextureSampler;
-
-  MyImage specImage;
+  RID obj1TexId;
+  RID specTexId;
 
   VkImage depthImage;
   VkDeviceMemory depthImageMemory;
@@ -86,7 +73,7 @@ class HelloTriangleApplication {
   std::vector<VkDeviceMemory> uniformBuffersMemory;
 
   std::vector<VkFramebuffer> swapChainFramebuffers;
-  VkCommandPool commandPool;
+
   VkDescriptorPool descriptorPool;
   std::vector<VkDescriptorSet> descriptorSets;
   std::vector<VkCommandBuffer> commandBuffers;
@@ -120,7 +107,7 @@ class HelloTriangleApplication {
 
   void createFramebuffers();
 
-  void createCommandPool();
+  // void createCommandPool();
 
   void createCommandBuffers();
 
@@ -142,9 +129,9 @@ class HelloTriangleApplication {
 
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-  VkCommandBuffer beginSingleTimeCommands();
+  // VkCommandBuffer beginSingleTimeCommands();
 
-  void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+  // void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
   void createIndexBuffer();
 
@@ -158,17 +145,17 @@ class HelloTriangleApplication {
 
   void createObjectTextureImage();
 
-  void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
-                       int32_t texHeight, uint32_t mipLevels);
+  // void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
+  //                      int32_t texHeight, uint32_t mipLevels);
 
-  void transitionImageLayout(VkImage image, VkFormat format,
-                             VkImageLayout oldLayout, VkImageLayout newLayout,
-                             uint32_t transitionImageLayout);
+  // void transitionImageLayout(VkImage image, VkFormat format,
+  //                            VkImageLayout oldLayout, VkImageLayout
+  //                            newLayout, uint32_t transitionImageLayout);
 
-  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
-                         uint32_t height);
+  // void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+  //                        uint32_t height);
 
-  void createTextureImageView();
+  // void createTextureImageView();
 
   void createTextureSampler();
 
