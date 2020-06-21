@@ -4,9 +4,9 @@
 
 #include "HelloTriangleApplication.h"
 
-#define STB_IMAGE_IMPLEMENTATION
+// #define STB_IMAGE_IMPLEMENTATION
 
-#include <stb_image.h>
+// #include <stb_image.h>
 
 #include <unordered_map>
 
@@ -15,6 +15,7 @@ const int HEIGHT = 600;
 
 const std::string MODEL_PATH = "../../../../models/box.obj";
 const std::string MODEL2_PATH = "../../../../models/box2.obj";
+const std::string APPLE_MODEL_PATH = "../../../../models/apple.obj";
 const std::string TEXTURE_PATH = "../../../../textures/container2.png";
 const std::string SPEC_TEXTURE_PATH =
     "../../../../textures/container2_specular.png";
@@ -344,7 +345,7 @@ void HelloTriangleApplication::createCommandBuffers() {
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-  Mesh mesh = resourceManager.getMesh(obj1);
+  auto mesh = gpuResourceManager.getMesh(obj1);
 
   if (vkAllocateCommandBuffers(vkContext.device, &allocInfo,
                                commandBuffers.data()) != VK_SUCCESS) {
@@ -378,10 +379,10 @@ void HelloTriangleApplication::createCommandBuffers() {
 
     vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                       graphicsPipeline);
-    VkBuffer vertexBuffers[] = {vertexBuffer};
+    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0,
+    vkCmdBindIndexBuffer(commandBuffers[i], mesh.indexBuffer, 0,
                          VK_INDEX_TYPE_UINT32);
 
     vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -481,75 +482,6 @@ void HelloTriangleApplication::createBuffer(VkDeviceSize size,
   }
 
   vkBindBufferMemory(vkContext.device, buffer, bufferMemory, 0);
-}
-
-void HelloTriangleApplication::createVertexBuffer() {
-  Mesh mesh = resourceManager.getMesh(obj1);
-
-  VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
-
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-
-  createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-               stagingBuffer, stagingBufferMemory);
-
-  void *data;
-  vkMapMemory(vkContext.device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, mesh.vertices.data(), (size_t)bufferSize);
-  vkUnmapMemory(vkContext.device, stagingBufferMemory);
-
-  createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-  copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-  vkDestroyBuffer(vkContext.device, stagingBuffer, nullptr);
-  vkFreeMemory(vkContext.device, stagingBufferMemory, nullptr);
-}
-
-void HelloTriangleApplication::copyBuffer(VkBuffer srcBuffer,
-                                          VkBuffer dstBuffer,
-                                          VkDeviceSize size) {
-  VkCommandBuffer commandBuffer = vkContext.beginSingleTimeCommands();
-
-  VkBufferCopy copyRegion = {};
-  copyRegion.size = size;
-  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-  vkContext.endSingleTimeCommands(commandBuffer);
-}
-
-void HelloTriangleApplication::createIndexBuffer() {
-  Mesh mesh = resourceManager.getMesh(obj1);
-
-  VkDeviceSize bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
-
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-               stagingBuffer, stagingBufferMemory);
-
-  void *data;
-  vkMapMemory(vkContext.device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, mesh.indices.data(), (size_t)bufferSize);
-  vkUnmapMemory(vkContext.device, stagingBufferMemory);
-
-  createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-  copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-  vkDestroyBuffer(vkContext.device, stagingBuffer, nullptr);
-  vkFreeMemory(vkContext.device, stagingBufferMemory, nullptr);
 }
 
 void HelloTriangleApplication::createDescriptorSetLayout() {
@@ -717,7 +649,8 @@ void HelloTriangleApplication::createDepthResources() {
 }
 
 void HelloTriangleApplication::loadObj1Model() {
-  obj1 = resourceManager.loadFromObj(MODEL_PATH);
+  obj1 = gpuResourceManager.addModel(MODEL_PATH);
+  gpuResourceManager.generateVkMeshBuffer(obj1);
 }
 
 void HelloTriangleApplication::initVulkan() {
@@ -742,10 +675,10 @@ void HelloTriangleApplication::initVulkan() {
   vkContext.createCommandPool();
   createDepthResources();
   createFramebuffers();
-  createObjectTextureImage();
   loadObj1Model();
-  createVertexBuffer();
-  createIndexBuffer();
+  createObjectTextureImage();
+  // createVertexBuffer();
+  // createIndexBuffer();
   createUniformBuffers();
   createDescriptorPool();
   createDescriptorSets();
@@ -919,11 +852,9 @@ void HelloTriangleApplication::cleanup() {
   gpuResourceManager.destoryTexture(obj1TexId);
   gpuResourceManager.destoryTexture(specTexId);
   vkDestroyDescriptorSetLayout(vkContext.device, descriptorSetLayout, nullptr);
-  vkDestroyBuffer(vkContext.device, indexBuffer, nullptr);
-  vkFreeMemory(vkContext.device, indexBufferMemory, nullptr);
 
-  vkDestroyBuffer(vkContext.device, vertexBuffer, nullptr);
-  vkFreeMemory(vkContext.device, vertexBufferMemory, nullptr);
+  gpuResourceManager.destoryMesh(obj1);
+
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     vkDestroySemaphore(vkContext.device, renderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(vkContext.device, imageAvailableSemaphores[i], nullptr);

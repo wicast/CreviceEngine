@@ -7,6 +7,7 @@
 #include "render/Context.h"
 #include "render/ShaderPack.h"
 #include "render/Texture.h"
+#include "render/Model.h"
 
 class GpuResourceManager {
  private:
@@ -25,20 +26,17 @@ class GpuResourceManager {
   VkRenderPass renderPass;
   VkPipeline graphicsPipeline;
 
-  // TODO
-  VkBuffer vertexBuffer;
-  VkDeviceMemory vertexBufferMemory;
-
+  std::map<RID, Mesh> meshs;
   std::map<RID, myvk::ShaderPack> shaders;
   std::map<RID, myvk::MyTexture> textures;
 
   void initManager(VkContext* vkContext);
 
-  RID addTexture(myvk::MyTexture tex) {
-    RID rid = rand();
-    textures.insert(std::pair<RID, myvk::MyTexture>(rid, tex));
-    return rid;
-  }
+  Mesh createMeshFromObj(std::string modelPath);
+  RID addModel(std::string modelPath);
+  RID generateVkMeshBuffer(RID rid);
+  Mesh getMesh(RID rid) { return meshs.at(rid); }
+  void destoryMesh(RID rid);
 
   RID addShaderPack(myvk::ShaderPack shader) {
     RID rid = rand();
@@ -46,12 +44,16 @@ class GpuResourceManager {
     return rid;
   }
 
-  myvk::ShaderPack getShaderPack(RID rid) { return shaders.find(rid)->second; }
+  myvk::ShaderPack getShaderPack(RID rid) { return shaders.at(rid); }
 
   void destoryShaderPack(RID rid);
   RID createShaderPack(const std::string& vertPath,
                        const std::string& fragPath);
   VkShaderModule createShaderModule(const std::vector<char>& code);
+
+  RID createMyTexture(std::string path);
+  myvk::MyTexture getTexture(RID rid) { return textures.at(rid); }
+  void destoryTexture(RID rid);
 
   void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
                    VkFormat format, VkImageTiling tiling,
@@ -76,10 +78,7 @@ class GpuResourceManager {
                     VkMemoryPropertyFlags properties, VkBuffer& buffer,
                     VkDeviceMemory& bufferMemory);
 
-  RID createMyTexture(std::string path);
-
-  myvk::MyTexture getTexture(RID rid) { return textures.find(rid)->second; }
-  void destoryTexture(RID rid);
+  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
   void createTextureSampler(uint32_t mipLevels, VkSampler& obj1TextureSampler);
 

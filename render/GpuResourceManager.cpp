@@ -1,6 +1,133 @@
-#include "render/GpuResourceManager.h"
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
 
-#include "stb_image.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#include "render/GpuResourceManager.h"
+#include "render/Model.h"
+
+Mesh GpuResourceManager::createMeshFromObj(std::string modelPath) {
+  tinyobj::attrib_t attrib;
+  std::vector<tinyobj::shape_t> shapes;
+  std::vector<tinyobj::material_t> materials;
+  std::string warn, err;
+
+  Mesh mesh;
+
+  if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
+                        modelPath.c_str())) {
+    throw std::runtime_error(warn + err);
+  }
+
+  std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+
+  for (const auto& shape : shapes) {
+    for (const auto& index : shape.mesh.indices) {
+      Vertex vertex = {};
+      vertex.pos = {attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]};
+
+      vertex.texCoord = {attrib.texcoords[2 * index.texcoord_index + 0],
+                         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
+
+      vertex.normal = {attrib.normals[3 * index.normal_index + 0],
+                       attrib.normals[3 * index.normal_index + 1],
+                       attrib.normals[3 * index.normal_index + 2]};
+
+      vertex.color = {1.0f, 1.0f, 1.0f};
+      if (uniqueVertices.count(vertex) == 0) {
+        uniqueVertices[vertex] = static_cast<uint32_t>(mesh.vertices.size());
+        mesh.vertices.push_back(vertex);
+      }
+
+      mesh.indices.push_back(uniqueVertices[vertex]);
+    }
+  }
+
+  return mesh;
+}
+
+RID GpuResourceManager::addModel(std::string modelPath) {
+  // TODO beyond obj type
+  Mesh newMesh = createMeshFromObj(modelPath);
+  RID rid = rand();
+  this->meshs.insert(std::pair<RID, Mesh>(rid, newMesh));
+
+  return rid;
+}
+
+RID GpuResourceManager::generateVkMeshBuffer(RID rid) {
+  // VertexBuffer
+  auto mesh = getMesh(rid);
+  VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
+
+  VkBuffer stagingBuffer = VK_NULL_HANDLE;
+  VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
+
+  createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+               stagingBuffer, stagingBufferMemory);
+
+  void* data;
+  vkMapMemory(vkContext->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+  memcpy(data, mesh.vertices.data(), (size_t)bufferSize);
+  vkUnmapMemory(vkContext->device, stagingBufferMemory);
+
+  createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh.vertexBuffer,
+      mesh.vertexBufferMemory);
+
+  copyBuffer(stagingBuffer, mesh.vertexBuffer, bufferSize);
+
+  vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
+  vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
+
+  // IndexBuffer
+  bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
+
+  createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+               stagingBuffer, stagingBufferMemory);
+
+  vkMapMemory(vkContext->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+  memcpy(data, mesh.indices.data(), (size_t)bufferSize);
+  vkUnmapMemory(vkContext->device, stagingBufferMemory);
+
+  createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh.indexBuffer,
+      mesh.indexBufferMemory);
+
+  copyBuffer(stagingBuffer, mesh.indexBuffer, bufferSize);
+
+  vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
+  vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
+
+  // auto it = meshs.find(rid);
+  // if (it != meshs.end())
+  //   it->second = mesh;
+  meshs[rid] = mesh;
+
+  return rid;
+}
+
+void GpuResourceManager::destoryMesh(RID rid) {
+  auto mesh = getMesh(rid);
+
+  vkDestroyBuffer(vkContext->device, mesh.indexBuffer, nullptr);
+  vkFreeMemory(vkContext->device, mesh.indexBufferMemory, nullptr);
+
+  vkDestroyBuffer(vkContext->device, mesh.vertexBuffer, nullptr);
+  vkFreeMemory(vkContext->device, mesh.vertexBufferMemory, nullptr);
+  meshs.erase(rid);
+}
 
 RID GpuResourceManager::createShaderPack(const std::string& vertPath,
                                          const std::string& fragPath) {
@@ -41,6 +168,8 @@ void GpuResourceManager::destoryShaderPack(RID rid) {
 
   vkDestroyShaderModule(vkContext->device, sp.fragShaderModule, nullptr);
   vkDestroyShaderModule(vkContext->device, sp.vertShaderModule, nullptr);
+
+  shaders.erase(rid);
 }
 
 void GpuResourceManager::destoryTexture(RID rid) {
@@ -50,6 +179,7 @@ void GpuResourceManager::destoryTexture(RID rid) {
   vkDestroyImageView(vkContext->device, tex.textureImageView, nullptr);
   vkDestroyImage(vkContext->device, tex.textureImage, nullptr);
   vkFreeMemory(vkContext->device, tex.textureImageMemory, nullptr);
+  textures.erase(rid);
 }
 
 void GpuResourceManager::createImage(uint32_t width, uint32_t height,
@@ -164,6 +294,17 @@ void GpuResourceManager::createBuffer(VkDeviceSize size,
   }
 
   vkBindBufferMemory(vkContext->device, buffer, bufferMemory, 0);
+}
+
+void GpuResourceManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
+                                    VkDeviceSize size) {
+  VkCommandBuffer commandBuffer = vkContext->beginSingleTimeCommands();
+
+  VkBufferCopy copyRegion = {};
+  copyRegion.size = size;
+  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+  vkContext->endSingleTimeCommands(commandBuffer);
 }
 
 RID GpuResourceManager::createMyTexture(std::string path) {

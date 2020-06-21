@@ -10,11 +10,11 @@ class ResourceManager {
  private:
  public:
   // std::map<RID, myvk::ShaderPack> shaders;
-  std::map<RID, Mesh> meshs;
+  // std::map<RID, Mesh> meshs;
 
-  RID loadFromObj(std::string modelPath);
+  // RID loadFromObj(std::string modelPath);
 
-  Mesh getMesh(RID rid) { return meshs.find(rid)->second; }
+  // Mesh getMesh(RID rid) { return meshs.find(rid)->second; }
 };
 
 #endif

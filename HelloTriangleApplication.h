@@ -59,16 +59,8 @@ class HelloTriangleApplication {
   ResourceManager resourceManager;
   GpuResourceManager gpuResourceManager;
 
-  std::vector<Vertex> obj1Vertices;
-  std::vector<uint32_t> obj1Indices;
-
   RID obj1;
-
-  VkBuffer vertexBuffer;
-  VkDeviceMemory vertexBufferMemory;
-  VkBuffer indexBuffer;
-  VkDeviceMemory indexBufferMemory;
-
+  
   std::vector<VkBuffer> uniformBuffers;
   std::vector<VkDeviceMemory> uniformBuffersMemory;
 
@@ -125,15 +117,15 @@ class HelloTriangleApplication {
 
   bool hasStencilComponent(VkFormat format);
 
-  void createVertexBuffer();
+  // void createVertexBuffer();
 
-  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+  // void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
   // VkCommandBuffer beginSingleTimeCommands();
 
   // void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
-  void createIndexBuffer();
+  // void createIndexBuffer();
 
   void createDescriptorSetLayout();
 
