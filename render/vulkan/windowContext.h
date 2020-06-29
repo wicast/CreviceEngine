@@ -2,7 +2,7 @@
 #define MYVK_WINDOWCONTEXT_H 1
 
 #include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 class WindowContext {
  private:

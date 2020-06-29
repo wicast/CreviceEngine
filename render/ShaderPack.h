@@ -1,7 +1,7 @@
 #ifndef MYVK_SHADERPACK_H
 #define MYVK_SHADERPACK_H 1
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 namespace myvk {
     struct ShaderPack {

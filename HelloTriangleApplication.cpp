@@ -57,8 +57,12 @@ void HelloTriangleApplication::createVkContext() {
   const char **glfwExtensions;
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
+
+  volkInitialize();
   vkContext.createInstance(vkUtil::getRequiredExtensions(
       vkContext.enableValidationLayers, glfwExtensions, glfwExtensionCount));
+  volkLoadInstance(vkContext.instance);
+
   createSurface();
   vkContext.pickPhysicalDevice();
   vkContext.createLogicalDevice();

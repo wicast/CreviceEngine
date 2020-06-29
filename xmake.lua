@@ -8,10 +8,10 @@ target("MyVKLearn")
     set_kind("binary")
     add_files("*.cpp", "common/*.cpp", "render/*.cpp", "scene/*.cpp")
     add_includedirs("$(projectdir)",
-    "D:/SDKs/glm", "D:/SDKs/Vulkan/1.2.131.2/Include")
+    "D:/SDKs/glm")
 
-    add_linkdirs("D:/SDKs/Vulkan/1.2.131.2/Lib/")
-    add_links("vulkan-1")
+    add_files("3rd/volk/*.c")
+    add_includedirs("3rd/volk/", "3rd/Vulkan-Headers/include")
 
     if is_plat("mingw") then 
         add_linkdirs("D:/SDKs/glfw-3.3.2.bin.WIN64/lib-mingw-w64/")

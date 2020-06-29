@@ -5,7 +5,7 @@
 #include "render/Texture.h"
 #include "render/ShaderPack.h"
 #include "common/ResourceManager.h"
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 class RenderServer {
     VkDevice device;

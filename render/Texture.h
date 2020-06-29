@@ -1,6 +1,6 @@
 #ifndef MYVK_MYTEXTURE_H
 #define MYVK_MYTEXTURE_H
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 namespace myvk {
     struct MyTexture {

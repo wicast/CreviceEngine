@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include "render/Material.h"
 #include "render/Model.h"

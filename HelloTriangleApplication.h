@@ -4,7 +4,8 @@
 #ifndef MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
 #define MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
 
-#include <vulkan/vulkan.h>
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <volk.h>
 
 #define GLFW_INCLUDE_VULKAN
 

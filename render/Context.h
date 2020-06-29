@@ -1,7 +1,7 @@
 #ifndef MYVK_GPUCONTEXT_H
 #define MYVK_GPUCONTEXT_H 1
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <algorithm>
 #include <iostream>

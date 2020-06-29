@@ -1,7 +1,7 @@
 #ifndef MYVK_MODEL_H
 #define MYVK_MODEL_H 1
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <array>
 #include <vector>
