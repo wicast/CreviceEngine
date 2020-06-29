@@ -234,7 +234,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 
-  gpuResourceManager.destoryShaderPack(shaderRid);
+  gpuResourceManager.destroyShaderPack(shaderRid);
 }
 
 void HelloTriangleApplication::createRenderPass() {
@@ -320,22 +320,6 @@ void HelloTriangleApplication::createFramebuffers() {
     }
   }
 }
-
-// void HelloTriangleApplication::createCommandPool() {
-//   QueueFamilyIndices queueFamilyIndices =
-//       vkUtil::findQueueFamilies(vkContext.physicalDevice, vkContext.surface);
-
-//   VkCommandPoolCreateInfo poolInfo = {};
-//   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-//   poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-//   poolInfo.flags = 0;  // Optional
-
-//   if (vkCreateCommandPool(vkContext.device, &poolInfo, nullptr, &commandPool)
-//   !=
-//       VK_SUCCESS) {
-//     throw std::runtime_error("failed to create command pool!");
-//   }
-// }
 
 void HelloTriangleApplication::createCommandBuffers() {
   commandBuffers.resize(swapChainFramebuffers.size());
@@ -437,6 +421,7 @@ VkFormat HelloTriangleApplication::findSupportedFormat(
       return format;
     }
   }
+  return VK_FORMAT_UNDEFINED;
 }
 
 VkFormat HelloTriangleApplication::findDepthFormat() {
@@ -444,11 +429,6 @@ VkFormat HelloTriangleApplication::findDepthFormat() {
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
        VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-}
-
-bool HelloTriangleApplication::hasStencilComponent(VkFormat format) {
-  return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
-         format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
 void HelloTriangleApplication::createBuffer(VkDeviceSize size,
@@ -511,8 +491,7 @@ void HelloTriangleApplication::createDescriptorSetLayout() {
 
   std::array<VkDescriptorSetLayoutBinding, 3> bindings = {
       uboLayoutBinding, samplerLayoutBinding, samplerLayoutBinding2};
-  // std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding,
-  // samplerLayoutBinding};
+  
   VkDescriptorSetLayoutCreateInfo layoutInfo = {};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -536,29 +515,17 @@ void HelloTriangleApplication::createUniformBuffers() {
   }
 }
 
-void HelloTriangleApplication::createDescriptorPool() {
-  std::array<VkDescriptorPoolSize, 3> poolSizes = {};
-  poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  poolSizes[0].descriptorCount =
-      static_cast<uint32_t>(windowContext.swapChainImages.size());
-  poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  poolSizes[1].descriptorCount =
-      static_cast<uint32_t>(windowContext.swapChainImages.size());
-  poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  poolSizes[2].descriptorCount =
-      static_cast<uint32_t>(windowContext.swapChainImages.size());
+void HelloTriangleApplication::initDescriptorPool() {
 
-  VkDescriptorPoolCreateInfo poolInfo = {};
-  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-  poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets =
-      static_cast<uint32_t>(windowContext.swapChainImages.size());
-
-  if (vkCreateDescriptorPool(vkContext.device, &poolInfo, nullptr,
-                             &descriptorPool) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create descriptor pool!");
-  }
+  std::vector<VkDescriptorPoolSize> poolSizes = {
+      gpuResourceManager.createDescriptorPoolSize(
+          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          windowContext.swapChainImages.size()),
+      gpuResourceManager.createDescriptorPoolSize(
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          windowContext.swapChainImages.size() * 2)};
+  gpuResourceManager.addDescriptorPool(windowContext.swapChainImages.size(),
+                                       poolSizes);
 }
 
 void HelloTriangleApplication::createDescriptorSets() {
@@ -566,7 +533,7 @@ void HelloTriangleApplication::createDescriptorSets() {
       windowContext.swapChainImages.size(), descriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool = descriptorPool;
+  allocInfo.descriptorPool = gpuResourceManager.descriptorPools[0];
   allocInfo.descriptorSetCount =
       static_cast<uint32_t>(windowContext.swapChainImages.size());
   allocInfo.pSetLayouts = layouts.data();
@@ -677,10 +644,8 @@ void HelloTriangleApplication::initVulkan() {
   createFramebuffers();
   loadObj1Model();
   createObjectTextureImage();
-  // createVertexBuffer();
-  // createIndexBuffer();
   createUniformBuffers();
-  createDescriptorPool();
+  initDescriptorPool();
   createDescriptorSets();
   createCommandBuffers();
   createSyncObjects();
@@ -809,6 +774,10 @@ void HelloTriangleApplication::mainLoop() {
 }
 
 void HelloTriangleApplication::cleanupSwapChain() {
+  vkDestroyImageView(vkContext.device, depthImageView, nullptr);
+  vkDestroyImage(vkContext.device, depthImage, nullptr);
+  vkFreeMemory(vkContext.device, depthImageMemory, nullptr);
+
   for (auto framebuffer : swapChainFramebuffers) {
     vkDestroyFramebuffer(vkContext.device, framebuffer, nullptr);
   }
@@ -825,7 +794,7 @@ void HelloTriangleApplication::cleanupSwapChain() {
     vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
     vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
   }
-  vkDestroyDescriptorPool(vkContext.device, descriptorPool, nullptr);
+  vkDestroyDescriptorPool(vkContext.device, gpuResourceManager.descriptorPools[0], nullptr);
   vkDestroySwapchainKHR(vkContext.device, windowContext.swapChain, nullptr);
 }
 
@@ -841,7 +810,7 @@ void HelloTriangleApplication::recreateSwapChain() {
   createDepthResources();
   createFramebuffers();
   createUniformBuffers();
-  createDescriptorPool();
+  initDescriptorPool();
   createDescriptorSets();
   createCommandBuffers();
 }
@@ -849,11 +818,11 @@ void HelloTriangleApplication::recreateSwapChain() {
 void HelloTriangleApplication::cleanup() {
   cleanupSwapChain();
 
-  gpuResourceManager.destoryTexture(obj1TexId);
-  gpuResourceManager.destoryTexture(specTexId);
+  gpuResourceManager.destroyTexture(obj1TexId);
+  gpuResourceManager.destroyTexture(specTexId);
   vkDestroyDescriptorSetLayout(vkContext.device, descriptorSetLayout, nullptr);
 
-  gpuResourceManager.destoryMesh(obj1);
+  gpuResourceManager.destroyMesh(obj1);
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     vkDestroySemaphore(vkContext.device, renderFinishedSemaphores[i], nullptr);

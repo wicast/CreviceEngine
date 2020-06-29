@@ -60,13 +60,13 @@ class HelloTriangleApplication {
   GpuResourceManager gpuResourceManager;
 
   RID obj1;
-  
+
   std::vector<VkBuffer> uniformBuffers;
   std::vector<VkDeviceMemory> uniformBuffersMemory;
 
   std::vector<VkFramebuffer> swapChainFramebuffers;
 
-  VkDescriptorPool descriptorPool;
+  // VkDescriptorPool descriptorPool;
   std::vector<VkDescriptorSet> descriptorSets;
   std::vector<VkCommandBuffer> commandBuffers;
 
@@ -99,8 +99,6 @@ class HelloTriangleApplication {
 
   void createFramebuffers();
 
-  // void createCommandPool();
-
   void createCommandBuffers();
 
   void createSyncObjects();
@@ -115,23 +113,11 @@ class HelloTriangleApplication {
                     VkMemoryPropertyFlags properties, VkBuffer &buffer,
                     VkDeviceMemory &bufferMemory);
 
-  bool hasStencilComponent(VkFormat format);
-
-  // void createVertexBuffer();
-
-  // void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-
-  // VkCommandBuffer beginSingleTimeCommands();
-
-  // void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-
-  // void createIndexBuffer();
-
   void createDescriptorSetLayout();
 
   void createUniformBuffers();
 
-  void createDescriptorPool();
+  void initDescriptorPool();
 
   void createDescriptorSets();
 

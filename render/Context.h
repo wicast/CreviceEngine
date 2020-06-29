@@ -89,6 +89,11 @@ class vkUtil {
     return true;
   }
 
+  static bool hasStencilComponent(VkFormat format) {
+    return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+           format == VK_FORMAT_D24_UNORM_S8_UINT;
+  }
+
   static std::vector<const char*> getRequiredExtensions(
       bool enableValidationLayers, const char** glfwExtensions,
       uint32_t glfwExtensionCount) {

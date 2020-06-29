@@ -118,7 +118,7 @@ RID GpuResourceManager::generateVkMeshBuffer(RID rid) {
   return rid;
 }
 
-void GpuResourceManager::destoryMesh(RID rid) {
+void GpuResourceManager::destroyMesh(RID rid) {
   auto mesh = getMesh(rid);
 
   vkDestroyBuffer(vkContext->device, mesh.indexBuffer, nullptr);
@@ -163,7 +163,7 @@ VkShaderModule GpuResourceManager::createShaderModule(
   return shaderModule;
 }
 
-void GpuResourceManager::destoryShaderPack(RID rid) {
+void GpuResourceManager::destroyShaderPack(RID rid) {
   myvk::ShaderPack sp = getShaderPack(rid);
 
   vkDestroyShaderModule(vkContext->device, sp.fragShaderModule, nullptr);
@@ -172,7 +172,7 @@ void GpuResourceManager::destoryShaderPack(RID rid) {
   shaders.erase(rid);
 }
 
-void GpuResourceManager::destoryTexture(RID rid) {
+void GpuResourceManager::destroyTexture(RID rid) {
   auto tex = getTexture(rid);
 
   vkDestroySampler(vkContext->device, tex.textureSampler, nullptr);
@@ -238,7 +238,7 @@ void GpuResourceManager::createTextureSampler(uint32_t mipLevels,
   samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
   samplerInfo.anisotropyEnable = VK_TRUE;
-  samplerInfo.maxAnisotropy = 256;
+  samplerInfo.maxAnisotropy = 16;
 
   samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 
@@ -353,9 +353,9 @@ RID GpuResourceManager::createMyTexture(std::string path) {
   generateMipmaps(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM, texWidth,
                   texHeight, mipLevels);
 
-  transitionImageLayout(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
-                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
+  // transitionImageLayout(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+  //                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+  //                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
 
   vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
   vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
@@ -409,11 +409,20 @@ void GpuResourceManager::transitionImageLayout(VkImage image, VkFormat format,
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.image = image;
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   barrier.subresourceRange.baseMipLevel = 0;
   barrier.subresourceRange.levelCount = mipLevels;
   barrier.subresourceRange.baseArrayLayer = 0;
   barrier.subresourceRange.layerCount = 1;
+
+  if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    if (vkUtil::hasStencilComponent(format)) {
+      barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+  } else {
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  }
 
   VkPipelineStageFlags sourceStage;
   VkPipelineStageFlags destinationStage;
@@ -669,4 +678,34 @@ uint32_t GpuResourceManager::findMemoryType(uint32_t typeFilter,
   }
 
   throw std::runtime_error("failed to find suitable memory type!");
+}
+
+void GpuResourceManager::addDescriptorPool(
+    uint32_t setCount, std::vector<VkDescriptorPoolSize> poolSizes) {
+
+  VkDescriptorPoolCreateInfo poolInfo = {};
+  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+  poolInfo.pPoolSizes = poolSizes.data();
+  poolInfo.maxSets = static_cast<uint32_t>(setCount);
+
+  VkDescriptorPool descriptorPool;
+  if (vkCreateDescriptorPool(vkContext->device, &poolInfo, nullptr,
+                             &descriptorPool) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create descriptor pool!");
+  }
+
+  descriptorPools.push_back(descriptorPool);
+}
+
+RID GpuResourceManager::createDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo layoutInfo) {
+  VkDescriptorSetLayout descriptorSetLayout{};
+  if (vkCreateDescriptorSetLayout(vkContext->device, &layoutInfo, nullptr,
+                                  &descriptorSetLayout) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create descriptor set layout!");
+  }
+
+  RID rid = rand();
+  this->descriptorSetLayouts.insert(std::pair<RID, VkDescriptorSetLayout>(rid, descriptorSetLayout));
+  return rid;
 }

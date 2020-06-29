@@ -1,13 +1,13 @@
 #ifndef MYVK_GPU_RESOURCEMANAGER_H
 #define MYVK_GPU_RESOURCEMANAGER_H 1
 
-#include <map>
+#include <unordered_map>
 
 #include "common/Resource.h"
 #include "render/Context.h"
+#include "render/Model.h"
 #include "render/ShaderPack.h"
 #include "render/Texture.h"
-#include "render/Model.h"
 
 class GpuResourceManager {
  private:
@@ -15,20 +15,21 @@ class GpuResourceManager {
   VkContext* vkContext;
 
   // TODO:conbine
-  std::map<RID, VkBuffer> uniformBuffers;
-  std::map<RID, VkDeviceMemory> uniformBuffersMemory;
-
-  std::map<RID, VkFramebuffer> swapChainFramebuffers;
+  std::unordered_map<RID, VkBuffer> uniformBuffers;
+  std::unordered_map<RID, VkDeviceMemory> uniformBuffersMemory;
+  std::unordered_map<RID, VkFramebuffer> swapChainFramebuffers;
 
   // TODO
-  VkDescriptorSetLayout descriptorSetLayout;
   VkPipelineLayout pipelineLayout;
   VkRenderPass renderPass;
   VkPipeline graphicsPipeline;
 
-  std::map<RID, Mesh> meshs;
-  std::map<RID, myvk::ShaderPack> shaders;
-  std::map<RID, myvk::MyTexture> textures;
+  std::vector<VkDescriptorPool> descriptorPools;
+  std::unordered_map<RID, VkDescriptorSetLayout> descriptorSetLayouts;
+
+  std::unordered_map<RID, Mesh> meshs;
+  std::unordered_map<RID, myvk::ShaderPack> shaders;
+  std::unordered_map<RID, myvk::MyTexture> textures;
 
   void initManager(VkContext* vkContext);
 
@@ -36,7 +37,7 @@ class GpuResourceManager {
   RID addModel(std::string modelPath);
   RID generateVkMeshBuffer(RID rid);
   Mesh getMesh(RID rid) { return meshs.at(rid); }
-  void destoryMesh(RID rid);
+  void destroyMesh(RID rid);
 
   RID addShaderPack(myvk::ShaderPack shader) {
     RID rid = rand();
@@ -46,14 +47,14 @@ class GpuResourceManager {
 
   myvk::ShaderPack getShaderPack(RID rid) { return shaders.at(rid); }
 
-  void destoryShaderPack(RID rid);
+  void destroyShaderPack(RID rid);
   RID createShaderPack(const std::string& vertPath,
                        const std::string& fragPath);
   VkShaderModule createShaderModule(const std::vector<char>& code);
 
   RID createMyTexture(std::string path);
   myvk::MyTexture getTexture(RID rid) { return textures.at(rid); }
-  void destoryTexture(RID rid);
+  void destroyTexture(RID rid);
 
   void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
                    VkFormat format, VkImageTiling tiling,
@@ -91,6 +92,27 @@ class GpuResourceManager {
 
   void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
                        int32_t texHeight, uint32_t mipLevels);
+
+  inline VkDescriptorPoolSize createDescriptorPoolSize(
+      VkDescriptorType type, uint32_t descriptorCount) {
+    VkDescriptorPoolSize descriptorPoolSize{};
+    descriptorPoolSize.type = type;
+    descriptorPoolSize.descriptorCount = descriptorCount;
+    return descriptorPoolSize;
+  }
+
+  void addDescriptorPool(uint32_t setCount,
+                         std::vector<VkDescriptorPoolSize> poolSizes);
+
+  RID createDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo layoutInfo);
+  VkDescriptorSetLayout getDescriptorSetLayout(RID rid) {
+    return descriptorSetLayouts.at(rid);
+  }
+  void destoryDescriptorSetLayout(RID rid) {
+    VkDescriptorSetLayout layout = getDescriptorSetLayout(rid);
+    vkDestroyDescriptorSetLayout(vkContext->device, layout, nullptr);
+    descriptorSetLayouts.erase(rid);
+  }
 };
 
 #endif
