@@ -45,7 +45,7 @@ class HelloTriangleApplication {
 
   VkContext vkContext;
 
-  VkDescriptorSetLayout descriptorSetLayout;
+  RID descriptorSetLayout;
   VkPipelineLayout pipelineLayout;
   VkRenderPass renderPass;
   VkPipeline graphicsPipeline;
@@ -53,6 +53,7 @@ class HelloTriangleApplication {
   RID obj1TexId;
   RID specTexId;
 
+  // TODO via manager
   VkImage depthImage;
   VkDeviceMemory depthImageMemory;
   VkImageView depthImageView;
@@ -67,7 +68,6 @@ class HelloTriangleApplication {
 
   std::vector<VkFramebuffer> swapChainFramebuffers;
 
-  // VkDescriptorPool descriptorPool;
   std::vector<VkDescriptorSet> descriptorSets;
   std::vector<VkCommandBuffer> commandBuffers;
 

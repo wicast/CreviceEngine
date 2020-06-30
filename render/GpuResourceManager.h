@@ -36,7 +36,6 @@ class GpuResourceManager {
   Mesh createMeshFromObj(std::string modelPath);
   RID addModel(std::string modelPath);
   RID generateVkMeshBuffer(RID rid);
-  Mesh getMesh(RID rid) { return meshs.at(rid); }
   void destroyMesh(RID rid);
 
   RID addShaderPack(myvk::ShaderPack shader) {
@@ -45,15 +44,12 @@ class GpuResourceManager {
     return rid;
   }
 
-  myvk::ShaderPack getShaderPack(RID rid) { return shaders.at(rid); }
-
   void destroyShaderPack(RID rid);
   RID createShaderPack(const std::string& vertPath,
                        const std::string& fragPath);
   VkShaderModule createShaderModule(const std::vector<char>& code);
 
   RID createMyTexture(std::string path);
-  myvk::MyTexture getTexture(RID rid) { return textures.at(rid); }
   void destroyTexture(RID rid);
 
   void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
@@ -101,17 +97,39 @@ class GpuResourceManager {
     return descriptorPoolSize;
   }
 
+  void initDescriptorPool();
   void addDescriptorPool(uint32_t setCount,
                          std::vector<VkDescriptorPoolSize> poolSizes);
 
-  RID createDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo layoutInfo);
-  VkDescriptorSetLayout getDescriptorSetLayout(RID rid) {
-    return descriptorSetLayouts.at(rid);
-  }
+  RID addDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo layoutInfo);
+
   void destoryDescriptorSetLayout(RID rid) {
-    VkDescriptorSetLayout layout = getDescriptorSetLayout(rid);
+    VkDescriptorSetLayout layout = getById<VkDescriptorSetLayout>(rid);
     vkDestroyDescriptorSetLayout(vkContext->device, layout, nullptr);
     descriptorSetLayouts.erase(rid);
+  }
+
+  template <typename T>
+  T getById(RID rid){};
+
+  template <>
+  myvk::ShaderPack getById<myvk::ShaderPack>(RID rid) {
+    return shaders.at(rid);
+  }
+
+  template <>
+  myvk::MyTexture getById<myvk::MyTexture>(RID rid) {
+    return textures.at(rid);
+  }
+
+  template <>
+  Mesh getById<Mesh>(RID rid) {
+    return meshs.at(rid);
+  }
+
+  template <>
+  VkDescriptorSetLayout getById<VkDescriptorSetLayout>(RID rid) {
+    return descriptorSetLayouts.at(rid);
   }
 };
 

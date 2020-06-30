@@ -57,7 +57,6 @@ void HelloTriangleApplication::createVkContext() {
   const char **glfwExtensions;
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-
   volkInitialize();
   vkContext.createInstance(vkUtil::getRequiredExtensions(
       vkContext.enableValidationLayers, glfwExtensions, glfwExtensionCount));
@@ -96,7 +95,8 @@ VkShaderModule HelloTriangleApplication::createShaderModule(
 void HelloTriangleApplication::createGraphicsPipeline() {
   RID shaderRid = gpuResourceManager.createShaderPack(
       "../../../../shaders/vert.spv", "../../../../shaders/frag.spv");
-  myvk::ShaderPack shaderpack = gpuResourceManager.getShaderPack(shaderRid);
+  myvk::ShaderPack shaderpack =
+      gpuResourceManager.getById<myvk::ShaderPack>(shaderRid);
 
   VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
   vertShaderStageInfo.sType =
@@ -205,7 +205,9 @@ void HelloTriangleApplication::createGraphicsPipeline() {
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.pushConstantRangeCount = 0;
   pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+  auto des =
+      gpuResourceManager.getById<VkDescriptorSetLayout>(descriptorSetLayout);
+  pipelineLayoutInfo.pSetLayouts = &des;
 
   if (vkCreatePipelineLayout(vkContext.device, &pipelineLayoutInfo, nullptr,
                              &pipelineLayout) != VK_SUCCESS) {
@@ -333,7 +335,7 @@ void HelloTriangleApplication::createCommandBuffers() {
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-  auto mesh = gpuResourceManager.getMesh(obj1);
+  auto mesh = gpuResourceManager.getById<Mesh>(obj1);
 
   if (vkAllocateCommandBuffers(vkContext.device, &allocInfo,
                                commandBuffers.data()) != VK_SUCCESS) {
@@ -495,15 +497,13 @@ void HelloTriangleApplication::createDescriptorSetLayout() {
 
   std::array<VkDescriptorSetLayoutBinding, 3> bindings = {
       uboLayoutBinding, samplerLayoutBinding, samplerLayoutBinding2};
-  
+
   VkDescriptorSetLayoutCreateInfo layoutInfo = {};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
   layoutInfo.pBindings = bindings.data();
-  if (vkCreateDescriptorSetLayout(vkContext.device, &layoutInfo, nullptr,
-                                  &descriptorSetLayout) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create descriptor set layout!");
-  }
+
+  descriptorSetLayout = gpuResourceManager.addDescriptorSetLayout(layoutInfo);
 }
 
 void HelloTriangleApplication::createUniformBuffers() {
@@ -520,21 +520,13 @@ void HelloTriangleApplication::createUniformBuffers() {
 }
 
 void HelloTriangleApplication::initDescriptorPool() {
-
-  std::vector<VkDescriptorPoolSize> poolSizes = {
-      gpuResourceManager.createDescriptorPoolSize(
-          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          windowContext.swapChainImages.size()),
-      gpuResourceManager.createDescriptorPoolSize(
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          windowContext.swapChainImages.size() * 2)};
-  gpuResourceManager.addDescriptorPool(windowContext.swapChainImages.size(),
-                                       poolSizes);
+  gpuResourceManager.initDescriptorPool();
 }
 
 void HelloTriangleApplication::createDescriptorSets() {
   std::vector<VkDescriptorSetLayout> layouts(
-      windowContext.swapChainImages.size(), descriptorSetLayout);
+      windowContext.swapChainImages.size(),
+      gpuResourceManager.getById<VkDescriptorSetLayout>(descriptorSetLayout));
   VkDescriptorSetAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = gpuResourceManager.descriptorPools[0];
@@ -547,8 +539,8 @@ void HelloTriangleApplication::createDescriptorSets() {
                                descriptorSets.data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
-  auto obj1Tex = gpuResourceManager.getTexture(obj1TexId);
-  auto specImage = gpuResourceManager.getTexture(specTexId);
+  auto obj1Tex = gpuResourceManager.getById<myvk::MyTexture>(obj1TexId);
+  auto specImage = gpuResourceManager.getById<myvk::MyTexture>(specTexId);
 
   for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
     VkDescriptorBufferInfo bufferInfo = {};
@@ -798,7 +790,8 @@ void HelloTriangleApplication::cleanupSwapChain() {
     vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
     vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
   }
-  vkDestroyDescriptorPool(vkContext.device, gpuResourceManager.descriptorPools[0], nullptr);
+  vkDestroyDescriptorPool(vkContext.device,
+                          gpuResourceManager.descriptorPools[0], nullptr);
   vkDestroySwapchainKHR(vkContext.device, windowContext.swapChain, nullptr);
 }
 
@@ -824,7 +817,9 @@ void HelloTriangleApplication::cleanup() {
 
   gpuResourceManager.destroyTexture(obj1TexId);
   gpuResourceManager.destroyTexture(specTexId);
-  vkDestroyDescriptorSetLayout(vkContext.device, descriptorSetLayout, nullptr);
+  // vkDestroyDescriptorSetLayout(vkContext.device, descriptorSetLayout,
+  // nullptr);
+  gpuResourceManager.destoryDescriptorSetLayout(descriptorSetLayout);
 
   gpuResourceManager.destroyMesh(obj1);
 

@@ -60,7 +60,7 @@ RID GpuResourceManager::addModel(std::string modelPath) {
 
 RID GpuResourceManager::generateVkMeshBuffer(RID rid) {
   // VertexBuffer
-  auto mesh = getMesh(rid);
+  auto mesh = getById<Mesh>(rid);
   VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
 
   VkBuffer stagingBuffer = VK_NULL_HANDLE;
@@ -119,7 +119,7 @@ RID GpuResourceManager::generateVkMeshBuffer(RID rid) {
 }
 
 void GpuResourceManager::destroyMesh(RID rid) {
-  auto mesh = getMesh(rid);
+  auto mesh = getById<Mesh>(rid);
 
   vkDestroyBuffer(vkContext->device, mesh.indexBuffer, nullptr);
   vkFreeMemory(vkContext->device, mesh.indexBufferMemory, nullptr);
@@ -164,7 +164,7 @@ VkShaderModule GpuResourceManager::createShaderModule(
 }
 
 void GpuResourceManager::destroyShaderPack(RID rid) {
-  myvk::ShaderPack sp = getShaderPack(rid);
+  myvk::ShaderPack sp = getById<myvk::ShaderPack>(rid);
 
   vkDestroyShaderModule(vkContext->device, sp.fragShaderModule, nullptr);
   vkDestroyShaderModule(vkContext->device, sp.vertShaderModule, nullptr);
@@ -173,7 +173,7 @@ void GpuResourceManager::destroyShaderPack(RID rid) {
 }
 
 void GpuResourceManager::destroyTexture(RID rid) {
-  auto tex = getTexture(rid);
+  auto tex = getById<myvk::MyTexture>(rid);
 
   vkDestroySampler(vkContext->device, tex.textureSampler, nullptr);
   vkDestroyImageView(vkContext->device, tex.textureImageView, nullptr);
@@ -680,9 +680,15 @@ uint32_t GpuResourceManager::findMemoryType(uint32_t typeFilter,
   throw std::runtime_error("failed to find suitable memory type!");
 }
 
+void GpuResourceManager::initDescriptorPool() {
+  std::vector<VkDescriptorPoolSize> poolSizes = {
+      createDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 256),
+      createDescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256)};
+  addDescriptorPool(256, poolSizes);
+}
+
 void GpuResourceManager::addDescriptorPool(
     uint32_t setCount, std::vector<VkDescriptorPoolSize> poolSizes) {
-
   VkDescriptorPoolCreateInfo poolInfo = {};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -698,7 +704,8 @@ void GpuResourceManager::addDescriptorPool(
   descriptorPools.push_back(descriptorPool);
 }
 
-RID GpuResourceManager::createDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo layoutInfo) {
+RID GpuResourceManager::addDescriptorSetLayout(
+    VkDescriptorSetLayoutCreateInfo layoutInfo) {
   VkDescriptorSetLayout descriptorSetLayout{};
   if (vkCreateDescriptorSetLayout(vkContext->device, &layoutInfo, nullptr,
                                   &descriptorSetLayout) != VK_SUCCESS) {
@@ -706,6 +713,8 @@ RID GpuResourceManager::createDescriptorSetLayout(VkDescriptorSetLayoutCreateInf
   }
 
   RID rid = rand();
-  this->descriptorSetLayouts.insert(std::pair<RID, VkDescriptorSetLayout>(rid, descriptorSetLayout));
+  this->descriptorSetLayouts.insert(
+      std::pair<RID, VkDescriptorSetLayout>(rid, descriptorSetLayout));
   return rid;
 }
+
