@@ -4,7 +4,7 @@
 #ifndef MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
 #define MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
 
-#define VK_USE_PLATFORM_WIN32_KHR
+// #define VK_USE_PLATFORM_WIN32_KHR
 #include <volk.h>
 
 #define GLFW_INCLUDE_VULKAN
@@ -28,6 +28,7 @@
 #include "common/ResourceManager.h"
 #include "render/Context.h"
 #include "render/GpuResourceManager.h"
+#include "render/Uniform.h"
 #include "render/vulkan/windowContext.h"
 #include "scene/Camera.h"
 
@@ -69,7 +70,8 @@ class HelloTriangleApplication {
 
   std::vector<VkFramebuffer> swapChainFramebuffers;
 
-  std::vector<VkDescriptorSet> descriptorSets;
+  RID descriptorSets;
+
   std::vector<VkCommandBuffer> commandBuffers;
 
   std::vector<VkSemaphore> imageAvailableSemaphores;

@@ -9,6 +9,8 @@
 #include "render/ShaderPack.h"
 #include "render/Texture.h"
 
+typedef std::vector<VkDescriptorSet> DescriptorSets;
+
 class GpuResourceManager {
  private:
  public:
@@ -26,6 +28,7 @@ class GpuResourceManager {
 
   std::vector<VkDescriptorPool> descriptorPools;
   std::unordered_map<RID, VkDescriptorSetLayout> descriptorSetLayouts;
+  std::unordered_map<RID, DescriptorSets> descriptors;
 
   std::unordered_map<RID, Mesh> meshs;
   std::unordered_map<RID, myvk::ShaderPack> shaders;
@@ -109,6 +112,11 @@ class GpuResourceManager {
     descriptorSetLayouts.erase(rid);
   }
 
+  RID createDescriptorSets(uint32_t swapChainSize, RID descriptorSetLayoutId,
+                           std::vector<VkBuffer> uniformBuffers,
+                           std::vector<RID> imageIds);
+
+  /* getter for resources */
   template <typename T>
   T getById(RID rid){};
 
@@ -130,6 +138,11 @@ class GpuResourceManager {
   template <>
   VkDescriptorSetLayout getById<VkDescriptorSetLayout>(RID rid) {
     return descriptorSetLayouts.at(rid);
+  }
+
+  template <>
+  DescriptorSets getById<DescriptorSets>(RID rid) {
+    return descriptors.at(rid);
   }
 };
 

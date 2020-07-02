@@ -28,16 +28,16 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-struct UniformBufferObject {
-  alignas(16) glm::mat4 model;
-  alignas(16) glm::mat4 view;
-  alignas(16) glm::mat4 proj;
+// struct UniformBufferObject {
+//   alignas(16) glm::mat4 model;
+//   alignas(16) glm::mat4 view;
+//   alignas(16) glm::mat4 proj;
 
-  alignas(16) glm::vec3 viewPos;
+//   alignas(16) glm::vec3 viewPos;
 
-  alignas(16) glm::vec3 lightPosition;
-  alignas(16) glm::vec3 lightDiffuse;
-};
+//   alignas(16) glm::vec3 lightPosition;
+//   alignas(16) glm::vec3 lightDiffuse;
+// };
 
 HelloTriangleApplication *HelloTriangleApplication::event_handling_instance;
 
@@ -375,8 +375,10 @@ void HelloTriangleApplication::createCommandBuffers() {
     vkCmdBindIndexBuffer(commandBuffers[i], mesh.indexBuffer, 0,
                          VK_INDEX_TYPE_UINT32);
 
+    auto desSet = gpuResourceManager.getById<DescriptorSets>(
+        descriptorSets);
     vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout, 0, 1, &descriptorSets[i], 0,
+                            pipelineLayout, 0, 1, &desSet[i], 0,
                             nullptr);
     vkCmdDrawIndexed(commandBuffers[i],
                      static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
@@ -389,11 +391,10 @@ void HelloTriangleApplication::createCommandBuffers() {
 }
 
 void HelloTriangleApplication::updateCommandBuffer(RID rid) {
-
-  auto mesh = gpuResourceManager.getById<Mesh>(rid);
   vkQueueWaitIdle(vkContext.graphicsQueue);
   for (size_t i = 0; i < commandBuffers.size(); i++) {
-    vkResetCommandBuffer(commandBuffers[i], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+    vkResetCommandBuffer(commandBuffers[i],
+                         VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -412,7 +413,7 @@ void HelloTriangleApplication::updateCommandBuffer(RID rid) {
     renderPassInfo.renderArea.extent = windowContext.swapChainExtent;
 
     std::array<VkClearValue, 2> clearValues = {};
-    clearValues[0].color = {253/255.0f, 104/255.0f, 201/255.0f, 1.0f};
+    clearValues[0].color = {253 / 255.0f, 104 / 255.0f, 201 / 255.0f, 1.0f};
     clearValues[1].depthStencil = {1.0f, 0};
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -421,14 +422,18 @@ void HelloTriangleApplication::updateCommandBuffer(RID rid) {
 
     vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                       graphicsPipeline);
+
+    auto mesh = gpuResourceManager.getById<Mesh>(rid);
     VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffers[i], mesh.indexBuffer, 0,
                          VK_INDEX_TYPE_UINT32);
 
+    auto desSet = gpuResourceManager.getById<DescriptorSets>(
+        descriptorSets);
     vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout, 0, 1, &descriptorSets[i], 0,
+                            pipelineLayout, 0, 1, &desSet[i], 0,
                             nullptr);
     vkCmdDrawIndexed(commandBuffers[i],
                      static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
@@ -544,72 +549,10 @@ void HelloTriangleApplication::initDescriptorPool() {
 }
 
 void HelloTriangleApplication::createDescriptorSets() {
-  std::vector<VkDescriptorSetLayout> layouts(
-      windowContext.swapChainImages.size(),
-      gpuResourceManager.getById<VkDescriptorSetLayout>(descriptorSetLayout));
-  VkDescriptorSetAllocateInfo allocInfo = {};
-  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool = gpuResourceManager.descriptorPools[0];
-  allocInfo.descriptorSetCount =
-      static_cast<uint32_t>(windowContext.swapChainImages.size());
-  allocInfo.pSetLayouts = layouts.data();
-
-  descriptorSets.resize(windowContext.swapChainImages.size());
-  if (vkAllocateDescriptorSets(vkContext.device, &allocInfo,
-                               descriptorSets.data()) != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate descriptor sets!");
-  }
-  auto obj1Tex = gpuResourceManager.getById<myvk::MyTexture>(obj1TexId);
-  auto specImage = gpuResourceManager.getById<myvk::MyTexture>(specTexId);
-
-  for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
-    VkDescriptorBufferInfo bufferInfo = {};
-    bufferInfo.buffer = uniformBuffers[i];
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
-
-    VkDescriptorImageInfo imageInfo = {};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = obj1Tex.textureImageView;
-    imageInfo.sampler = obj1Tex.textureSampler;
-
-    VkDescriptorImageInfo specImageInfo = {};
-    specImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    specImageInfo.imageView = specImage.textureImageView;
-    specImageInfo.sampler = specImage.textureSampler;
-
-    std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
-
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSets[i];
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSets[i];
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType =
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
-
-    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[2].dstSet = descriptorSets[i];
-    descriptorWrites[2].dstBinding = 2;
-    descriptorWrites[2].dstArrayElement = 0;
-    descriptorWrites[2].descriptorType =
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[2].descriptorCount = 1;
-    descriptorWrites[2].pImageInfo = &specImageInfo;
-
-    vkUpdateDescriptorSets(vkContext.device,
-                           static_cast<uint32_t>(descriptorWrites.size()),
-                           descriptorWrites.data(), 0, nullptr);
-  }
+  std::vector<RID> imgs = {obj1TexId, specTexId};
+  descriptorSets = gpuResourceManager.createDescriptorSets(
+      windowContext.swapChainImages.size(), descriptorSetLayout, uniformBuffers,
+      imgs);
 }
 
 void HelloTriangleApplication::createObjectTextureImage() {
@@ -928,10 +871,10 @@ void HelloTriangleApplication::processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
     glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS){
+  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
     updateCommandBuffer(obj2);
   }
-  if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS){
+  if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
     updateCommandBuffer(obj1);
   }
 }

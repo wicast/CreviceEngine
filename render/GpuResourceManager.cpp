@@ -6,6 +6,7 @@
 
 #include "render/GpuResourceManager.h"
 #include "render/Model.h"
+#include "render/Uniform.h"
 
 Mesh GpuResourceManager::createMeshFromObj(std::string modelPath) {
   tinyobj::attrib_t attrib;
@@ -718,3 +719,72 @@ RID GpuResourceManager::addDescriptorSetLayout(
   return rid;
 }
 
+RID GpuResourceManager::createDescriptorSets(
+    uint32_t swapChainSize, RID descriptorSetLayoutId,
+    std::vector<VkBuffer> uniformBuffers, std::vector<RID> imageIds) {
+  std::vector<VkDescriptorSetLayout> layouts(
+      swapChainSize, getById<VkDescriptorSetLayout>(descriptorSetLayoutId));
+  VkDescriptorSetAllocateInfo allocInfo = {};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  allocInfo.descriptorPool = descriptorPools[0];
+  allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainSize);
+  allocInfo.pSetLayouts = layouts.data();
+
+  std::vector<VkDescriptorSet> descriptorSets(swapChainSize);
+
+  if (vkAllocateDescriptorSets(vkContext->device, &allocInfo,
+                               descriptorSets.data()) != VK_SUCCESS) {
+    throw std::runtime_error("failed to allocate descriptor sets!");
+  }
+
+  for (size_t i = 0; i < swapChainSize; i++) {
+    std::vector<VkWriteDescriptorSet> descriptorWrites;
+
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = uniformBuffers[i];
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
+
+    VkWriteDescriptorSet desWriteUbo = {};
+    desWriteUbo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    desWriteUbo.dstSet = descriptorSets[i];
+    desWriteUbo.dstBinding = 0;
+    desWriteUbo.dstArrayElement = 0;
+    desWriteUbo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    desWriteUbo.descriptorCount = 1;
+    desWriteUbo.pBufferInfo = &bufferInfo;
+
+    descriptorWrites.push_back(desWriteUbo);
+
+    std::vector<VkDescriptorImageInfo> imageInfos(imageIds.size());
+
+    for (auto j = 0; j < imageIds.size(); j++) {
+      auto tex = getById<myvk::MyTexture>(imageIds[j]);
+
+      // VkDescriptorImageInfo imageInfo = {};
+      imageInfos[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      imageInfos[j].imageView = tex.textureImageView;
+      imageInfos[j].sampler = tex.textureSampler;
+
+      VkWriteDescriptorSet desWriteImg = {};
+
+      desWriteImg.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      desWriteImg.dstSet = descriptorSets[i];
+      desWriteImg.dstBinding = j + 1;
+      desWriteImg.dstArrayElement = 0;
+      desWriteImg.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      desWriteImg.descriptorCount = 1;
+      desWriteImg.pImageInfo = &imageInfos[j];
+
+      descriptorWrites.push_back(desWriteImg);
+    }
+
+    vkUpdateDescriptorSets(vkContext->device,
+                           static_cast<uint32_t>(descriptorWrites.size()),
+                           descriptorWrites.data(), 0, nullptr);
+  }
+
+  RID rid = rand();
+  this->descriptors.insert(std::pair<RID, DescriptorSets>(rid, descriptorSets));
+  return rid;
+}
