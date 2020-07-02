@@ -335,12 +335,12 @@ void HelloTriangleApplication::createCommandBuffers() {
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-  auto mesh = gpuResourceManager.getById<Mesh>(obj1);
-
   if (vkAllocateCommandBuffers(vkContext.device, &allocInfo,
                                commandBuffers.data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate command buffers!");
   }
+
+  auto mesh = gpuResourceManager.getById<Mesh>(obj1);
 
   for (size_t i = 0; i < commandBuffers.size(); i++) {
     VkCommandBufferBeginInfo beginInfo = {};
@@ -361,6 +361,58 @@ void HelloTriangleApplication::createCommandBuffers() {
 
     std::array<VkClearValue, 2> clearValues = {};
     clearValues[0].color = {0.250f, 0.235f, 0.168f, 1.0f};
+    clearValues[1].depthStencil = {1.0f, 0};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+    vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo,
+                         VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      graphicsPipeline);
+    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(commandBuffers[i], mesh.indexBuffer, 0,
+                         VK_INDEX_TYPE_UINT32);
+
+    vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipelineLayout, 0, 1, &descriptorSets[i], 0,
+                            nullptr);
+    vkCmdDrawIndexed(commandBuffers[i],
+                     static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+
+    vkCmdEndRenderPass(commandBuffers[i]);
+    if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+      throw std::runtime_error("failed to record command buffer!");
+    }
+  }
+}
+
+void HelloTriangleApplication::updateCommandBuffer(RID rid) {
+
+  auto mesh = gpuResourceManager.getById<Mesh>(rid);
+  vkQueueWaitIdle(vkContext.graphicsQueue);
+  for (size_t i = 0; i < commandBuffers.size(); i++) {
+    vkResetCommandBuffer(commandBuffers[i], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;                   // Optional
+    beginInfo.pInheritanceInfo = nullptr;  // Optional
+
+    if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+      throw std::runtime_error("failed to begin recording command buffer!");
+    }
+
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.framebuffer = swapChainFramebuffers[i];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = windowContext.swapChainExtent;
+
+    std::array<VkClearValue, 2> clearValues = {};
+    clearValues[0].color = {253/255.0f, 104/255.0f, 201/255.0f, 1.0f};
     clearValues[1].depthStencil = {1.0f, 0};
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -437,39 +489,6 @@ VkFormat HelloTriangleApplication::findDepthFormat() {
       VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-void HelloTriangleApplication::createBuffer(VkDeviceSize size,
-                                            VkBufferUsageFlags usage,
-                                            VkMemoryPropertyFlags properties,
-                                            VkBuffer &buffer,
-                                            VkDeviceMemory &bufferMemory) {
-  VkBufferCreateInfo bufferInfo = {};
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = size;
-  bufferInfo.usage = usage;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-  if (vkCreateBuffer(vkContext.device, &bufferInfo, nullptr, &buffer) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to create buffer!");
-  }
-
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(vkContext.device, buffer, &memRequirements);
-
-  VkMemoryAllocateInfo allocInfo = {};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = gpuResourceManager.findMemoryType(
-      memRequirements.memoryTypeBits, properties);
-
-  if (vkAllocateMemory(vkContext.device, &allocInfo, nullptr, &bufferMemory) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate buffer memory!");
-  }
-
-  vkBindBufferMemory(vkContext.device, buffer, bufferMemory, 0);
-}
-
 void HelloTriangleApplication::createDescriptorSetLayout() {
   VkDescriptorSetLayoutBinding uboLayoutBinding = {};
   uboLayoutBinding.binding = 0;
@@ -512,10 +531,11 @@ void HelloTriangleApplication::createUniformBuffers() {
   uniformBuffersMemory.resize(windowContext.swapChainImages.size());
 
   for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
-    createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 uniformBuffers[i], uniformBuffersMemory[i]);
+    gpuResourceManager.createBuffer(bufferSize,
+                                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                    uniformBuffers[i], uniformBuffersMemory[i]);
   }
 }
 
@@ -614,6 +634,9 @@ void HelloTriangleApplication::createDepthResources() {
 void HelloTriangleApplication::loadObj1Model() {
   obj1 = gpuResourceManager.addModel(MODEL_PATH);
   gpuResourceManager.generateVkMeshBuffer(obj1);
+
+  obj2 = gpuResourceManager.addModel(APPLE_MODEL_PATH);
+  gpuResourceManager.generateVkMeshBuffer(obj2);
 }
 
 void HelloTriangleApplication::initVulkan() {
@@ -626,6 +649,9 @@ void HelloTriangleApplication::initVulkan() {
   glfwSetWindowUserPointer(windowContext.window, this);
   glfwSetFramebufferSizeCallback(windowContext.window,
                                  framebufferResizeCallback);
+  glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(windowContext.window,
+                           HelloTriangleApplication::mouse_callback_dispatch);
 
   createResourceManager();
   createVkContext();
@@ -721,9 +747,10 @@ void HelloTriangleApplication::drawFrame() {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
 
-  VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+  VkSemaphore renderFinishSemaphores[] = {
+      renderFinishedSemaphores[currentFrame]};
   submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = signalSemaphores;
+  submitInfo.pSignalSemaphores = renderFinishSemaphores;
 
   vkResetFences(vkContext.device, 1, &inFlightFences[currentFrame]);
   if (vkQueueSubmit(vkContext.graphicsQueue, 1, &submitInfo,
@@ -735,7 +762,7 @@ void HelloTriangleApplication::drawFrame() {
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = signalSemaphores;
+  presentInfo.pWaitSemaphores = renderFinishSemaphores;
 
   VkSwapchainKHR swapChains[] = {windowContext.swapChain};
   presentInfo.swapchainCount = 1;
@@ -757,9 +784,6 @@ void HelloTriangleApplication::drawFrame() {
 
 void HelloTriangleApplication::mainLoop() {
   // glfwSetKeyCallback(window, HelloTriangleApplication::keycallback_dispatch);
-  glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetCursorPosCallback(windowContext.window,
-                           HelloTriangleApplication::mouse_callback_dispatch);
 
   while (!glfwWindowShouldClose(windowContext.window)) {
     processInput(windowContext.window);
@@ -786,12 +810,11 @@ void HelloTriangleApplication::cleanupSwapChain() {
   for (auto imageView : windowContext.swapChainImageViews) {
     vkDestroyImageView(vkContext.device, imageView, nullptr);
   }
-  for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
-    vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
-    vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
-  }
-  vkDestroyDescriptorPool(vkContext.device,
-                          gpuResourceManager.descriptorPools[0], nullptr);
+  // for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
+  //   vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
+  //   vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
+  // }
+
   vkDestroySwapchainKHR(vkContext.device, windowContext.swapChain, nullptr);
 }
 
@@ -806,22 +829,24 @@ void HelloTriangleApplication::recreateSwapChain() {
   createGraphicsPipeline();
   createDepthResources();
   createFramebuffers();
-  createUniformBuffers();
-  initDescriptorPool();
-  createDescriptorSets();
   createCommandBuffers();
 }
 
 void HelloTriangleApplication::cleanup() {
   cleanupSwapChain();
+  vkDestroyDescriptorPool(vkContext.device,
+                          gpuResourceManager.descriptorPools[0], nullptr);
 
+  for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
+    vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
+    vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
+  }
   gpuResourceManager.destroyTexture(obj1TexId);
   gpuResourceManager.destroyTexture(specTexId);
-  // vkDestroyDescriptorSetLayout(vkContext.device, descriptorSetLayout,
-  // nullptr);
   gpuResourceManager.destoryDescriptorSetLayout(descriptorSetLayout);
 
   gpuResourceManager.destroyMesh(obj1);
+  gpuResourceManager.destroyMesh(obj2);
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     vkDestroySemaphore(vkContext.device, renderFinishedSemaphores[i], nullptr);
@@ -902,7 +927,13 @@ void HelloTriangleApplication::processInput(GLFWwindow *window) {
     glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
     glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  // std::cout<< moveCount << std::endl;
+
+  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS){
+    updateCommandBuffer(obj2);
+  }
+  if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS){
+    updateCommandBuffer(obj1);
+  }
 }
 
 void HelloTriangleApplication::run() {

@@ -62,6 +62,7 @@ class HelloTriangleApplication {
   GpuResourceManager gpuResourceManager;
 
   RID obj1;
+  RID obj2;
 
   std::vector<VkBuffer> uniformBuffers;
   std::vector<VkDeviceMemory> uniformBuffersMemory;
@@ -102,6 +103,8 @@ class HelloTriangleApplication {
 
   void createCommandBuffers();
 
+  void updateCommandBuffer(RID obj);
+
   void createSyncObjects();
 
   VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
@@ -109,10 +112,6 @@ class HelloTriangleApplication {
                                VkFormatFeatureFlags features);
 
   VkFormat findDepthFormat();
-
-  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-                    VkMemoryPropertyFlags properties, VkBuffer &buffer,
-                    VkDeviceMemory &bufferMemory);
 
   void createDescriptorSetLayout();
 
@@ -124,24 +123,9 @@ class HelloTriangleApplication {
 
   void createObjectTextureImage();
 
-  // void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
-  //                      int32_t texHeight, uint32_t mipLevels);
-
-  // void transitionImageLayout(VkImage image, VkFormat format,
-  //                            VkImageLayout oldLayout, VkImageLayout
-  //                            newLayout, uint32_t transitionImageLayout);
-
-  // void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
-  //                        uint32_t height);
-
-  // void createTextureImageView();
-
   void createTextureSampler();
 
   void createDepthResources();
-
-  // void loadModelFor(std::vector<Vertex>& vertices, std::vector<uint32_t>&
-  // indices, std::string modelPath);
 
   void loadObj1Model();
 
@@ -185,7 +169,7 @@ class HelloTriangleApplication {
 
   void setEventHandling() { event_handling_instance = this; }
 
-  // TODO unused???
+  // TODO keycallback is passive callback with different deltatime
   void keycallback(GLFWwindow *window, int key, int scancode, int action,
                    int mods);
 
