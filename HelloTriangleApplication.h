@@ -72,7 +72,9 @@ class HelloTriangleApplication {
 
   RID descriptorSets;
 
-  std::vector<VkCommandBuffer> commandBuffers;
+  RID commandBuffers;
+  RID commandBuffers2;
+  RID *drawingBuffersId;
 
   std::vector<VkSemaphore> imageAvailableSemaphores;
   std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -105,7 +107,7 @@ class HelloTriangleApplication {
 
   void createCommandBuffers();
 
-  void updateCommandBuffer(RID obj);
+  void switchCommandBuffer(RID *commandId);
 
   void createSyncObjects();
 

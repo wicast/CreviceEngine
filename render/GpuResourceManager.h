@@ -10,21 +10,24 @@
 #include "render/Texture.h"
 
 typedef std::vector<VkDescriptorSet> DescriptorSets;
+typedef std::vector<VkCommandBuffer> CommandBuffers;
 
 class GpuResourceManager {
  private:
  public:
   VkContext* vkContext;
 
+  std::unordered_map<RID, CommandBuffers> commandBuffers;
+
   // TODO:conbine
-  std::unordered_map<RID, VkBuffer> uniformBuffers;
-  std::unordered_map<RID, VkDeviceMemory> uniformBuffersMemory;
-  std::unordered_map<RID, VkFramebuffer> swapChainFramebuffers;
+  // std::unordered_map<RID, VkBuffer> uniformBuffers;
+  // std::unordered_map<RID, VkDeviceMemory> uniformBuffersMemory;
+  // std::unordered_map<RID, VkFramebuffer> swapChainFramebuffers;
 
   // TODO
-  VkPipelineLayout pipelineLayout;
-  VkRenderPass renderPass;
-  VkPipeline graphicsPipeline;
+  // VkPipelineLayout pipelineLayout;
+  // VkRenderPass renderPass;
+  // VkPipeline graphicsPipeline;
 
   std::vector<VkDescriptorPool> descriptorPools;
   std::unordered_map<RID, VkDescriptorSetLayout> descriptorSetLayouts;
@@ -116,6 +119,21 @@ class GpuResourceManager {
                            std::vector<VkBuffer> uniformBuffers,
                            std::vector<RID> imageIds);
 
+  RID createIndexedDrawCommandBuffers(
+      WindowContext windowContext, RID meshObjId, RID descriptorSets,
+      VkRenderPass renderPass, VkPipeline graphicsPipeline,
+      VkPipelineLayout pipelineLayout,
+      std::vector<VkFramebuffer> swapChainFramebuffers,
+      VkClearColorValue clearColor = {0.250f, 0.235f, 0.168f, 1.0f});
+
+  void destoryCommandBuffers(RID rid) {
+    auto commandBuff = getById<CommandBuffers>(rid);
+    vkFreeCommandBuffers(vkContext->device, vkContext->commandPool,
+                         static_cast<uint32_t>(commandBuff.size()),
+                         commandBuff.data());
+    commandBuffers.erase(rid);
+  }
+
   /* getter for resources */
   template <typename T>
   T getById(RID rid){};
@@ -143,6 +161,11 @@ class GpuResourceManager {
   template <>
   DescriptorSets getById<DescriptorSets>(RID rid) {
     return descriptors.at(rid);
+  }
+
+  template <>
+  CommandBuffers getById<CommandBuffers>(RID rid) {
+    return commandBuffers.at(rid);
   }
 };
 

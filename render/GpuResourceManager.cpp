@@ -761,7 +761,6 @@ RID GpuResourceManager::createDescriptorSets(
     for (auto j = 0; j < imageIds.size(); j++) {
       auto tex = getById<myvk::MyTexture>(imageIds[j]);
 
-      // VkDescriptorImageInfo imageInfo = {};
       imageInfos[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       imageInfos[j].imageView = tex.textureImageView;
       imageInfos[j].sampler = tex.textureSampler;
@@ -786,5 +785,79 @@ RID GpuResourceManager::createDescriptorSets(
 
   RID rid = rand();
   this->descriptors.insert(std::pair<RID, DescriptorSets>(rid, descriptorSets));
+  return rid;
+}
+
+RID GpuResourceManager::createIndexedDrawCommandBuffers(
+    WindowContext windowContext, RID meshObjId, RID descriptorSets,
+    VkRenderPass renderPass, VkPipeline graphicsPipeline,
+    VkPipelineLayout pipelineLayout,
+    std::vector<VkFramebuffer> swapChainFramebuffers,
+    VkClearColorValue clearColor) {
+  std::vector<VkCommandBuffer> commandBuffers(
+      windowContext.swapChainImages.size());
+
+  VkCommandBufferAllocateInfo allocInfo = {};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.commandPool = vkContext->commandPool;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+
+  if (vkAllocateCommandBuffers(vkContext->device, &allocInfo,
+                               commandBuffers.data()) != VK_SUCCESS) {
+    throw std::runtime_error("failed to allocate command buffers!");
+  }
+
+  auto mesh = getById<Mesh>(meshObjId);
+
+  for (size_t i = 0; i < commandBuffers.size(); i++) {
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;                   // Optional
+    beginInfo.pInheritanceInfo = nullptr;  // Optional
+
+    if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+      throw std::runtime_error("failed to begin recording command buffer!");
+    }
+
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.framebuffer = swapChainFramebuffers[i];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = windowContext.swapChainExtent;
+
+    std::array<VkClearValue, 2> clearValues = {};
+    clearValues[0].color = clearColor;
+    clearValues[1].depthStencil = {1.0f, 0};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+    vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo,
+                         VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      graphicsPipeline);
+    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(commandBuffers[i], mesh.indexBuffer, 0,
+                         VK_INDEX_TYPE_UINT32);
+
+    auto desSet = getById<DescriptorSets>(descriptorSets);
+    vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipelineLayout, 0, 1, &desSet[i], 0, nullptr);
+    vkCmdDrawIndexed(commandBuffers[i],
+                     static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+
+    vkCmdEndRenderPass(commandBuffers[i]);
+    if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+      throw std::runtime_error("failed to record command buffer!");
+    }
+  }
+
+  auto rid = rand();
+  this->commandBuffers.insert(
+      std::pair<RID, CommandBuffers>(rid, commandBuffers));
   return rid;
 }

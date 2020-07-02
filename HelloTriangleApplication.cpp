@@ -28,17 +28,6 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-// struct UniformBufferObject {
-//   alignas(16) glm::mat4 model;
-//   alignas(16) glm::mat4 view;
-//   alignas(16) glm::mat4 proj;
-
-//   alignas(16) glm::vec3 viewPos;
-
-//   alignas(16) glm::vec3 lightPosition;
-//   alignas(16) glm::vec3 lightDiffuse;
-// };
-
 HelloTriangleApplication *HelloTriangleApplication::event_handling_instance;
 
 void HelloTriangleApplication::createResourceManager() {
@@ -328,121 +317,14 @@ void HelloTriangleApplication::createFramebuffers() {
 }
 
 void HelloTriangleApplication::createCommandBuffers() {
-  commandBuffers.resize(swapChainFramebuffers.size());
-  VkCommandBufferAllocateInfo allocInfo = {};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool = vkContext.commandPool;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+  commandBuffers = gpuResourceManager.createIndexedDrawCommandBuffers(
+      windowContext, obj1, descriptorSets, renderPass, graphicsPipeline,
+      pipelineLayout, swapChainFramebuffers);
 
-  if (vkAllocateCommandBuffers(vkContext.device, &allocInfo,
-                               commandBuffers.data()) != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate command buffers!");
-  }
-
-  auto mesh = gpuResourceManager.getById<Mesh>(obj1);
-
-  for (size_t i = 0; i < commandBuffers.size(); i++) {
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;                   // Optional
-    beginInfo.pInheritanceInfo = nullptr;  // Optional
-
-    if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
-      throw std::runtime_error("failed to begin recording command buffer!");
-    }
-
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
-    renderPassInfo.framebuffer = swapChainFramebuffers[i];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = windowContext.swapChainExtent;
-
-    std::array<VkClearValue, 2> clearValues = {};
-    clearValues[0].color = {0.250f, 0.235f, 0.168f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-    vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo,
-                         VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      graphicsPipeline);
-    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffers[i], mesh.indexBuffer, 0,
-                         VK_INDEX_TYPE_UINT32);
-
-    auto desSet = gpuResourceManager.getById<DescriptorSets>(
-        descriptorSets);
-    vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout, 0, 1, &desSet[i], 0,
-                            nullptr);
-    vkCmdDrawIndexed(commandBuffers[i],
-                     static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
-
-    vkCmdEndRenderPass(commandBuffers[i]);
-    if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
-      throw std::runtime_error("failed to record command buffer!");
-    }
-  }
-}
-
-void HelloTriangleApplication::updateCommandBuffer(RID rid) {
-  vkQueueWaitIdle(vkContext.graphicsQueue);
-  for (size_t i = 0; i < commandBuffers.size(); i++) {
-    vkResetCommandBuffer(commandBuffers[i],
-                         VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;                   // Optional
-    beginInfo.pInheritanceInfo = nullptr;  // Optional
-
-    if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
-      throw std::runtime_error("failed to begin recording command buffer!");
-    }
-
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
-    renderPassInfo.framebuffer = swapChainFramebuffers[i];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = windowContext.swapChainExtent;
-
-    std::array<VkClearValue, 2> clearValues = {};
-    clearValues[0].color = {253 / 255.0f, 104 / 255.0f, 201 / 255.0f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-    vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo,
-                         VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      graphicsPipeline);
-
-    auto mesh = gpuResourceManager.getById<Mesh>(rid);
-    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffers[i], mesh.indexBuffer, 0,
-                         VK_INDEX_TYPE_UINT32);
-
-    auto desSet = gpuResourceManager.getById<DescriptorSets>(
-        descriptorSets);
-    vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout, 0, 1, &desSet[i], 0,
-                            nullptr);
-    vkCmdDrawIndexed(commandBuffers[i],
-                     static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
-
-    vkCmdEndRenderPass(commandBuffers[i]);
-    if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
-      throw std::runtime_error("failed to record command buffer!");
-    }
-  }
+  commandBuffers2 = gpuResourceManager.createIndexedDrawCommandBuffers(
+      windowContext, obj2, descriptorSets, renderPass, graphicsPipeline,
+      pipelineLayout, swapChainFramebuffers,
+      {5 / 255.0f, 232 / 255.0f, 240 / 255.0f, 1.0f});
 }
 
 void HelloTriangleApplication::createSyncObjects() {
@@ -613,6 +495,8 @@ void HelloTriangleApplication::initVulkan() {
   initDescriptorPool();
   createDescriptorSets();
   createCommandBuffers();
+  // set drawCommand id
+  drawingBuffersId = &commandBuffers;
   createSyncObjects();
 }
 
@@ -688,7 +572,9 @@ void HelloTriangleApplication::drawFrame() {
   submitInfo.pWaitDstStageMask = waitStages;
 
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+  auto commandBuff =
+      gpuResourceManager.getById<CommandBuffers>(*drawingBuffersId);
+  submitInfo.pCommandBuffers = &commandBuff[imageIndex];
 
   VkSemaphore renderFinishSemaphores[] = {
       renderFinishedSemaphores[currentFrame]};
@@ -744,19 +630,15 @@ void HelloTriangleApplication::cleanupSwapChain() {
   for (auto framebuffer : swapChainFramebuffers) {
     vkDestroyFramebuffer(vkContext.device, framebuffer, nullptr);
   }
-  vkFreeCommandBuffers(vkContext.device, vkContext.commandPool,
-                       static_cast<uint32_t>(commandBuffers.size()),
-                       commandBuffers.data());
+  gpuResourceManager.destoryCommandBuffers(commandBuffers2);
+  gpuResourceManager.destoryCommandBuffers(commandBuffers);
+
   vkDestroyPipeline(vkContext.device, graphicsPipeline, nullptr);
   vkDestroyPipelineLayout(vkContext.device, pipelineLayout, nullptr);
   vkDestroyRenderPass(vkContext.device, renderPass, nullptr);
   for (auto imageView : windowContext.swapChainImageViews) {
     vkDestroyImageView(vkContext.device, imageView, nullptr);
   }
-  // for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
-  //   vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
-  //   vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
-  // }
 
   vkDestroySwapchainKHR(vkContext.device, windowContext.swapChain, nullptr);
 }
@@ -872,11 +754,15 @@ void HelloTriangleApplication::processInput(GLFWwindow *window) {
     glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-    updateCommandBuffer(obj2);
+    switchCommandBuffer(&commandBuffers2);
   }
   if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
-    updateCommandBuffer(obj1);
+    switchCommandBuffer(&commandBuffers);
   }
+}
+
+void HelloTriangleApplication::switchCommandBuffer(RID *bufferId) {
+  drawingBuffersId = bufferId;
 }
 
 void HelloTriangleApplication::run() {
