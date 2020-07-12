@@ -28,6 +28,7 @@ void main() {
 
     //diffuse
     vec3 norm = normalize(normal);
+    vec3 viewDir = normalize(ubo.viewPos - fragPos);
     vec3 lightDir = normalize(ubo.lightPosition - fragPos);
     vec3 halfwayDir = normalize(lightDir + viewDir);
 
@@ -35,8 +36,6 @@ void main() {
     vec3 diffuse  =ubo.lightDiffuse * diff * vec3(texture(texSampler, fragTexCoord));
     
     //specular
-    vec3 viewDir = normalize(ubo.viewPos - fragPos);
-    vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(halfwayDir, norm), 0.0), 32);
     float specularStrength = 0.5;

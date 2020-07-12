@@ -46,7 +46,7 @@ class GpuResourceManager {
 
   RID addShaderPack(myvk::ShaderPack shader) {
     RID rid = rand();
-    shaders.insert(std::pair<RID, myvk::ShaderPack>(rid, shader));
+    shaders.emplace(rid, shader);
     return rid;
   }
 

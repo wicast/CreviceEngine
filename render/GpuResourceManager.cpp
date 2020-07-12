@@ -8,6 +8,7 @@
 #include "render/Model.h"
 #include "render/Uniform.h"
 
+//TODO move to cpu resource
 Mesh GpuResourceManager::createMeshFromObj(std::string modelPath) {
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
@@ -54,7 +55,7 @@ RID GpuResourceManager::addModel(std::string modelPath) {
   // TODO beyond obj type
   Mesh newMesh = createMeshFromObj(modelPath);
   RID rid = rand();
-  this->meshs.insert(std::pair<RID, Mesh>(rid, newMesh));
+  this->meshs.emplace(rid, newMesh);
 
   return rid;
 }
@@ -111,9 +112,6 @@ RID GpuResourceManager::generateVkMeshBuffer(RID rid) {
   vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
   vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
 
-  // auto it = meshs.find(rid);
-  // if (it != meshs.end())
-  //   it->second = mesh;
   meshs[rid] = mesh;
 
   return rid;
@@ -354,10 +352,6 @@ RID GpuResourceManager::createMyTexture(std::string path) {
   generateMipmaps(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM, texWidth,
                   texHeight, mipLevels);
 
-  // transitionImageLayout(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
-  //                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-  //                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
-
   vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
   vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
 
@@ -369,7 +363,7 @@ RID GpuResourceManager::createMyTexture(std::string path) {
   createTextureSampler(mipLevels, newTex.textureSampler);
 
   RID rid = rand();
-  textures.insert(std::pair<RID, myvk::MyTexture>(rid, newTex));
+  textures.emplace(rid, newTex);
   return rid;
 }
 
@@ -714,11 +708,11 @@ RID GpuResourceManager::addDescriptorSetLayout(
   }
 
   RID rid = rand();
-  this->descriptorSetLayouts.insert(
-      std::pair<RID, VkDescriptorSetLayout>(rid, descriptorSetLayout));
+  this->descriptorSetLayouts.emplace(rid, descriptorSetLayout);
   return rid;
 }
 
+//TODO free layout of descriptor set
 RID GpuResourceManager::createDescriptorSets(
     uint32_t swapChainSize, RID descriptorSetLayoutId,
     std::vector<VkBuffer> uniformBuffers, std::vector<RID> imageIds) {
@@ -784,10 +778,11 @@ RID GpuResourceManager::createDescriptorSets(
   }
 
   RID rid = rand();
-  this->descriptors.insert(std::pair<RID, DescriptorSets>(rid, descriptorSets));
+  this->descriptors.emplace(rid, descriptorSets);
   return rid;
 }
 
+//TODO this part is really dynamic
 RID GpuResourceManager::createIndexedDrawCommandBuffers(
     WindowContext windowContext, RID meshObjId, RID descriptorSets,
     VkRenderPass renderPass, VkPipeline graphicsPipeline,
