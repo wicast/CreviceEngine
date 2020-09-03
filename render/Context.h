@@ -364,11 +364,12 @@ class VkContext {
                                               indices.presentFamily.value()};
 
     float queuePriority = 1.0f;
+    //TODO this is wrong for split workload to different queue
     for (uint32_t queueFamily : uniqueQueueFamilies) {
       VkDeviceQueueCreateInfo queueCreateInfo = {};
       queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
       queueCreateInfo.queueFamilyIndex = queueFamily;
-      queueCreateInfo.queueCount = 1;
+      queueCreateInfo.queueCount = 2;
       queueCreateInfo.pQueuePriorities = &queuePriority;
       queueCreateInfos.push_back(queueCreateInfo);
     }
@@ -392,7 +393,7 @@ class VkContext {
     }
 
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+    vkGetDeviceQueue(device, indices.presentFamily.value(), 1, &presentQueue);
   }
 
   void createCommandPool() {
