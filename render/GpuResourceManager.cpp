@@ -852,7 +852,6 @@ RID GpuResourceManager::createIndexedDrawCommandBuffers(
   }
 
   auto rid = rand();
-  this->commandBuffers.insert(
-      std::pair<RID, CommandBuffers>(rid, commandBuffers));
+  this->commandBuffers[rid] = commandBuffers;
   return rid;
 }

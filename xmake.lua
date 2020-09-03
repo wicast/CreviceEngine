@@ -10,8 +10,14 @@ target("MyVKLearn")
     add_includedirs("$(projectdir)",
     "D:/SDKs/glm")
 
+    -- 3rdParty
     add_files("3rd/volk/*.c")
     add_includedirs("3rd/volk/", "3rd/Vulkan-Headers/include")
+
+    -- eastl
+    add_files("3rd/EASTL/source/*.cpp")
+    add_includedirs("3rd/EASTL/include", "3rd/EABase/include/Common")
+    add_defines("EASTL_DLL=0")
 
     if is_plat("mingw") then 
         add_linkdirs("D:/SDKs/glfw-3.3.2.bin.WIN64/lib-mingw-w64/")

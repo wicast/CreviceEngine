@@ -9,6 +9,9 @@
 #include "render/ShaderPack.h"
 #include "render/Texture.h"
 
+#include "EASTL/hash_map.h"
+#include "EASTL/vector.h"
+
 typedef std::vector<VkDescriptorSet> DescriptorSets;
 typedef std::vector<VkCommandBuffer> CommandBuffers;
 
@@ -17,7 +20,7 @@ class GpuResourceManager {
  public:
   VkContext* vkContext;
 
-  std::unordered_map<RID, CommandBuffers> commandBuffers;
+  eastl::hash_map<RID, CommandBuffers> commandBuffers;
 
   // TODO:conbine
   // std::unordered_map<RID, VkBuffer> uniformBuffers;
@@ -29,13 +32,13 @@ class GpuResourceManager {
   // VkRenderPass renderPass;
   // VkPipeline graphicsPipeline;
 
-  std::vector<VkDescriptorPool> descriptorPools;
-  std::unordered_map<RID, VkDescriptorSetLayout> descriptorSetLayouts;
-  std::unordered_map<RID, DescriptorSets> descriptors;
+  eastl::vector<VkDescriptorPool> descriptorPools;
+  eastl::hash_map<RID, VkDescriptorSetLayout> descriptorSetLayouts;
+  eastl::hash_map<RID, DescriptorSets> descriptors;
 
-  std::unordered_map<RID, Mesh> meshs;
-  std::unordered_map<RID, myvk::ShaderPack> shaders;
-  std::unordered_map<RID, myvk::MyTexture> textures;
+  eastl::hash_map<RID, Mesh> meshs;
+  eastl::hash_map<RID, myvk::ShaderPack> shaders;
+  eastl::hash_map<RID, myvk::MyTexture> textures;
 
   void initManager(VkContext* vkContext);
 

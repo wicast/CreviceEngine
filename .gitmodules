@@ -4,3 +4,9 @@
 [submodule "3rd/Vulkan-Headers"]
 	path = 3rd/Vulkan-Headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers.git
+[submodule "3rd/EASTL"]
+	path = 3rd/EASTL
+	url = https://github.com/electronicarts/EASTL
+[submodule "3rd/EABase"]
+	path = 3rd/EABase
+	url = https://github.com/electronicarts/EABase.git
