@@ -1,6 +1,10 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#include "./in.glsl"
+
+// layout(early_fragment_tests) in;
+
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 normal;
@@ -32,7 +36,7 @@ void main() {
     vec3 lightDir = normalize(ubo.lightPosition - fragPos);
     vec3 halfwayDir = normalize(lightDir + viewDir);
 
-    float diff = max(dot(norm, lightDir), 0.0);
+    float diff = diffF(norm,lightDir);
     vec3 diffuse  =ubo.lightDiffuse * diff * vec3(texture(texSampler, fragTexCoord));
     
     //specular
