@@ -3,7 +3,7 @@
 
 #include <volk.h>
 
-namespace myvk {
+namespace crevice {
     struct ShaderPack {
         VkShaderModule vertShaderModule;
         VkShaderModule fragShaderModule;

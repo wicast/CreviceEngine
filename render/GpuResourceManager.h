@@ -9,8 +9,8 @@
 #include "render/ShaderPack.h"
 #include "render/Texture.h"
 
-#include "EASTL/hash_map.h"
-#include "EASTL/vector.h"
+#include "stl/CreviceHashMap.h"
+#include "stl/CreviceVector.h"
 
 typedef std::vector<VkDescriptorSet> DescriptorSets;
 typedef std::vector<VkCommandBuffer> CommandBuffers;
@@ -20,7 +20,7 @@ class GpuResourceManager {
  public:
   VkContext* vkContext;
 
-  eastl::hash_map<RID, CommandBuffers> commandBuffers;
+  crevice::HashMap<RID, CommandBuffers> commandBuffers;
 
   // TODO:conbine
   // std::unordered_map<RID, VkBuffer> uniformBuffers;
@@ -32,13 +32,13 @@ class GpuResourceManager {
   // VkRenderPass renderPass;
   // VkPipeline graphicsPipeline;
 
-  eastl::vector<VkDescriptorPool> descriptorPools;
-  eastl::hash_map<RID, VkDescriptorSetLayout> descriptorSetLayouts;
-  eastl::hash_map<RID, DescriptorSets> descriptors;
+  crevice::Vector<VkDescriptorPool> descriptorPools;
+  crevice::HashMap<RID, VkDescriptorSetLayout> descriptorSetLayouts;
+  crevice::HashMap<RID, DescriptorSets> descriptors;
 
-  eastl::hash_map<RID, Mesh> meshs;
-  eastl::hash_map<RID, myvk::ShaderPack> shaders;
-  eastl::hash_map<RID, myvk::MyTexture> textures;
+  crevice::HashMap<RID, Mesh> meshs;
+  crevice::HashMap<RID, crevice::ShaderPack> shaders;
+  crevice::HashMap<RID, crevice::CVTexture> textures;
 
   void initManager(VkContext* vkContext);
 
@@ -47,7 +47,7 @@ class GpuResourceManager {
   RID generateVkMeshBuffer(RID rid);
   void destroyMesh(RID rid);
 
-  RID addShaderPack(myvk::ShaderPack shader) {
+  RID addShaderPack(crevice::ShaderPack shader) {
     RID rid = rand();
     shaders.emplace(rid, shader);
     return rid;
@@ -142,12 +142,12 @@ class GpuResourceManager {
   T getById(RID rid){};
 
   template <>
-  myvk::ShaderPack getById<myvk::ShaderPack>(RID rid) {
+  crevice::ShaderPack getById<crevice::ShaderPack>(RID rid) {
     return shaders.at(rid);
   }
 
   template <>
-  myvk::MyTexture getById<myvk::MyTexture>(RID rid) {
+  crevice::CVTexture getById<crevice::CVTexture>(RID rid) {
     return textures.at(rid);
   }
 

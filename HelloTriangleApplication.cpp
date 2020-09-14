@@ -84,8 +84,8 @@ VkShaderModule HelloTriangleApplication::createShaderModule(
 void HelloTriangleApplication::createGraphicsPipeline() {
   RID shaderRid = gpuResourceManager.createShaderPack(
       "../../../../shaders/vert.spv", "../../../../shaders/frag.spv");
-  myvk::ShaderPack shaderpack =
-      gpuResourceManager.getById<myvk::ShaderPack>(shaderRid);
+  crevice::ShaderPack shaderpack =
+      gpuResourceManager.getById<crevice::ShaderPack>(shaderRid);
 
   VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
   vertShaderStageInfo.sType =
@@ -274,7 +274,7 @@ void HelloTriangleApplication::createRenderPass() {
   VkRenderPassCreateInfo renderPassInfo = {};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-  ;
+  
   renderPassInfo.pAttachments = attachments.data();
   renderPassInfo.subpassCount = 1;
   renderPassInfo.pSubpasses = &subpass;
@@ -769,14 +769,4 @@ void HelloTriangleApplication::run() {
   initVulkan();
   mainLoop();
   cleanup();
-}
-
-
-void* __cdecl operator new[](size_t size, const char* name, int flags, unsigned debugFlags, const char* file, int line)
-{
-	return new uint8_t[size];
-}
-
-void* __cdecl operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line){
-  return new uint8_t[size];
 }

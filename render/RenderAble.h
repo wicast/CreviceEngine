@@ -3,15 +3,13 @@
 
 #include <vector>
 
-#include <volk.h>
-
-#include "render/Material.h"
-#include "render/Model.h"
-
-
+#include "common/Resource.h"
 
 class RenderAble {
-
+  RID mesh;
+  // TODO conbine to materialInstance
+  std::vector<RID> textures;
+  RID shaderPack;
 };
 
 #endif MYVKLEARN_RENDERABLE_H

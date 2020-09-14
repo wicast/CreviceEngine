@@ -5,7 +5,5 @@
 
 
 class Material {
-    std::vector<VkDescriptorSetLayoutBinding> bindings;
-    
-    myvk::ShaderPack shaders;
+    //TODO
 };

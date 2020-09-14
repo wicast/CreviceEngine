@@ -80,7 +80,7 @@ class Mesh {
 
 // class RenderModel {
 //     Mesh mesh;
-//     std::vector<myvk::MyTexture> textures;
+//     std::vector<crevice::CVTexture> textures;
 
 // };
 

@@ -30,7 +30,7 @@
 #include "render/GpuResourceManager.h"
 #include "render/Uniform.h"
 #include "render/vulkan/windowContext.h"
-#include "scene/Camera.h"
+#include "components/Camera.h"
 
 class HelloTriangleApplication {
  private:

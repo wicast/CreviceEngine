@@ -6,11 +6,21 @@ set_languages("cxx17")
 
 target("MyVKLearn")
     set_kind("binary")
-    add_files("*.cpp", "common/*.cpp", "render/*.cpp", "scene/*.cpp")
+    add_files("*.cpp", 
+     "common/*.cpp",
+     "render/*.cpp", 
+     "render/RenderGraph/*.cpp",
+    --  "scene/*.cpp",
+     "components/*.cpp")
     add_includedirs("$(projectdir)",
     "D:/SDKs/glm")
 
-    -- 3rdParty
+    -- 3rdParty ------------------
+    -- 3rd root directory
+    add_includedirs("3rd")
+    -- add_files("3rd/*.cpp")
+
+    -- volk
     add_files("3rd/volk/*.c")
     add_includedirs("3rd/volk/", "3rd/Vulkan-Headers/include")
 
@@ -18,6 +28,16 @@ target("MyVKLearn")
     add_files("3rd/EASTL/source/*.cpp")
     add_includedirs("3rd/EASTL/include", "3rd/EABase/include/Common")
     add_defines("EASTL_DLL=0")
+    
+    -- intergrate
+    add_files("3rdIntergrate/*.cpp")
+    add_includedirs("3rdIntergrate/")
+
+    -- 3rdParty end ------------------
+
+    -- CreviceStl
+    -- add_files("stl/*.cpp")
+    add_includedirs("stl")
 
     if is_plat("mingw") then 
         add_linkdirs("D:/SDKs/glfw-3.3.2.bin.WIN64/lib-mingw-w64/")

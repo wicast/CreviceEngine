@@ -136,7 +136,7 @@ RID GpuResourceManager::createShaderPack(const std::string& vertPath,
   VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
   VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
-  myvk::ShaderPack shaderpack;
+  crevice::ShaderPack shaderpack;
   shaderpack.fragShaderModule = fragShaderModule;
   shaderpack.vertShaderModule = vertShaderModule;
   return addShaderPack(shaderpack);
@@ -163,7 +163,7 @@ VkShaderModule GpuResourceManager::createShaderModule(
 }
 
 void GpuResourceManager::destroyShaderPack(RID rid) {
-  myvk::ShaderPack sp = getById<myvk::ShaderPack>(rid);
+  crevice::ShaderPack sp = getById<crevice::ShaderPack>(rid);
 
   vkDestroyShaderModule(vkContext->device, sp.fragShaderModule, nullptr);
   vkDestroyShaderModule(vkContext->device, sp.vertShaderModule, nullptr);
@@ -172,7 +172,7 @@ void GpuResourceManager::destroyShaderPack(RID rid) {
 }
 
 void GpuResourceManager::destroyTexture(RID rid) {
-  auto tex = getById<myvk::MyTexture>(rid);
+  auto tex = getById<crevice::CVTexture>(rid);
 
   vkDestroySampler(vkContext->device, tex.textureSampler, nullptr);
   vkDestroyImageView(vkContext->device, tex.textureImageView, nullptr);
@@ -307,7 +307,7 @@ void GpuResourceManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
 }
 
 RID GpuResourceManager::createMyTexture(std::string path) {
-  myvk::MyTexture newTex{};
+  crevice::CVTexture newTex{};
 
   int texWidth, texHeight, texChannels;
   stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels,
@@ -753,7 +753,7 @@ RID GpuResourceManager::createDescriptorSets(
     std::vector<VkDescriptorImageInfo> imageInfos(imageIds.size());
 
     for (auto j = 0; j < imageIds.size(); j++) {
-      auto tex = getById<myvk::MyTexture>(imageIds[j]);
+      auto tex = getById<crevice::CVTexture>(imageIds[j]);
 
       imageInfos[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       imageInfos[j].imageView = tex.textureImageView;
