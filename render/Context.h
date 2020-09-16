@@ -263,6 +263,9 @@ class VkContext {
   VkQueue graphicsQueue;
   VkQueue presentQueue;
   VkCommandPool commandPool;
+  
+  //TODO for convenient usage
+  WindowContext* windowContext;
 
   bool deviceEnabled;
   bool enableValidationLayers;

@@ -2,17 +2,20 @@
 #define CREVICE_RG_RENDER_PASS_H 1
 
 #include <volk.h>
+#include <tuple>
 
-#include "render/descriptor/shaderInputKey.h"
-#include "stl/CreviceSTL.h"
 #include "render/GpuResourceManager.h"
+#include "render/descriptor/ShaderInputKey.h"
+#include "stl/CreviceSTL.h"
+#include "render/FrameResource.h"
+#include "render/descriptor/VertexInputInfo.h"
 
 namespace crevice {
 
 struct shaderInputTypes {};
 
 class RenderPass {
- private:
+ public:
   // Attachments
   // attachment ids
   VectorSet<uint32_t> attachmentInput;
@@ -20,15 +23,14 @@ class RenderPass {
   VectorSet<uint32_t> attachmentsOutput;
   // uint32_t attachmentsDependency;
 
-  // TODO
-  int vertexInputInfo;
+  VertexInputInfo vertexInputInfoDesc;
 
   // From camera and certain pass or bake
   // int perPassBufferDes;//ViewProjection,etc
   // int perPassTextureDes;//shadowMap,depthBuffer,etc. This may related to slot
   // in renderPass
   // pair by render pass assign component
-  //TODO same key can only appear once
+  // TODO same key can only appear once, so better use set
   Vector<ShaderInputKey> perPassInputKeys;
 
   // from Material and Transform
@@ -38,7 +40,7 @@ class RenderPass {
   // TODO
   uint32_t materialFamily;
 
-  int shaderRes;
+  std::tuple<String, String> shaderAsset;
 
   // TODO now only impl a fixed drawMethod
   // int drawMethod;
@@ -49,25 +51,31 @@ class RenderPass {
   HashSet<String> tags;
 
   // instance data
-  HashSet<SharedPtr<VkDescriptorSetLayout>> setLayout;
-  SharedPtr<VkRenderPass> vkRenderPass;
-  SharedPtr<VkPipeline> vkPipeline;
-  SharedPtr<VkPipelineLayout> vkPipelineLayout;
-  SharedPtr<VkFramebuffer> vkFramebuffer;
+  Vector<SharedPtr<VkDescriptorSetLayout>> mSetLayouts;
+  SharedPtr<VkRenderPass> mRenderPass;
+  SharedPtr<VkPipeline> mPipeline;
+  SharedPtr<VkPipelineLayout> mPipelineLayout;
+  //Framebuffer index from render graph
+  uint32_t mFramebufferId;
 
   // TODO
-  Vector<bool> renderList;
+  Vector<bool> mRenderList;
 
- public:
+
   void changeName(String _name) { name = _name; }
 
   void addTag(String tag) { tags.emplace(tag); }
 
   void removeTag(String tag) { tags.erase(tag); }
 
-  void changeShader(int s) { shaderRes = s; }
+  void changeShader(String vert, String frag) { shaderAsset = {vert, frag}; }
 
-  void compile(GpuResourceManager gManager,vectorMap<uint32_t, uint32_t> attachmentMap,SharedPtr<VkRenderPass> vkRenderPass);
+ std::tuple<VkVertexInputBindingDescription, Vector<VkVertexInputAttributeDescription>> generateVertexInputInfo();
+  void generateDescriptorSetLayout(GpuResourceManager& gManager);
+  void genreatePipeline(GpuResourceManager& gManager);
+  void compile(GpuResourceManager& gManager,
+               vectorMap<uint32_t, uint32_t> attachmentMap,
+               SharedPtr<VkRenderPass> vkRenderPass);
 
   RenderPass(/* args */);
   ~RenderPass();

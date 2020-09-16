@@ -1,5 +1,6 @@
 if is_mode("debug") then
     set_symbols("debug")
+    set_optimize("none")
 end
 
 set_languages("cxx17")

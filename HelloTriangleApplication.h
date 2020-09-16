@@ -24,6 +24,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include "stl/CreviceSharedPtr.h"
+
 #include "common/GLMath.h"
 #include "common/ResourceManager.h"
 #include "render/Context.h"
@@ -46,7 +48,8 @@ class HelloTriangleApplication {
 
   VkContext vkContext;
 
-  RID descriptorSetLayout;
+  // RID descriptorSetLayout;
+  crevice::SharedPtr<VkDescriptorSetLayout> descriptorSetLayout;
   VkPipelineLayout pipelineLayout;
   VkRenderPass renderPass;
   VkPipeline graphicsPipeline;

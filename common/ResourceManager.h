@@ -1,7 +1,6 @@
 #ifndef MYVK_RESOURCEMANAGER_H
 #define MYVK_RESOURCEMANAGER_H 1
 
-#include <map>
 
 #include "common/Resource.h"
 #include "render/Model.h"

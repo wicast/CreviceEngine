@@ -3,11 +3,11 @@
 namespace crevice {
 
 uint32_t RenderGraph::addPass(SharedPtr<RenderPass> pass) {
-  passTotal++;
-  renderPasses.emplace(passTotal, pass);
+  mPassTotal++;
+  renderPasses.emplace(mPassTotal, pass);
 
-  beginNodes.emplace(passTotal);
-  return passTotal;
+  beginNodes.emplace(mPassTotal);
+  return mPassTotal;
 }
 
 void RenderGraph::removePass(uint32_t passId) {
@@ -20,6 +20,11 @@ void RenderGraph::removePass(uint32_t passId) {
   }
   //remove pass
   renderPasses.erase(passId);
+
+  if (beginNodes.count(passId) != 0 )
+  {
+    beginNodes.erase(passId);
+  }
 }
 
 SharedPtr<RenderPass> RenderGraph::getPass(uint32_t passId) {
@@ -27,10 +32,10 @@ SharedPtr<RenderPass> RenderGraph::getPass(uint32_t passId) {
 }
 
 uint32_t RenderGraph::addAttachment(RGAttachment attachment) {
-  attachTotal++;
-  attachment.id = attachTotal;
-  attachments.emplace(attachTotal, attachment);
-  return attachTotal;
+  mAttachTotal++;
+  attachment.id = mAttachTotal;
+  attachments.emplace(mAttachTotal, attachment);
+  return mAttachTotal;
 }
 
 void RenderGraph::removeAttachment(uint32_t attachId) {
@@ -66,8 +71,8 @@ void RenderGraph::updateRenderData() {}
 void RenderGraph::drawFrame() {}
 
 RenderGraph::RenderGraph(/* args */) {
-  attachTotal = 0;
-  passTotal = 0;
+  mAttachTotal = 0;
+  mPassTotal = 0;
 }
 RenderGraph::~RenderGraph() {}
 

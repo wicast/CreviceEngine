@@ -10,6 +10,7 @@
 #include "render/Texture.h"
 
 #include "stl/CreviceHashMap.h"
+#include "stl/CreviceSharedPtr.h"
 #include "stl/CreviceVector.h"
 
 typedef std::vector<VkDescriptorSet> DescriptorSets;
@@ -19,6 +20,8 @@ class GpuResourceManager {
  private:
  public:
   VkContext* vkContext;
+
+  static uint8_t swapChainSize;
 
   crevice::HashMap<RID, CommandBuffers> commandBuffers;
 
@@ -33,11 +36,11 @@ class GpuResourceManager {
   // VkPipeline graphicsPipeline;
 
   crevice::Vector<VkDescriptorPool> descriptorPools;
-  crevice::HashMap<RID, VkDescriptorSetLayout> descriptorSetLayouts;
+  // crevice::HashMap<RID, VkDescriptorSetLayout> descriptorSetLayouts;
   crevice::HashMap<RID, DescriptorSets> descriptors;
 
   crevice::HashMap<RID, Mesh> meshs;
-  crevice::HashMap<RID, crevice::ShaderPack> shaders;
+  // crevice::HashMap<RID, crevice::ShaderPack> shaders;
   crevice::HashMap<RID, crevice::CVTexture> textures;
 
   void initManager(VkContext* vkContext);
@@ -47,14 +50,14 @@ class GpuResourceManager {
   RID generateVkMeshBuffer(RID rid);
   void destroyMesh(RID rid);
 
-  RID addShaderPack(crevice::ShaderPack shader) {
-    RID rid = rand();
-    shaders.emplace(rid, shader);
-    return rid;
-  }
+  // RID addShaderPack(crevice::ShaderPack shader) {
+  //   RID rid = 11;
+  //   shaders.insert(std::pair<RID,crevice::ShaderPack>(rid,shader));
+  //   return rid;
+  // }
 
-  void destroyShaderPack(RID rid);
-  RID createShaderPack(const std::string& vertPath,
+  void destroyShaderPack(crevice::ShaderPack sp);
+  crevice::SharedPtr<crevice::ShaderPack> createShaderPack(const std::string& vertPath,
                        const std::string& fragPath);
   VkShaderModule createShaderModule(const std::vector<char>& code);
 
@@ -110,15 +113,16 @@ class GpuResourceManager {
   void addDescriptorPool(uint32_t setCount,
                          std::vector<VkDescriptorPoolSize> poolSizes);
 
-  RID addDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo layoutInfo);
+  crevice::SharedPtr<VkDescriptorSetLayout> addDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo layoutInfo);
 
-  void destoryDescriptorSetLayout(RID rid) {
-    VkDescriptorSetLayout layout = getById<VkDescriptorSetLayout>(rid);
+  //TODO 
+  void destoryDescriptorSetLayout(VkDescriptorSetLayout layout) {
+    // VkDescriptorSetLayout layout
     vkDestroyDescriptorSetLayout(vkContext->device, layout, nullptr);
-    descriptorSetLayouts.erase(rid);
+    // descriptorSetLayouts.erase(rid);
   }
 
-  RID createDescriptorSets(uint32_t swapChainSize, RID descriptorSetLayoutId,
+  RID createDescriptorSets(uint32_t swapChainSize, VkDescriptorSetLayout descriptorSetLayout,
                            std::vector<VkBuffer> uniformBuffers,
                            std::vector<RID> imageIds);
 
@@ -141,10 +145,10 @@ class GpuResourceManager {
   template <typename T>
   T getById(RID rid){};
 
-  template <>
-  crevice::ShaderPack getById<crevice::ShaderPack>(RID rid) {
-    return shaders.at(rid);
-  }
+  // template <>
+  // crevice::ShaderPack getById<crevice::ShaderPack>(RID rid) {
+  //   return shaders.at(rid);
+  // }
 
   template <>
   crevice::CVTexture getById<crevice::CVTexture>(RID rid) {
@@ -156,10 +160,10 @@ class GpuResourceManager {
     return meshs.at(rid);
   }
 
-  template <>
-  VkDescriptorSetLayout getById<VkDescriptorSetLayout>(RID rid) {
-    return descriptorSetLayouts.at(rid);
-  }
+  // template <>
+  // VkDescriptorSetLayout getById<VkDescriptorSetLayout>(RID rid) {
+  //   return descriptorSetLayouts.at(rid);
+  // }
 
   template <>
   DescriptorSets getById<DescriptorSets>(RID rid) {

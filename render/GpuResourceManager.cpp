@@ -128,7 +128,7 @@ void GpuResourceManager::destroyMesh(RID rid) {
   meshs.erase(rid);
 }
 
-RID GpuResourceManager::createShaderPack(const std::string& vertPath,
+crevice::SharedPtr<crevice::ShaderPack> GpuResourceManager::createShaderPack(const std::string& vertPath,
                                          const std::string& fragPath) {
   auto vertShaderCode = readFile(vertPath);
   auto fragShaderCode = readFile(fragPath);
@@ -139,10 +139,11 @@ RID GpuResourceManager::createShaderPack(const std::string& vertPath,
   crevice::ShaderPack shaderpack;
   shaderpack.fragShaderModule = fragShaderModule;
   shaderpack.vertShaderModule = vertShaderModule;
-  return addShaderPack(shaderpack);
+  return crevice::make_shared<crevice::ShaderPack>(shaderpack);
 }
 
 void GpuResourceManager::initManager(VkContext* vkContext) {
+  srand(time(0));
   this->vkContext = vkContext;
 }
 
@@ -162,13 +163,13 @@ VkShaderModule GpuResourceManager::createShaderModule(
   return shaderModule;
 }
 
-void GpuResourceManager::destroyShaderPack(RID rid) {
-  crevice::ShaderPack sp = getById<crevice::ShaderPack>(rid);
+void GpuResourceManager::destroyShaderPack(crevice::ShaderPack sp) {
+  // crevice::ShaderPack sp = getById<crevice::ShaderPack>(rid);
 
   vkDestroyShaderModule(vkContext->device, sp.fragShaderModule, nullptr);
   vkDestroyShaderModule(vkContext->device, sp.vertShaderModule, nullptr);
 
-  shaders.erase(rid);
+  // shaders.erase(rid);
 }
 
 void GpuResourceManager::destroyTexture(RID rid) {
@@ -546,11 +547,14 @@ void GpuResourceManager::createSwapChain(WindowContext& windowContext) {
   VkExtent2D extent =
       chooseSwapExtent(swapChainSupport.capabilities, windowContext.window);
 
+  //TODO select swapchain buffer size
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
   if (swapChainSupport.capabilities.maxImageCount > 0 &&
       imageCount > swapChainSupport.capabilities.maxImageCount) {
     imageCount = swapChainSupport.capabilities.maxImageCount;
   }
+  
+  GpuResourceManager::swapChainSize = imageCount;
 
   VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
   swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -699,7 +703,7 @@ void GpuResourceManager::addDescriptorPool(
   descriptorPools.push_back(descriptorPool);
 }
 
-RID GpuResourceManager::addDescriptorSetLayout(
+crevice::SharedPtr<VkDescriptorSetLayout> GpuResourceManager::addDescriptorSetLayout(
     VkDescriptorSetLayoutCreateInfo layoutInfo) {
   VkDescriptorSetLayout descriptorSetLayout{};
   if (vkCreateDescriptorSetLayout(vkContext->device, &layoutInfo, nullptr,
@@ -707,17 +711,17 @@ RID GpuResourceManager::addDescriptorSetLayout(
     throw std::runtime_error("failed to create descriptor set layout!");
   }
 
-  RID rid = rand();
-  this->descriptorSetLayouts.emplace(rid, descriptorSetLayout);
-  return rid;
+
+  crevice::SharedPtr<VkDescriptorSetLayout> ptr = crevice::make_shared<VkDescriptorSetLayout>(descriptorSetLayout);
+  return ptr;
 }
 
 //TODO free layout of descriptor set
 RID GpuResourceManager::createDescriptorSets(
-    uint32_t swapChainSize, RID descriptorSetLayoutId,
+    uint32_t swapChainSize, VkDescriptorSetLayout descriptorSetLayout,
     std::vector<VkBuffer> uniformBuffers, std::vector<RID> imageIds) {
   std::vector<VkDescriptorSetLayout> layouts(
-      swapChainSize, getById<VkDescriptorSetLayout>(descriptorSetLayoutId));
+      swapChainSize, descriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = descriptorPools[0];
@@ -855,3 +859,6 @@ RID GpuResourceManager::createIndexedDrawCommandBuffers(
   this->commandBuffers[rid] = commandBuffers;
   return rid;
 }
+
+
+uint8_t GpuResourceManager::swapChainSize = 0;

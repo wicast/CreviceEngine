@@ -7,6 +7,7 @@
 #include "stl/CreviceVector.h"
 #include "stl/CreviceHashSet.h"
 #include "stl/CreviceHashMap.h"
+#include "render/FrameResource.h"
 
 
 namespace crevice {
@@ -18,10 +19,6 @@ struct Dependency {
   bool operator==(const Dependency &other) const {
     return first == other.first && next == other.next;
   }
-
-  // size_t operator()(crevice::Dependency const &p) const {
-  //   return eastl::hash<uint32_t>()(p.first) ^ eastl::hash<uint32_t>()(p.next) << 1;
-  // }
 };
 }
 namespace eastl {
@@ -38,8 +35,8 @@ namespace crevice {
 class RenderGraph {
  private:
   uint32_t rid;
-  uint32_t passTotal;
-  uint32_t attachTotal;
+  uint32_t mPassTotal;
+  uint32_t mAttachTotal;
 
   // Graph data
   HashMap<uint32_t,SharedPtr<RenderPass>> renderPasses;
@@ -51,12 +48,12 @@ class RenderGraph {
   // Instance data
 
   //get attachment order from id after compile
-  vectorMap<uint32_t, uint32_t> _attachmentMap;
-  Vector<Vector<uint32_t>> _exeOrder;
+  vectorMap<uint32_t, uint32_t> mAttachmentMap;
+  Vector<Vector<uint32_t>> mExeOrders;
 
 
-  Vector<SharedPtr<VkFramebuffer>> framebuffers;
-  Vector<VkCommandBuffer> commandBuffers;
+  Vector<FrameResource<VkFramebuffer>> mFramebuffers;
+  Vector<FrameResource<VkCommandBuffer>> mCommandBuffers;
 
 
  public:

@@ -82,11 +82,9 @@ VkShaderModule HelloTriangleApplication::createShaderModule(
 }
 
 void HelloTriangleApplication::createGraphicsPipeline() {
-  RID shaderRid = gpuResourceManager.createShaderPack(
+  auto shaderpackPtr = gpuResourceManager.createShaderPack(
       "../../../../shaders/vert.spv", "../../../../shaders/frag.spv");
-  crevice::ShaderPack shaderpack =
-      gpuResourceManager.getById<crevice::ShaderPack>(shaderRid);
-
+  crevice::ShaderPack shaderpack = *shaderpackPtr;
   VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
   vertShaderStageInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -194,8 +192,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.pushConstantRangeCount = 0;
   pipelineLayoutInfo.setLayoutCount = 1;
-  auto des =
-      gpuResourceManager.getById<VkDescriptorSetLayout>(descriptorSetLayout);
+  auto des = *descriptorSetLayout;
   pipelineLayoutInfo.pSetLayouts = &des;
 
   if (vkCreatePipelineLayout(vkContext.device, &pipelineLayoutInfo, nullptr,
@@ -229,7 +226,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 
-  gpuResourceManager.destroyShaderPack(shaderRid);
+  gpuResourceManager.destroyShaderPack(*shaderpackPtr);
 }
 
 void HelloTriangleApplication::createRenderPass() {
@@ -433,7 +430,7 @@ void HelloTriangleApplication::initDescriptorPool() {
 void HelloTriangleApplication::createDescriptorSets() {
   std::vector<RID> imgs = {obj1TexId, specTexId};
   descriptorSets = gpuResourceManager.createDescriptorSets(
-      windowContext.swapChainImages.size(), descriptorSetLayout, uniformBuffers,
+      windowContext.swapChainImages.size(), *descriptorSetLayout, uniformBuffers,
       imgs);
 }
 
@@ -480,6 +477,8 @@ void HelloTriangleApplication::initVulkan() {
 
   createResourceManager();
   createVkContext();
+  //TODO more ealgent Bind;
+  vkContext.windowContext = &windowContext;
   createGpuResourceManager();
   gpuResourceManager.createSwapChain(windowContext);
   gpuResourceManager.createSwapChainImageViews(windowContext, 1);
@@ -666,9 +665,10 @@ void HelloTriangleApplication::cleanup() {
     vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
     vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
   }
+  //TODO resource clear bucket;
   gpuResourceManager.destroyTexture(obj1TexId);
   gpuResourceManager.destroyTexture(specTexId);
-  gpuResourceManager.destoryDescriptorSetLayout(descriptorSetLayout);
+  gpuResourceManager.destoryDescriptorSetLayout(*descriptorSetLayout);
 
   gpuResourceManager.destroyMesh(obj1);
   gpuResourceManager.destroyMesh(obj2);
