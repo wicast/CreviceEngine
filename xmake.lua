@@ -5,9 +5,8 @@ end
 
 set_languages("cxx17")
 
-target("MyVKLearn")
-    set_kind("binary")
-    add_files("*.cpp", 
+-- basic files
+add_files("HelloTriangleApplication.cpp", 
      "common/*.cpp",
      "render/*.cpp", 
      "render/RenderGraph/*.cpp",
@@ -57,6 +56,12 @@ target("MyVKLearn")
         add_links("gdi32")
     end
 
-    
 
- 
+target("MyVKLearn")
+    set_kind("binary")
+    add_files("main.cpp")
+
+    
+target("test")
+    set_kind("binary")
+    add_files("tests/testRenderGraph.cpp")

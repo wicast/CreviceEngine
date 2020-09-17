@@ -9,26 +9,7 @@
 #include "stl/CreviceSharedPtr.h"
 #include "stl/CreviceVector.h"
 #include "stl/CreviceVectorMap.h"
-
-namespace crevice {
-struct Dependency {
-  /* data */
-  uint32_t first;
-  uint32_t next;
-
-  bool operator==(const Dependency &other) const {
-    return first == other.first && next == other.next;
-  }
-};
-}  // namespace crevice
-namespace eastl {
-template <>
-struct hash<crevice::Dependency> {
-  size_t operator()(crevice::Dependency const &p) const {
-    return hash<uint32_t>()(p.first) ^ hash<uint32_t>()(p.next) << 1;
-  }
-};
-}  // namespace eastl
+#include "stl/CreviceDeque.h"
 
 namespace crevice {
 
@@ -37,6 +18,8 @@ class RenderGraph {
   uint32_t rid;
   uint32_t mPassTotal;
   uint32_t mAttachTotal;
+
+  bool mReady = false;
 
   // Graph data
   HashMap<uint32_t, SharedPtr<RenderPass>> renderPasses;
@@ -49,11 +32,9 @@ class RenderGraph {
 
   // get attachment order from id after compile
   // VectorMap<uint32_t, uint32_t> mAttachmentMap;
-  Vector<uint32_t> mExeOrder;
+  Deque<uint32_t> mExeOrder;
   VectorSet<uint32_t> orphanNodes;
   
-  
-
   Vector<FrameResource<VkFramebuffer>> mFramebuffers;
   Vector<FrameResource<VkCommandBuffer>> mCommandBuffers;
 
@@ -62,6 +43,12 @@ class RenderGraph {
   uint32_t addPass(SharedPtr<RenderPass> pass);
   void removePass(uint32_t passId);
   SharedPtr<RenderPass> getPass(uint32_t passId);
+  void setOutputPass(uint32_t passId) {
+    outputNodes.insert(passId);
+  }
+  void removeOutputPass(uint32_t passId) {
+    outputNodes.erase(passId);
+  }
 
   uint32_t addAttachment(RGAttachment attachment);
   void removeAttachment(uint32_t attachId);
@@ -71,10 +58,13 @@ class RenderGraph {
 
   void compile();
 
+  auto getExeOrder() {
+    return mExeOrder;
+  }
 
   // void setRenderCmd();
 
-  bool isReady();
+  bool isReady() { return mReady; }
 
   void bind();
 
@@ -84,8 +74,11 @@ class RenderGraph {
 
   void clear();
 
-  RenderGraph(/* args */);
-  ~RenderGraph();
+  RenderGraph() {
+  mAttachTotal = 0;
+  mPassTotal = 0;
+}
+  ~RenderGraph() {}
 };
 
 }  // namespace crevice

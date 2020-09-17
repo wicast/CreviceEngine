@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(Windows) 启动test",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/windows/x64/debug/test.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/windows/x64/debug/",
+            "environment": [],
+            "externalConsole": false,
+            "visualizerFile": "${workspaceFolder}/3rd/EASTL/doc/EASTL.natvis"
+        },
+        {
             "name": "(gdb) 启动",
             "type": "cppdbg",
             "request": "launch",

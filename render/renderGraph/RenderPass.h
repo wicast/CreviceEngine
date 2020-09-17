@@ -46,7 +46,7 @@ class RenderPass {
   // int drawMethod;
 
   bool enabled = true;
-  // uint32_t id;
+  uint32_t id;
   String name;
   HashSet<String> tags;
 
@@ -77,8 +77,8 @@ class RenderPass {
                VectorMap<uint32_t, uint32_t> attachmentMap,
                SharedPtr<VkRenderPass> vkRenderPass);
 
-  RenderPass(/* args */);
-  ~RenderPass();
+  RenderPass(/* args */) {}
+  ~RenderPass() {}
 };
 
 }  // namespace crevice

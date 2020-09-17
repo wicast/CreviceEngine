@@ -6,7 +6,7 @@ uint32_t RenderGraph::addPass(SharedPtr<RenderPass> pass) {
   mPassTotal++;
   renderPasses[mPassTotal] = pass;
 
-  outputNodes.insert(mPassTotal);
+  pass->id = mPassTotal;
   return mPassTotal;
 }
 
@@ -54,7 +54,7 @@ void RenderGraph::detachNode(uint32_t firstPassId, uint32_t secondPassId) {
 
 void RenderGraph::compile() {
   analyzeExecutionOrder();
-  // TODO create framebuffer
+  // TODO analyze attachments and create framebuffer
   // TODO create commandBuffer
 }
 
@@ -64,10 +64,10 @@ void RenderGraph::analyzeExecutionOrder() {
 
   if (outputNodes.empty())
   {
-    std::runtime_error("no output node detected");
+    throw std::runtime_error("no output node detected");
   }
   
-  // collect node out degree;
+  // collect node out degrees;
   HashMap<uint32_t,uint32_t> _nodeOutDegree;
   for (auto node : renderPasses) {
     _nodeOutDegree[node.first] = 0;
@@ -92,7 +92,7 @@ void RenderGraph::analyzeExecutionOrder() {
     for (auto depNode : dependencyEdges[aNode]) {
       _nodeOutDegree[depNode]--;
       if (_nodeOutDegree[depNode] == 0) {
-        _originOrphanNodes.insert(_nodeOutDegree[depNode]);
+        _originOrphanNodes.insert(depNode);
       }
     }
   }
@@ -107,34 +107,26 @@ void RenderGraph::analyzeExecutionOrder() {
   while (!_exeOrderQueueS.empty()) {
     auto aNode = _exeOrderQueueS.back();
     _exeOrderQueueS.pop_back();
-    mExeOrder.push_back(aNode);
+    mExeOrder.push_front(aNode);
     for (auto depNode : dependencyEdges[aNode]) {
       _nodeOutDegree[depNode]--;
       if (_nodeOutDegree[depNode] == 0) {
-        _exeOrderQueueS.insert(_nodeOutDegree[depNode]);
+        _exeOrderQueueS.insert(depNode);
       }
     }
   }
 
   for (auto degInfo : _nodeOutDegree) {
     if (degInfo.second != 0) {
-      std::runtime_error("cycle detected!");
+      throw std::runtime_error("cycle detected!");
     }
   }
 }
-
-bool RenderGraph::isReady() { return false; }
 
 void RenderGraph::bind() {}
 
 void RenderGraph::updateRenderData() {}
 
 void RenderGraph::drawFrame() {}
-
-RenderGraph::RenderGraph(/* args */) {
-  mAttachTotal = 0;
-  mPassTotal = 0;
-}
-RenderGraph::~RenderGraph() {}
 
 }  // namespace crevice
