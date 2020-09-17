@@ -74,7 +74,7 @@ class RenderPass {
   void generateDescriptorSetLayout(GpuResourceManager& gManager);
   void genreatePipeline(GpuResourceManager& gManager);
   void compile(GpuResourceManager& gManager,
-               vectorMap<uint32_t, uint32_t> attachmentMap,
+               VectorMap<uint32_t, uint32_t> attachmentMap,
                SharedPtr<VkRenderPass> vkRenderPass);
 
   RenderPass(/* args */);

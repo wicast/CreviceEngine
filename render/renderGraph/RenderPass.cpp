@@ -284,7 +284,7 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
 }
 
 void RenderPass::compile(GpuResourceManager& gManager,
-                         vectorMap<uint32_t, uint32_t> attachmentMap,
+                         VectorMap<uint32_t, uint32_t> attachmentMap,
                          SharedPtr<VkRenderPass> vkRenderPass) {
   //set RenderPass                           
   mRenderPass = vkRenderPass; 
