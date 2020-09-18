@@ -14,13 +14,19 @@ void test1() {
   auto p2Id = rg.addPass(p2);
   auto p3Id = rg.addPass(p3);
 
-  rg.linkNode(p1Id, p2Id);
-  rg.linkNode(p2Id, p3Id);
-  rg.setOutputPass(p3Id);
+  rg.linkNode(p1->id, p2->id);
+  rg.linkNode(p2->id, p3->id);
+  rg.setOutputPass(p3->id);
 
-  rg.compile();
+  rg.analyzeExecutionOrder();
 
-  for (auto i : rg.getExeOrder()) {
+  std::cout <<"order:";
+  for (auto i : rg.mExeOrder) {
+    std::cout << i << ",";
+  }
+  std::cout << std::endl;
+  std::cout <<"start:";
+  for (auto i : rg.startNodes) {
     std::cout << i << ",";
   }
   std::cout << std::endl;
@@ -86,9 +92,15 @@ void test2() {
 
   //   rg.setOutputPass(p7->id);
 
-  rg.compile();
+  rg.analyzeExecutionOrder();
 
-  for (auto i : rg.getExeOrder()) {
+  std::cout <<"order:";
+  for (auto i : rg.mExeOrder) {
+    std::cout << i << ",";
+  }
+  std::cout << std::endl;
+  std::cout <<"start:";
+  for (auto i : rg.startNodes) {
     std::cout << i << ",";
   }
   std::cout << std::endl;
@@ -157,13 +169,14 @@ void test3() {
 
   try {
     /* code */
-    rg.compile();
+    rg.analyzeExecutionOrder();
   } catch (const std::exception& e) {
     std::cerr << e.what() << '\n';
     return;
   }
 
-  for (auto i : rg.getExeOrder()) {
+  std::cout <<"order:";
+  for (auto i : rg.mExeOrder) {
     std::cout << i << ",";
   }
   std::cout << std::endl;

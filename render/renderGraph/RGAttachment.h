@@ -7,16 +7,25 @@
 
 namespace crevice{
 
+enum RGAttachmentTypes {
+    Color,DepthStencil,Present
+};
+
 struct RGAttachment
 {
     /* data */
     //TODO types
-    uint32_t type;
+    RGAttachmentTypes type;
     uint32_t id;
     String name;
+    VkFormat format;
+
+    VkAttachmentLoadOp loadOp;
+    VkAttachmentStoreOp storeOp;
+    VkAttachmentLoadOp stencilLoadOp;
+    VkAttachmentStoreOp stencilStoreOp;
 
     //if null, then this is temp texture for inner render
-    CVTexture textureRef;
     bool externalTexture;
 };
 

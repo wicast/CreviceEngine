@@ -19,6 +19,9 @@ class RenderGraph {
   uint32_t mPassTotal;
   uint32_t mAttachTotal;
 
+  //TOOD better way to manage resource;
+  GpuResourceManager* mGpuRManager;
+
   bool mReady = false;
 
   // Graph data
@@ -27,22 +30,39 @@ class RenderGraph {
   HashSet<uint32_t> outputNodes;
 
   VectorMap<uint32_t, RGAttachment> attachments;
+  VectorSet<uint32_t> attsUsing;
+  VectorMap<uint32_t, uint32_t> attIndexMap;
+  VectorSet<uint32_t> attsInput;
+
 
   // Instance data
-
+  Vector<SharedPtr<VkRenderPass>> renderPassInsts;
   // get attachment order from id after compile
   // VectorMap<uint32_t, uint32_t> mAttachmentMap;
+public:
   Deque<uint32_t> mExeOrder;
+  HashSet<uint32_t> startNodes;
+private:
   VectorSet<uint32_t> orphanNodes;
+
+  VectorMap<uint32_t,FrameResource<VkImageView>> externalImageViews;
+  VectorMap<uint32_t,FrameResource<CVTexture>> internalImages;
   
   Vector<FrameResource<VkFramebuffer>> mFramebuffers;
   Vector<FrameResource<VkCommandBuffer>> mCommandBuffers;
 
-  void analyzeExecutionOrder();
  public:
+  void setGpuRManager(  GpuResourceManager* man ) {
+    mGpuRManager = man;
+  };
+
   uint32_t addPass(SharedPtr<RenderPass> pass);
   void removePass(uint32_t passId);
   SharedPtr<RenderPass> getPass(uint32_t passId);
+  void setExternalImageView(uint32_t attachId,FrameResource<VkImageView> view) {
+    externalImageViews[attachId] =view;
+  }
+  void createRenderPassInstanceWithSubPass();
   void setOutputPass(uint32_t passId) {
     outputNodes.insert(passId);
   }
@@ -57,10 +77,9 @@ class RenderGraph {
   void detachNode(uint32_t passId1, uint32_t passId2);
 
   void compile();
-
-  auto getExeOrder() {
-    return mExeOrder;
-  }
+  void analyzeExecutionOrder();
+  void createFrameBufferForSubPass();
+  void createInternalImageViews();
 
   // void setRenderCmd();
 

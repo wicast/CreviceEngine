@@ -12,11 +12,23 @@ class FrameResource
     Vector<SharedPtr<R>> fRes;
     uint8_t latestIdx;
     bool updateEveryFrame;
-    static uint8_t swapChainSize;
+    uint8_t swapChainSize;
 
 public:
-    FrameResource(SharedPtr<R> initR, bool updateEveryFrame)
+    FrameResource() {};
+
+    FrameResource(bool updateEveryFrame,uint8_t chainSize)
     {
+        swapChainSize = chainSize;
+        if (updateEveryFrame)
+        {
+            fRes.resize(swapChainSize);
+        }
+    };
+
+    FrameResource(SharedPtr<R> initR, bool updateEveryFrame,uint8_t chainSize)
+    {
+        swapChainSize = chainSize;
         fRes.push_back(initR);
         if (updateEveryFrame)
         {

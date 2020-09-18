@@ -53,7 +53,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/windows/x64/debug/",
             "environment": [],
-            "externalConsole": false
+            "externalConsole": false,
+            "visualizerFile": "${workspaceFolder}/3rd/EASTL/doc/EASTL.natvis"
         }
     ]
 }

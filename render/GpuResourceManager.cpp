@@ -7,6 +7,7 @@
 #include "render/GpuResourceManager.h"
 #include "render/Model.h"
 #include "render/Uniform.h"
+#include "render/FrameResource.h"
 
 //TODO move to cpu resource
 Mesh GpuResourceManager::createMeshFromObj(std::string modelPath) {
@@ -861,4 +862,4 @@ RID GpuResourceManager::createIndexedDrawCommandBuffers(
 }
 
 
-uint8_t GpuResourceManager::swapChainSize = 0;
+uint8_t GpuResourceManager::swapChainSize = 1;

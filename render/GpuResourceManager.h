@@ -5,10 +5,10 @@
 
 #include "common/Resource.h"
 #include "render/Context.h"
+#include "render/FrameResource.h"
 #include "render/Model.h"
 #include "render/ShaderPack.h"
 #include "render/Texture.h"
-
 #include "stl/CreviceHashMap.h"
 #include "stl/CreviceSharedPtr.h"
 #include "stl/CreviceVector.h"
@@ -45,6 +45,74 @@ class GpuResourceManager {
 
   void initManager(VkContext* vkContext);
 
+  crevice::SharedPtr<VkRenderPass> createRenderPass(
+      VkRenderPassCreateInfo info) {
+    VkRenderPass renderPass;
+    if (vkCreateRenderPass(vkContext->device, &info, nullptr, &renderPass) !=
+        VK_SUCCESS) {
+      throw std::runtime_error("failed create render pass");
+    }
+
+    return crevice::make_shared<VkRenderPass>(renderPass);
+  }
+
+  VkFramebuffer createFramebuffer(VkFramebufferCreateInfo fbInfo) {
+    VkFramebuffer fb;
+    if (vkCreateFramebuffer(vkContext->device, &fbInfo, nullptr, &fb) !=
+        VK_SUCCESS) {
+      throw std::runtime_error("failed to create framebuffer!");
+    }
+    return fb;
+  }
+
+  crevice::FrameResource<VkFramebuffer> createFrameResourceFramebuffer(
+      crevice::Vector<VkFramebufferCreateInfo> fbInfo) {
+    uint8_t swapChainSize = fbInfo.size();
+    auto Frfb = crevice::FrameResource<VkFramebuffer>(true, swapChainSize);
+
+    for (size_t i = 0; i < swapChainSize; i++) {
+      auto fbr = Frfb.getForUpdate(i);
+      auto cinfo = fbInfo[i];
+      fbr = crevice::make_shared<VkFramebuffer>(createFramebuffer(cinfo));
+    }
+
+    return Frfb;
+  }
+
+  crevice::FrameResource<crevice::CVTexture> createFrameResourceEmptyTexture(uint32_t texWidth, uint32_t texHeight,VkImageUsageFlags usage,uint32_t swapSize) {
+    auto fRes = crevice::FrameResource<crevice::CVTexture>(true,swapSize);
+
+    for (size_t i = 0; i < swapSize; i++)
+    {
+      auto tex = fRes.getForUpdate(i);
+      tex =crevice::make_shared<crevice::CVTexture>(createEmptyTexture( texWidth,  texHeight, usage)) ;
+    }
+    return fRes;
+  }
+
+  crevice::CVTexture createEmptyTexture(uint32_t texWidth, uint32_t texHeight,VkImageUsageFlags usage) {
+    crevice::CVTexture newTex{};
+
+    auto mipLevels = 1;
+    newTex.hight = texWidth;
+    newTex.width = texHeight;
+    newTex.mipLevels = mipLevels;
+    createImage(texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
+                VK_IMAGE_TILING_OPTIMAL,
+                    usage,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, newTex.textureImage,
+                newTex.textureImageMemory);
+
+    newTex.textureImageView =
+        createImageView(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+                        VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+
+    // TODO some image like depth don't need sampler sometime
+    createTextureSampler(mipLevels, newTex.textureSampler);
+
+    return newTex;
+  }
+
   Mesh createMeshFromObj(std::string modelPath);
   RID addModel(std::string modelPath);
   RID generateVkMeshBuffer(RID rid);
@@ -57,8 +125,8 @@ class GpuResourceManager {
   // }
 
   void destroyShaderPack(crevice::ShaderPack sp);
-  crevice::SharedPtr<crevice::ShaderPack> createShaderPack(const std::string& vertPath,
-                       const std::string& fragPath);
+  crevice::SharedPtr<crevice::ShaderPack> createShaderPack(
+      const std::string& vertPath, const std::string& fragPath);
   VkShaderModule createShaderModule(const std::vector<char>& code);
 
   RID createMyTexture(std::string path);
@@ -113,16 +181,18 @@ class GpuResourceManager {
   void addDescriptorPool(uint32_t setCount,
                          std::vector<VkDescriptorPoolSize> poolSizes);
 
-  crevice::SharedPtr<VkDescriptorSetLayout> addDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo layoutInfo);
+  crevice::SharedPtr<VkDescriptorSetLayout> addDescriptorSetLayout(
+      VkDescriptorSetLayoutCreateInfo layoutInfo);
 
-  //TODO 
+  // TODO
   void destoryDescriptorSetLayout(VkDescriptorSetLayout layout) {
     // VkDescriptorSetLayout layout
     vkDestroyDescriptorSetLayout(vkContext->device, layout, nullptr);
     // descriptorSetLayouts.erase(rid);
   }
 
-  RID createDescriptorSets(uint32_t swapChainSize, VkDescriptorSetLayout descriptorSetLayout,
+  RID createDescriptorSets(uint32_t swapChainSize,
+                           VkDescriptorSetLayout descriptorSetLayout,
                            std::vector<VkBuffer> uniformBuffers,
                            std::vector<RID> imageIds);
 

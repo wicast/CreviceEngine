@@ -18,9 +18,9 @@ class RenderPass {
  public:
   // Attachments
   // attachment ids
-  VectorSet<uint32_t> attachmentInput;
+  VectorSet<uint32_t> inputAttachments;
 
-  VectorSet<uint32_t> attachmentsOutput;
+  VectorSet<uint32_t> outputAttachments;
   // uint32_t attachmentsDependency;
 
   VertexInputInfo vertexInputInfoDesc;
@@ -74,8 +74,10 @@ class RenderPass {
   void generateDescriptorSetLayout(GpuResourceManager& gManager);
   void genreatePipeline(GpuResourceManager& gManager);
   void compile(GpuResourceManager& gManager,
-               VectorMap<uint32_t, uint32_t> attachmentMap,
+              //  VectorMap<uint32_t, uint32_t> attachmentMap,
                SharedPtr<VkRenderPass> vkRenderPass);
+
+  
 
   RenderPass(/* args */) {}
   ~RenderPass() {}
