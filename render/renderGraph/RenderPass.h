@@ -9,6 +9,7 @@
 #include "stl/CreviceSTL.h"
 #include "render/FrameResource.h"
 #include "render/descriptor/VertexInputInfo.h"
+#include "render/RenderAble.h"
 
 namespace crevice {
 
@@ -32,6 +33,8 @@ class RenderPass {
   // pair by render pass assign component
   // TODO same key can only appear once, so better use set
   Vector<ShaderInputKey> perPassInputKeys;
+  //Used for render to texture
+  VectorSet<uint32_t> innerImage;
 
   // from Material and Transform
 
@@ -56,10 +59,10 @@ class RenderPass {
   SharedPtr<VkPipeline> mPipeline;
   SharedPtr<VkPipelineLayout> mPipelineLayout;
   //Framebuffer index from render graph
-  uint32_t mFramebufferId;
 
   // TODO
-  Vector<bool> mRenderList;
+  PerPassRenderAble mPerpassRenderable;
+  Vector<RenderAble> mRenderList;
 
 
   void changeName(String _name) { name = _name; }
@@ -77,7 +80,13 @@ class RenderPass {
               //  VectorMap<uint32_t, uint32_t> attachmentMap,
                SharedPtr<VkRenderPass> vkRenderPass);
 
-  
+
+  void addPerpassRenderAble(PerPassRenderAble pa) {mPerpassRenderable = pa;};
+  void addRenderAble(RenderAble ra) {mRenderList.push_back(ra);};
+
+  void updateRenderList(uint64_t frame);
+
+  void drawFrameWithSubpass(uint64_t frame,VkCommandBuffer commandBuffer);
 
   RenderPass(/* args */) {}
   ~RenderPass() {}

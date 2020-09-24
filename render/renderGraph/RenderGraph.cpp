@@ -48,14 +48,54 @@ void RenderGraph::detachNode(uint32_t firstPassId, uint32_t secondPassId) {
   dependencyEdges[secondPassId].erase(firstPassId);
 }
 
-void RenderGraph::compile() {
+void RenderGraph::compileWithSubPass() {
+  //create sync obj
+  createSyncObj();
   // TODO for now only support single renderpass with subpass
   analyzeExecutionOrder();
   // analyze attachments and create renderpass
   createRenderPassInstanceWithSubPass();
   // create framebuffer
   createFrameBufferForSubPass();
-  // TODO create commandBuffer
+  // create commandBuffer
+  createCommandBuffer();
+  // compile sub passes
+  for (auto passId : mExeOrder) {
+    auto pass = renderPasses[passId];
+    pass->compile(*mGpuRManager, renderPassInsts[0]);
+  }
+}
+
+void RenderGraph::createSyncObj() {
+  auto vkContext = mGpuRManager->vkContext;
+
+  imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+  imagesInFlight.resize(mGpuRManager->swapChainSize, VK_NULL_HANDLE);
+
+  VkSemaphoreCreateInfo semaphoreInfo = {};
+  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  VkFenceCreateInfo fenceInfo = {};
+  fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    if (vkCreateSemaphore(vkContext->device, &semaphoreInfo, nullptr,
+                          &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+        vkCreateSemaphore(vkContext->device, &semaphoreInfo, nullptr,
+                          &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+        vkCreateFence(vkContext->device, &fenceInfo, nullptr,
+                      &inFlightFences[i]) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create semaphores for a frame!");
+    }
+  }
+}
+
+void RenderGraph::createCommandBuffer() {
+  // TODO different renderpass with different commandbuffer
+  mCommandBuffers.push_back(
+      mGpuRManager->createCommandBuffers(GpuResourceManager::swapChainSize));
 }
 
 void RenderGraph::createRenderPassInstanceWithSubPass() {
@@ -333,8 +373,161 @@ void RenderGraph::createInternalImageViews() {
 
 void RenderGraph::bind() {}
 
-void RenderGraph::updateRenderData() {}
+void RenderGraph::updateRenderData(Vector<PerPassRenderAble> perpassList,
+                                   Vector<RenderAble> renderList) {
+  for (auto perRenderable : perpassList) {
+    renderPasses[perRenderable.passId]->addPerpassRenderAble(perRenderable);
+  }
+  for (auto renderable : renderList) {
+    renderPasses[renderable.passId]->addRenderAble(renderable);
+  }
+}
 
-void RenderGraph::drawFrame() {}
+void RenderGraph::drawFrameWithSubpass(uint64_t frame) {
+  // First:record commands
+  // reset all current commands
+  for (auto cb : mCommandBuffers) {
+    vkResetCommandBuffer(*(cb.getForUpdate(frame)),
+                         VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+  }
+
+  // pass the commanduffer
+  // begin renderpass
+  auto commandBuffer = *(mCommandBuffers[0].getForUpdate(frame));
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;                   // Optional
+  beginInfo.pInheritanceInfo = nullptr;  // Optional
+
+  if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+    throw std::runtime_error("failed to begin recording command buffer!");
+  }
+
+  VkRenderPassBeginInfo renderPassInfo = {};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = *renderPassInsts[0];
+  renderPassInfo.framebuffer = *(mFramebuffers[0].getForUpdate(frame));
+  renderPassInfo.renderArea.offset = {0, 0};
+  renderPassInfo.renderArea.extent =
+      mGpuRManager->vkContext->windowContext->swapChainExtent;
+
+  // TODO clear color setup
+  Vector<VkClearValue> clearValues = {};
+  for (auto _ : mExeOrder) {
+    VkClearValue clearValue;
+    clearValue.color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValue.depthStencil = {1.0f, 0};
+    clearValues.push_back(clearValue);
+  }
+
+  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+  renderPassInfo.pClearValues = clearValues.data();
+
+  vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
+                       VK_SUBPASS_CONTENTS_INLINE);
+  // iterate subpass
+  uint32_t count = 1;
+  for (auto passId : mExeOrder) {
+    auto pass = renderPasses[passId];
+    pass->drawFrameWithSubpass(frame, commandBuffer);
+    if (count != mExeOrder.size()) {
+      vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+    }
+    count++;
+  }
+
+  vkCmdEndRenderPass(commandBuffer);
+  // second submit
+
+  if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+    throw std::runtime_error("failed to record command buffer!");
+  }
+}
+
+
+// vulkan can submit multiple commandBuffers
+void RenderGraph::submit(uint64_t frame, uint32_t& imageIndex) {
+  auto vkContext = mGpuRManager->vkContext;
+  auto windowContext = vkContext->windowContext;
+
+  vkWaitForFences(vkContext->device, 1, &inFlightFences[currentFrame], VK_TRUE,
+                  UINT64_MAX);
+
+  VkResult vkResult = vkAcquireNextImageKHR(
+      vkContext->device, windowContext->swapChain, UINT64_MAX,
+      imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+  if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
+    // TODO
+    // recreateSwapChain();
+    return;
+  } else if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR) {
+    throw std::runtime_error("failed to acquire swap chain image!");
+  }
+
+  if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+    vkWaitForFences(vkContext->device, 1, &imagesInFlight[imageIndex], VK_TRUE,
+                    UINT64_MAX);
+  }
+  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+  // updateUniformBuffer(imageIndex);
+
+  VkSubmitInfo submitInfo = {};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+  VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+  VkPipelineStageFlags waitStages[] = {
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitDstStageMask = waitStages;
+
+  submitInfo.commandBufferCount = 1;
+  // TODO get all commandBuffer
+  auto commandBuff = *(mCommandBuffers[0].getForUpdate(frame));
+  submitInfo.pCommandBuffers = &commandBuff;
+
+  VkSemaphore renderFinishSemaphores[] = {
+      renderFinishedSemaphores[currentFrame]};
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = renderFinishSemaphores;
+
+  vkResetFences(vkContext->device, 1, &inFlightFences[currentFrame]);
+  if (vkQueueSubmit(vkContext->graphicsQueue, 1, &submitInfo,
+                    inFlightFences[currentFrame]) != VK_SUCCESS) {
+    throw std::runtime_error("failed to submit draw command buffer!");
+  }
+}
+
+void RenderGraph::present(uint64_t frame, uint32_t& imageIndex,
+                          VkSemaphore renderFinishSemaphores[]) {
+  auto vkContext = mGpuRManager->vkContext;
+  auto windowContext = vkContext->windowContext;
+
+  VkPresentInfoKHR presentInfo = {};
+  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = renderFinishSemaphores;
+
+  VkSwapchainKHR swapChains[] = {windowContext->swapChain};
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = swapChains;
+  presentInfo.pImageIndices = &imageIndex;
+
+  presentInfo.pResults = nullptr;  // Optional
+  VkResult vkResult = vkQueuePresentKHR(vkContext->presentQueue, &presentInfo);
+  if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR ||
+      framebufferResized) {
+    framebufferResized = false;
+    // TODO
+    // recreateSwapChain();
+  } else if (vkResult != VK_SUCCESS) {
+    throw std::runtime_error("failed to present swap chain image!");
+  }
+
+  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
 
 }  // namespace crevice

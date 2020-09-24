@@ -74,6 +74,7 @@ class Mesh {
   VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
   VkBuffer indexBuffer = VK_NULL_HANDLE;
   VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
+  uint32_t indexCount;
 
   ~Mesh() {}
 };

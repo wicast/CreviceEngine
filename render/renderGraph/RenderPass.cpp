@@ -295,4 +295,35 @@ void RenderPass::compile(GpuResourceManager& gManager,
   genreatePipeline(gManager);
 }
 
+void RenderPass::drawFrameWithSubpass(uint64_t frame,VkCommandBuffer commandBuffer) {
+  
+
+  // bind pipeline
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *mPipeline);
+
+  // bind perpass descriptor
+  auto perpassDescriptor = mPerpassRenderable.descriptor;
+  vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS, *mPipelineLayout, 0,1, perpassDescriptor.getRes().get(),0 ,nullptr);
+  // loop renderList 
+  for (auto renderable: mRenderList)
+  {
+    // -- bind meshdata
+    auto mesh = renderable.mesh.getRes();
+    VkBuffer vertexBuffers[] = {mesh->vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0,
+                         VK_INDEX_TYPE_UINT32);
+
+                         // -- bind perobj descriptor
+    auto bufDesc = renderable.bufferDescriptor.getRes()                             ;
+    auto texDesc = renderable.texDescriptor.getRes()         ;
+    VkDescriptorSet desc[2] = {*bufDesc,*texDesc};
+    vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,*mPipelineLayout,1, 2, desc, 0,nullptr);
+     // -- draw
+    vkCmdDrawIndexed(commandBuffer,mesh->indexCount, 1, 0, 0, 0);
+  }
+  
+}
+
 }  // namespace crevice

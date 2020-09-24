@@ -65,6 +65,21 @@ class GpuResourceManager {
     return fb;
   }
 
+  crevice::FrameResource<VkCommandBuffer> createCommandBuffers(uint8_t swapSize) {
+    crevice::Vector<VkCommandBuffer> commandBuffers(swapSize);
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = vkContext->commandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+
+    if (vkAllocateCommandBuffers(vkContext->device, &allocInfo,
+                                 commandBuffers.data()) != VK_SUCCESS) {
+      throw std::runtime_error("failed to allocate command buffers!");
+    }
+    return crevice::FrameResource<VkCommandBuffer>(commandBuffers);
+  }
+
   crevice::FrameResource<VkFramebuffer> createFrameResourceFramebuffer(
       crevice::Vector<VkFramebufferCreateInfo> fbInfo) {
     uint8_t swapChainSize = fbInfo.size();
@@ -79,18 +94,21 @@ class GpuResourceManager {
     return Frfb;
   }
 
-  crevice::FrameResource<crevice::CVTexture> createFrameResourceEmptyTexture(uint32_t texWidth, uint32_t texHeight,VkImageUsageFlags usage,uint32_t swapSize) {
-    auto fRes = crevice::FrameResource<crevice::CVTexture>(true,swapSize);
+  crevice::FrameResource<crevice::CVTexture> createFrameResourceEmptyTexture(
+      uint32_t texWidth, uint32_t texHeight, VkImageUsageFlags usage,
+      uint32_t swapSize) {
+    auto fRes = crevice::FrameResource<crevice::CVTexture>(true, swapSize);
 
-    for (size_t i = 0; i < swapSize; i++)
-    {
+    for (size_t i = 0; i < swapSize; i++) {
       auto tex = fRes.getForUpdate(i);
-      tex =crevice::make_shared<crevice::CVTexture>(createEmptyTexture( texWidth,  texHeight, usage)) ;
+      tex = crevice::make_shared<crevice::CVTexture>(
+          createEmptyTexture(texWidth, texHeight, usage));
     }
     return fRes;
   }
 
-  crevice::CVTexture createEmptyTexture(uint32_t texWidth, uint32_t texHeight,VkImageUsageFlags usage) {
+  crevice::CVTexture createEmptyTexture(uint32_t texWidth, uint32_t texHeight,
+                                        VkImageUsageFlags usage) {
     crevice::CVTexture newTex{};
 
     auto mipLevels = 1;
@@ -98,8 +116,7 @@ class GpuResourceManager {
     newTex.width = texHeight;
     newTex.mipLevels = mipLevels;
     createImage(texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
-                VK_IMAGE_TILING_OPTIMAL,
-                    usage,
+                VK_IMAGE_TILING_OPTIMAL, usage,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, newTex.textureImage,
                 newTex.textureImageMemory);
 

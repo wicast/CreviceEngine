@@ -17,6 +17,13 @@ class FrameResource
 public:
     FrameResource() {};
 
+    FrameResource(Vector<R> res) {
+        for (auto r : res)
+        {
+            fRes.push_back(make_shared<R>(r));
+        }
+    };
+
     FrameResource(bool updateEveryFrame,uint8_t chainSize)
     {
         swapChainSize = chainSize;
