@@ -461,44 +461,6 @@ void HelloTriangleApplication::loadObj1Model() {
   gpuResourceManager.generateVkMeshBuffer(obj2);
 }
 
-void HelloTriangleApplication::initVulkan() {
-  glfwInit();
-
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-  windowContext.window =
-      glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-  glfwSetWindowUserPointer(windowContext.window, this);
-  glfwSetFramebufferSizeCallback(windowContext.window,
-                                 framebufferResizeCallback);
-  glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetCursorPosCallback(windowContext.window,
-                           HelloTriangleApplication::mouse_callback_dispatch);
-
-  createResourceManager();
-  createVkContext();
-  //TODO more ealgent Bind;
-  vkContext.windowContext = &windowContext;
-  createGpuResourceManager();
-  gpuResourceManager.createSwapChain(windowContext);
-  gpuResourceManager.createSwapChainImageViews(windowContext, 1);
-  createRenderPass();
-  createDescriptorSetLayout();
-  createGraphicsPipeline();
-  vkContext.createCommandPool();
-  createDepthResources();
-  createFramebuffers();
-  loadObj1Model();
-  createObjectTextureImage();
-  createUniformBuffers();
-  initDescriptorPool();
-  createDescriptorSets();
-  createCommandBuffers();
-  // set drawCommand id
-  drawingBuffersId = &commandBuffers;
-  createSyncObjects();
-}
-
 void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
   static auto startTime = std::chrono::high_resolution_clock::now();
   auto currentTime = std::chrono::high_resolution_clock::now();
@@ -763,6 +725,44 @@ void HelloTriangleApplication::processInput(GLFWwindow *window) {
 
 void HelloTriangleApplication::switchCommandBuffer(RID *bufferId) {
   drawingBuffersId = bufferId;
+}
+
+void HelloTriangleApplication::initVulkan() {
+  glfwInit();
+
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+  windowContext.window =
+      glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+  glfwSetWindowUserPointer(windowContext.window, this);
+  glfwSetFramebufferSizeCallback(windowContext.window,
+                                 framebufferResizeCallback);
+  glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(windowContext.window,
+                           HelloTriangleApplication::mouse_callback_dispatch);
+
+  createResourceManager();
+  createVkContext();
+  //TODO more ealgent Bind;
+  vkContext.windowContext = &windowContext;
+  createGpuResourceManager();
+  gpuResourceManager.createSwapChain(windowContext);
+  gpuResourceManager.createSwapChainImageViews(windowContext, 1);
+  createRenderPass();
+  createDescriptorSetLayout();
+  createGraphicsPipeline();
+  vkContext.createCommandPool();
+  createDepthResources();
+  createFramebuffers();
+  loadObj1Model();
+  createObjectTextureImage();
+  createUniformBuffers();
+  initDescriptorPool();
+  createDescriptorSets();
+  createCommandBuffers();
+  // set drawCommand id
+  drawingBuffersId = &commandBuffers;
+  createSyncObjects();
 }
 
 void HelloTriangleApplication::run() {
