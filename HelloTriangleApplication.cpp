@@ -229,6 +229,116 @@ void HelloTriangleApplication::createGraphicsPipeline() {
   gpuResourceManager.destroyShaderPack(*shaderpackPtr);
 }
 
+void HelloTriangleApplication::createRenderGraph() {
+  mRendergraph = crevice::RenderGraph();
+  mRendergraph.setGpuRManager(&gpuResourceManager);
+
+  crevice::RGAttachment swapChainAtt{};
+  swapChainAtt.externalTexture = true;
+  swapChainAtt.name = "swapchain";
+  swapChainAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  swapChainAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  swapChainAtt.type = crevice::RGAttachmentTypes::Present;
+  swapChainAtt.format = windowContext.swapChainImageFormat;
+  swapId = mRendergraph.addAttachment(swapChainAtt);
+  auto swapChainImgViews =
+      gpuResourceManager.createFRImageView(windowContext.swapChainImageViews);
+  mRendergraph.setExternalImageView(swapId, swapChainImgViews);
+
+  crevice::RGAttachment depthAtt{};
+  depthAtt.name = "depth";
+  depthAtt.format = findDepthFormat();
+  depthAtt.externalTexture = true;
+  depthAtt.type = crevice::RGAttachmentTypes::DepthStencil;
+  depthAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  depthAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depId = mRendergraph.addAttachment(depthAtt);
+  auto depViews = crevice::Vector<VkImageView>(
+      windowContext.swapChainImages.size(), depthImageView);
+  auto depImgViews = gpuResourceManager.createFRImageView(depViews);
+  mRendergraph.setExternalImageView(depId, depImgViews);
+
+  // crevice::RGAttachment mainImage{};
+  // mainImage.name = "mainImage";
+  // mainImage.format = VK_FORMAT_B8G8R8A8_UNORM;
+  // mainImage.type = crevice::RGAttachmentTypes::Color;
+  // mainImage.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  // mainImage.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  // mRendergraph.addAttachment(mainImage);
+}
+
+void HelloTriangleApplication::setPassAndCompileRenderGraph() {
+  using namespace crevice;
+
+  crevice::RenderPass mainPass{};
+  mainPass.changeName("mainPass");
+  mainPass.changeShader("../../../../shaders/vert.spv",
+                        "../../../../shaders/frag.spv");
+  mainPass.outputAttachments = {swapId, depId};
+  // Mesh infos
+  auto bindDes = Vertex::getBindingDescription();
+  mainPass.vertexInputInfoDesc.bindingDescription = {bindDes.stride};
+  auto attributeDescriptions = Vertex::getAttributeDescriptions();
+  for (auto att : attributeDescriptions) {
+    mainPass.vertexInputInfoDesc.attributeDescriptions.push_back(
+        {att.format, att.offset});
+  }
+
+  crevice::ShaderInputKey perpassInputKey{};
+  perpassInputKey.keys = {Mat4x4, Mat4x4, Mat4x4, Vec3, Vec3, Vec3};
+  mainPass.perPassInputKeys = {perpassInputKey};
+  crevice::ShaderInputKey perObjInputKey{};
+  perObjInputKey.keys = {TextureSample2D, TextureSample2D};
+  mainPass.perObjInputKeys = {perObjInputKey};
+
+  mainPassId =
+      mRendergraph.addPass(crevice::make_shared<crevice::RenderPass>(mainPass));
+  mRendergraph.setOutputPass(mainPassId);
+
+  mRendergraph.compileWithSubPass();
+}
+
+void HelloTriangleApplication::createRenderAble() {
+  using namespace crevice;
+  
+  auto setLayouts = mRendergraph.getDescriptorSetLayouts(mainPassId);
+
+  ShaderInputKey perpassInputKey{};
+  perpassInputKey.keys = {Mat4x4, Mat4x4, Mat4x4, Vec3, Vec3, Vec3};
+  // auto perpasskeymap = crevice::getBindIngFromKey(perpassInputKey);
+  PerPassRenderAble cameraRenderable{};
+  cameraRenderable.key = perpassInputKey;
+  cameraRenderable.passId = mainPassId;
+
+  //create buffer descriptorSet
+  cameraRenderable.bufferDescriptor = gpuResourceManager.createFRDescriptorSet(*setLayouts[0],cameraUniformBuffers, sizeof(UniformBufferObject));
+
+
+
+
+  //get mesh
+  auto mesh1 = gpuResourceManager.getById<Mesh>(obj1);
+  auto meshRes = FrameResource<Mesh>(mesh1, GpuResourceManager::swapChainSize);
+  //get mesh tex
+  auto diffuseTex = gpuResourceManager.getById<crevice::CVTexture>(obj1TexId);
+  auto specTex = gpuResourceManager.getById<crevice::CVTexture>(specTexId);
+
+  //perpass
+  //get perpass set layout
+  //TODO this need to be constructed every time before draw,but can be diff 
+  RenderAble renderableObj1{};
+  ShaderInputKey perobjInputKey{};
+  perobjInputKey.keys = {TextureSample2D,TextureSample2D};
+  renderableObj1.passId = mainPassId;
+  renderableObj1.key = perobjInputKey;
+  renderableObj1.mesh = meshRes;
+  //TODO setLayout location
+  renderableObj1.texDescriptor = gpuResourceManager.createFRDescriptorSet(*setLayouts[1],{},0,{diffuseTex,specTex});
+
+  mRendergraph.updateRenderData({cameraRenderable},{renderableObj1});
+  
+}
+
 void HelloTriangleApplication::createRenderPass() {
   VkAttachmentDescription colorAttachment = {};
   colorAttachment.format = windowContext.swapChainImageFormat;
@@ -271,7 +381,7 @@ void HelloTriangleApplication::createRenderPass() {
   VkRenderPassCreateInfo renderPassInfo = {};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-  
+
   renderPassInfo.pAttachments = attachments.data();
   renderPassInfo.subpassCount = 1;
   renderPassInfo.pSubpasses = &subpass;
@@ -409,17 +519,17 @@ void HelloTriangleApplication::createDescriptorSetLayout() {
   descriptorSetLayout = gpuResourceManager.addDescriptorSetLayout(layoutInfo);
 }
 
-void HelloTriangleApplication::createUniformBuffers() {
+void HelloTriangleApplication::createPerPassUniformBuffers() {
   VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-  uniformBuffers.resize(windowContext.swapChainImages.size());
-  uniformBuffersMemory.resize(windowContext.swapChainImages.size());
+  cameraUniformBuffers.resize(windowContext.swapChainImages.size());
+  cameraUniformBuffersMemory.resize(windowContext.swapChainImages.size());
 
   for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
     gpuResourceManager.createBuffer(bufferSize,
                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                    uniformBuffers[i], uniformBuffersMemory[i]);
+                                    cameraUniformBuffers[i], cameraUniformBuffersMemory[i]);
   }
 }
 
@@ -430,8 +540,8 @@ void HelloTriangleApplication::initDescriptorPool() {
 void HelloTriangleApplication::createDescriptorSets() {
   std::vector<RID> imgs = {obj1TexId, specTexId};
   descriptorSets = gpuResourceManager.createDescriptorSets(
-      windowContext.swapChainImages.size(), *descriptorSetLayout, uniformBuffers,
-      imgs);
+      windowContext.swapChainImages.size(), *descriptorSetLayout,
+      cameraUniformBuffers, imgs);
 }
 
 void HelloTriangleApplication::createObjectTextureImage() {
@@ -493,10 +603,10 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
   ubo.lightPosition = glm::vec3(5.0f, 5.0f, 5.0f);
   ubo.lightDiffuse = {0.250f, 0.235f, 0.168f};
   void *data;
-  vkMapMemory(vkContext.device, uniformBuffersMemory[currentImage], 0,
+  vkMapMemory(vkContext.device, cameraUniformBuffersMemory[currentImage], 0,
               sizeof(ubo), 0, &data);
   memcpy(data, &ubo, sizeof(ubo));
-  vkUnmapMemory(vkContext.device, uniformBuffersMemory[currentImage]);
+  vkUnmapMemory(vkContext.device, cameraUniformBuffersMemory[currentImage]);
 }
 
 void HelloTriangleApplication::drawFrame() {
@@ -572,13 +682,18 @@ void HelloTriangleApplication::drawFrame() {
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
+void HelloTriangleApplication::drawFrameWithFrameGraph() {
+  updateUniformBuffer(currentFrame);
+  mRendergraph.drawFrameWithSubpass(currentFrame);
+  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
 void HelloTriangleApplication::mainLoop() {
   // glfwSetKeyCallback(window, HelloTriangleApplication::keycallback_dispatch);
 
   while (!glfwWindowShouldClose(windowContext.window)) {
     processInput(windowContext.window);
     glfwPollEvents();
-    drawFrame();
+    drawFrameWithFrameGraph();
   }
   vkDeviceWaitIdle(vkContext.device);
 }
@@ -624,13 +739,13 @@ void HelloTriangleApplication::cleanup() {
                           gpuResourceManager.descriptorPools[0], nullptr);
 
   for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
-    vkDestroyBuffer(vkContext.device, uniformBuffers[i], nullptr);
-    vkFreeMemory(vkContext.device, uniformBuffersMemory[i], nullptr);
+    vkDestroyBuffer(vkContext.device, cameraUniformBuffers[i], nullptr);
+    vkFreeMemory(vkContext.device, cameraUniformBuffersMemory[i], nullptr);
   }
-  //TODO resource clear bucket;
+  // TODO resource clear bucket;
   gpuResourceManager.destroyTexture(obj1TexId);
   gpuResourceManager.destroyTexture(specTexId);
-  gpuResourceManager.destoryDescriptorSetLayout(*descriptorSetLayout);
+  // gpuResourceManager.destoryDescriptorSetLayout(*descriptorSetLayout);
 
   gpuResourceManager.destroyMesh(obj1);
   gpuResourceManager.destroyMesh(obj2);
@@ -743,26 +858,35 @@ void HelloTriangleApplication::initVulkan() {
 
   createResourceManager();
   createVkContext();
-  //TODO more ealgent Bind;
+  // TODO more ealgent Bind;
   vkContext.windowContext = &windowContext;
   createGpuResourceManager();
   gpuResourceManager.createSwapChain(windowContext);
   gpuResourceManager.createSwapChainImageViews(windowContext, 1);
-  createRenderPass();
-  createDescriptorSetLayout();
-  createGraphicsPipeline();
+  // createRenderPass();
+  // createDescriptorSetLayout();
+  // createGraphicsPipeline();
   vkContext.createCommandPool();
   createDepthResources();
-  createFramebuffers();
+  // createFramebuffers();
+
+  createRenderGraph();
+
+  // TODO create Renderable and perpassRenderable, this process is all about io,
+  // so this can be async
   loadObj1Model();
   createObjectTextureImage();
-  createUniformBuffers();
+  createPerPassUniformBuffers();
   initDescriptorPool();
-  createDescriptorSets();
-  createCommandBuffers();
+  // createDescriptorSets();
+
+  setPassAndCompileRenderGraph();
+  // createCommandBuffers();
   // set drawCommand id
-  drawingBuffersId = &commandBuffers;
-  createSyncObjects();
+  // drawingBuffersId = &commandBuffers;
+  // createSyncObjects();
+
+  createRenderAble();
 }
 
 void HelloTriangleApplication::run() {

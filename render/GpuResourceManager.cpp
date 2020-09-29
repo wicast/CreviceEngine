@@ -4,12 +4,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include "render/FrameResource.h"
 #include "render/GpuResourceManager.h"
 #include "render/Model.h"
 #include "render/Uniform.h"
-#include "render/FrameResource.h"
 
-//TODO move to cpu resource
+// TODO move to cpu resource
 Mesh GpuResourceManager::createMeshFromObj(std::string modelPath) {
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
@@ -129,8 +129,8 @@ void GpuResourceManager::destroyMesh(RID rid) {
   meshs.erase(rid);
 }
 
-crevice::SharedPtr<crevice::ShaderPack> GpuResourceManager::createShaderPack(const std::string& vertPath,
-                                         const std::string& fragPath) {
+crevice::SharedPtr<crevice::ShaderPack> GpuResourceManager::createShaderPack(
+    const std::string& vertPath, const std::string& fragPath) {
   auto vertShaderCode = readFile(vertPath);
   auto fragShaderCode = readFile(fragPath);
 
@@ -548,13 +548,13 @@ void GpuResourceManager::createSwapChain(WindowContext& windowContext) {
   VkExtent2D extent =
       chooseSwapExtent(swapChainSupport.capabilities, windowContext.window);
 
-  //TODO select swapchain buffer size
+  // TODO select swapchain buffer size
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
   if (swapChainSupport.capabilities.maxImageCount > 0 &&
       imageCount > swapChainSupport.capabilities.maxImageCount) {
     imageCount = swapChainSupport.capabilities.maxImageCount;
   }
-  
+
   GpuResourceManager::swapChainSize = imageCount;
 
   VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
@@ -704,7 +704,8 @@ void GpuResourceManager::addDescriptorPool(
   descriptorPools.push_back(descriptorPool);
 }
 
-crevice::SharedPtr<VkDescriptorSetLayout> GpuResourceManager::addDescriptorSetLayout(
+crevice::SharedPtr<VkDescriptorSetLayout>
+GpuResourceManager::addDescriptorSetLayout(
     VkDescriptorSetLayoutCreateInfo layoutInfo) {
   VkDescriptorSetLayout descriptorSetLayout{};
   if (vkCreateDescriptorSetLayout(vkContext->device, &layoutInfo, nullptr,
@@ -712,17 +713,17 @@ crevice::SharedPtr<VkDescriptorSetLayout> GpuResourceManager::addDescriptorSetLa
     throw std::runtime_error("failed to create descriptor set layout!");
   }
 
-
-  crevice::SharedPtr<VkDescriptorSetLayout> ptr = crevice::make_shared<VkDescriptorSetLayout>(descriptorSetLayout);
+  crevice::SharedPtr<VkDescriptorSetLayout> ptr =
+      crevice::make_shared<VkDescriptorSetLayout>(descriptorSetLayout);
   return ptr;
 }
 
-//TODO free layout of descriptor set
+// TODO free layout of descriptor set
 RID GpuResourceManager::createDescriptorSets(
     uint32_t swapChainSize, VkDescriptorSetLayout descriptorSetLayout,
-    std::vector<VkBuffer> uniformBuffers, std::vector<RID> imageIds) {
-  std::vector<VkDescriptorSetLayout> layouts(
-      swapChainSize, descriptorSetLayout);
+    crevice::Vector<VkBuffer> uniformBuffers, std::vector<RID> imageIds) {
+  std::vector<VkDescriptorSetLayout> layouts(swapChainSize,
+                                             descriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = descriptorPools[0];
@@ -787,7 +788,88 @@ RID GpuResourceManager::createDescriptorSets(
   return rid;
 }
 
-//TODO this part is really dynamic
+crevice::FrameResource<VkDescriptorSet>
+GpuResourceManager::createFRDescriptorSet(
+    VkDescriptorSetLayout layout, crevice::Vector<VkBuffer> buffers,
+    VkDeviceSize bufferBlockSize, crevice::Vector<crevice::CVTexture> images) {
+  if (!buffers.empty() && !images.empty()) {
+    throw std::runtime_error(
+        "only create a buffer or image descriptor once a time");
+  } else if (buffers.empty() && images.empty()) {
+    throw std::runtime_error(
+        "at least a buffer or image descriptor need to be created");
+  } else if (bufferBlockSize == 0 && !buffers.empty() ||
+             (bufferBlockSize != 0 && buffers.empty())) {
+    throw std::runtime_error("buffer create parameter error");
+  }
+
+  using namespace crevice;
+  Vector<VkDescriptorSetLayout> layouts(swapChainSize, layout);
+  VkDescriptorSetAllocateInfo allocInfo = {};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  allocInfo.descriptorPool = descriptorPools[0];
+  allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainSize);
+  allocInfo.pSetLayouts = layouts.data();
+
+  Vector<VkDescriptorSet> descriptorSets(swapChainSize);
+
+  if (vkAllocateDescriptorSets(vkContext->device, &allocInfo,
+                               descriptorSets.data()) != VK_SUCCESS) {
+    throw std::runtime_error("failed to allocate descriptor sets!");
+  }
+
+  for (size_t i = 0; i < swapChainSize; i++) {
+    std::vector<VkWriteDescriptorSet> descriptorWrites;
+    std::vector<VkDescriptorImageInfo> imageInfos;
+
+    if (!buffers.empty()) {
+      VkDescriptorBufferInfo bufferInfo = {};
+      bufferInfo.buffer = buffers[i];
+      bufferInfo.offset = 0;
+      bufferInfo.range = bufferBlockSize;
+
+      VkWriteDescriptorSet desWriteBuffer = {};
+      desWriteBuffer.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      desWriteBuffer.dstSet = descriptorSets[i];
+      desWriteBuffer.dstBinding = 0;
+      desWriteBuffer.dstArrayElement = 0;
+      desWriteBuffer.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      desWriteBuffer.descriptorCount = 1;
+      desWriteBuffer.pBufferInfo = &bufferInfo;
+
+      descriptorWrites.push_back(desWriteBuffer);
+
+    } else if (!images.empty()) {
+      imageInfos.resize(images.size());
+      for (auto j = 0; j < images.size(); j++) {
+        auto tex = images[j];
+        imageInfos[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfos[j].imageView = tex.textureImageView;
+        imageInfos[j].sampler = tex.textureSampler;
+
+        VkWriteDescriptorSet desWriteImg = {};
+
+        desWriteImg.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        desWriteImg.dstSet = descriptorSets[i];
+        desWriteImg.dstBinding = j;
+        desWriteImg.dstArrayElement = 0;
+        desWriteImg.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        desWriteImg.descriptorCount = 1;
+        desWriteImg.pImageInfo = &imageInfos[j];
+
+        descriptorWrites.push_back(desWriteImg);
+      }
+    }
+
+    vkUpdateDescriptorSets(vkContext->device,
+                           static_cast<uint32_t>(descriptorWrites.size()),
+                           descriptorWrites.data(), 0, nullptr);
+  }
+
+  return FrameResource<VkDescriptorSet>(descriptorSets);
+}
+
+// TODO this part is really dynamic
 RID GpuResourceManager::createIndexedDrawCommandBuffers(
     WindowContext windowContext, RID meshObjId, RID descriptorSets,
     VkRenderPass renderPass, VkPipeline graphicsPipeline,
@@ -860,6 +942,5 @@ RID GpuResourceManager::createIndexedDrawCommandBuffers(
   this->commandBuffers[rid] = commandBuffers;
   return rid;
 }
-
 
 uint8_t GpuResourceManager::swapChainSize = 1;

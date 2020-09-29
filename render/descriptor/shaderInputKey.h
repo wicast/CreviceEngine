@@ -13,7 +13,7 @@ enum ShaderSlotType{
     Uvec1,Uvec2,Uvec3,Uvec4,
     Vec1,Vec2,Vec3,Vec4,
     Mat2x2,mat3x2,Mat4x2,Mat2x3,Mat3x3,Mat4x3,Mat2x4,Mat3x4,Mat4x4,
-    TextureSample,
+    TextureSample2D,
     PixelLocalTextureSampler
 };
 

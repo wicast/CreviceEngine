@@ -32,6 +32,7 @@
 #include "render/GpuResourceManager.h"
 #include "render/Uniform.h"
 #include "render/vulkan/windowContext.h"
+#include "render/renderGraph/RenderGraph.h"
 #include "components/Camera.h"
 
 class HelloTriangleApplication {
@@ -48,7 +49,11 @@ class HelloTriangleApplication {
 
   VkContext vkContext;
 
-  // RID descriptorSetLayout;
+  crevice::RenderGraph mRendergraph;
+  uint32_t mainPassId;
+  uint32_t swapId;
+  uint32_t depId;
+
   crevice::SharedPtr<VkDescriptorSetLayout> descriptorSetLayout;
   VkPipelineLayout pipelineLayout;
   VkRenderPass renderPass;
@@ -68,8 +73,14 @@ class HelloTriangleApplication {
   RID obj1;
   RID obj2;
 
-  std::vector<VkBuffer> uniformBuffers;
-  std::vector<VkDeviceMemory> uniformBuffersMemory;
+  crevice::RenderAble objr1;
+  crevice::RenderAble objr2;
+
+  crevice::Vector<crevice::PerPassRenderAble> perpassList;
+  crevice::Vector<crevice::RenderAble> renderList;
+
+  crevice::Vector<VkBuffer> cameraUniformBuffers;
+  crevice::Vector<VkDeviceMemory> cameraUniformBuffersMemory;
 
   std::vector<VkFramebuffer> swapChainFramebuffers;
 
@@ -105,6 +116,9 @@ class HelloTriangleApplication {
   void createGraphicsPipeline();
 
   void createRenderPass();
+  void createRenderGraph();
+  void setPassAndCompileRenderGraph();
+  void createRenderAble();
 
   void createFramebuffers();
 
@@ -122,7 +136,7 @@ class HelloTriangleApplication {
 
   void createDescriptorSetLayout();
 
-  void createUniformBuffers();
+  void createPerPassUniformBuffers();
 
   void initDescriptorPool();
 
@@ -141,6 +155,7 @@ class HelloTriangleApplication {
   void updateUniformBuffer(uint32_t currentImage);
 
   void drawFrame();
+  void drawFrameWithFrameGraph();
 
   void mainLoop();
 

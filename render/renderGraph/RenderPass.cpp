@@ -8,7 +8,8 @@ RenderPass::generateVertexInputInfo() {
   VkVertexInputBindingDescription bindingDescription = {};
   bindingDescription.binding = 0;
   bindingDescription.stride = vertexInputInfoDesc.bindingDescription.stride;
-  bindingDescription.inputRate = vertexInputInfoDesc.bindingDescription.inputRate;
+  bindingDescription.inputRate =
+      vertexInputInfoDesc.bindingDescription.inputRate;
 
   Vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
 
@@ -35,74 +36,91 @@ void RenderPass::generateDescriptorSetLayout(GpuResourceManager& gManager) {
 
   for (auto inKey : perPassInputKeys) {
     Vector<ShaderSlotType> bufferKeys;
+    auto inx = 0;
     for (auto key : inKey.keys) {
-      if (key == crevice::ShaderSlotType::TextureSample) {
+      if (key == crevice::ShaderSlotType::TextureSample2D) {
         VkDescriptorSetLayoutBinding perTexBinding = {};
-        perTexBinding.descriptorCount = perPassTexBindings.size();
+        perTexBinding.binding = inx;
         perTexBinding.descriptorCount = 1;
         perTexBinding.descriptorType =
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         perTexBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        perObjTexBindings.push_back(perTexBinding);
+        perPassTexBindings.push_back(perTexBinding);
+        inx++;
       } else if (key == crevice::ShaderSlotType::PixelLocalTextureSampler) {
+        inx++;
       } else {
         bufferKeys.push_back(key);
       }
     }
 
-    VkDescriptorSetLayoutBinding bufferBinding = {};
-    bufferBinding.binding = bufferBindings.size();
-    bufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    // TODO need config or not?
-    bufferBinding.descriptorCount = 1;
-    // TODO more specific stage flag
-    bufferBinding.stageFlags =
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    bufferBinding.pImmutableSamplers = nullptr;  // Optional
+    if (!bufferKeys.empty()) {
+      VkDescriptorSetLayoutBinding bufferBinding = {};
+      bufferBinding.binding = 0;
+      bufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      // TODO need config or not?
+      bufferBinding.descriptorCount = 1;
+      // TODO more specific stage flag
+      bufferBinding.stageFlags =
+          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+      bufferBinding.pImmutableSamplers = nullptr;  // Optional
+      bufferBindings.push_back(bufferBinding);
+    }
   }
 
   for (auto inKey : perObjInputKeys) {
     Vector<ShaderSlotType> bufferKeys;
+    auto inx =0;
     for (auto key : inKey.keys) {
-      if (key == crevice::ShaderSlotType::TextureSample) {
+      if (key == crevice::ShaderSlotType::TextureSample2D) {
         VkDescriptorSetLayoutBinding perTexBinding = {};
-        perTexBinding.descriptorCount = perObjTexBindings.size();
+        perTexBinding.binding = inx;
         perTexBinding.descriptorCount = 1;
         perTexBinding.descriptorType =
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         perTexBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         perObjTexBindings.push_back(perTexBinding);
+        inx++;
       } else if (key == crevice::ShaderSlotType::PixelLocalTextureSampler) {
+        inx++;
       } else {
         bufferKeys.push_back(key);
       }
     }
 
-    VkDescriptorSetLayoutBinding bufferBinding = {};
-    bufferBinding.binding = bufferBindings.size();
-    bufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    bufferBinding.descriptorCount = 1;
-    bufferBinding.stageFlags =
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    bufferBinding.pImmutableSamplers = nullptr;  // Optional
+    if (!bufferKeys.empty()) {
+      VkDescriptorSetLayoutBinding bufferBinding = {};
+      if (bufferBindings.empty()) {
+        bufferBinding.binding = 0;
+      } else {
+        bufferBinding.binding = 1;
+      }
+      bufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      bufferBinding.descriptorCount = 1;
+      bufferBinding.stageFlags =
+          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+      bufferBinding.pImmutableSamplers = nullptr;  // Optional
+      bufferBindings.push_back(bufferBinding);
+    }
   }
 
   VkDescriptorSetLayoutCreateInfo bufferLayoutInfo{};
   bufferLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   bufferLayoutInfo.bindingCount = static_cast<uint32_t>(bufferBindings.size());
   bufferLayoutInfo.pBindings = bufferBindings.data();
-  // TODO reference
+  // TODO if no buffer
   mSetLayouts.push_back(gManager.addDescriptorSetLayout(bufferLayoutInfo));
 
-  VkDescriptorSetLayoutCreateInfo perPassTexLayoutInfo{};
-  perPassTexLayoutInfo.sType =
-      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  perPassTexLayoutInfo.bindingCount =
-      static_cast<uint32_t>(perPassTexBindings.size());
-  perPassTexLayoutInfo.pBindings = perPassTexBindings.data();
-  mSetLayouts.push_back(gManager.addDescriptorSetLayout(perPassTexLayoutInfo));
+//TODO if no perpassimage
+  // VkDescriptorSetLayoutCreateInfo perPassTexLayoutInfo{};
+  // perPassTexLayoutInfo.sType =
+  //     VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  // perPassTexLayoutInfo.bindingCount =
+  //     static_cast<uint32_t>(perPassTexBindings.size());
+  // perPassTexLayoutInfo.pBindings = perPassTexBindings.data();
+  // mSetLayouts.push_back(gManager.addDescriptorSetLayout(perPassTexLayoutInfo));
 
   VkDescriptorSetLayoutCreateInfo perObjTexLayoutInfo{};
   perObjTexLayoutInfo.sType =
@@ -145,18 +163,17 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
   vertexInputCInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vertexInputCInfo.vertexBindingDescriptionCount = 1;
-  vertexInputCInfo.pVertexBindingDescriptions = &bindingDescription;  // Optional
+  vertexInputCInfo.pVertexBindingDescriptions =
+      &bindingDescription;  // Optional
   vertexInputCInfo.vertexAttributeDescriptionCount =
       static_cast<uint32_t>(attributeDescriptions.size());
-  vertexInputCInfo.pVertexAttributeDescriptions =
-      attributeDescriptions.data();       
+  vertexInputCInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
   inputAssembly.sType =
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
   inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   inputAssembly.primitiveRestartEnable = VK_FALSE;
-
 
   auto windowContext = gManager.vkContext->windowContext;
 
@@ -178,7 +195,6 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
   viewportState.pViewports = &viewport;
   viewportState.scissorCount = 1;
   viewportState.pScissors = &scissor;
-
 
   VkPipelineRasterizationStateCreateInfo rasterizer = {};
   rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -229,8 +245,7 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
   depthStencil.back = {};   // Optional
 
   Vector<VkDescriptorSetLayout> _desLayout;
-  for (auto RCLayout:mSetLayouts )
-  {
+  for (auto RCLayout : mSetLayouts) {
     _desLayout.push_back(*RCLayout);
   }
 
@@ -242,8 +257,8 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
 
   VkPipelineLayout _pipelineLayout;
 
-  if (vkCreatePipelineLayout(gManager.vkContext->device, &pipelineLayoutInfo, nullptr,
-                             &_pipelineLayout) != VK_SUCCESS) {
+  if (vkCreatePipelineLayout(gManager.vkContext->device, &pipelineLayoutInfo,
+                             nullptr, &_pipelineLayout) != VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
   }
 
@@ -269,7 +284,7 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;  // Optional
   pipelineInfo.basePipelineIndex = -1;               // Optional
 
-  VkPipeline graphicsPipeline;
+  VkPipeline graphicsPipeline{};
 
   if (vkCreateGraphicsPipelines(gManager.vkContext->device, VK_NULL_HANDLE, 1,
                                 &pipelineInfo, nullptr,
@@ -280,50 +295,59 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
   mPipeline = crevice::make_shared<VkPipeline>(graphicsPipeline);
 
   gManager.destroyShaderPack(*shaderPack);
-
 }
 
 void RenderPass::compile(GpuResourceManager& gManager,
-                        //  VectorMap<uint32_t, uint32_t> attachmentMap,
+                         //  VectorMap<uint32_t, uint32_t> attachmentMap,
                          SharedPtr<VkRenderPass> vkRenderPass) {
-  //set RenderPass                           
-  mRenderPass = vkRenderPass; 
-                            
+  // set RenderPass
+  mRenderPass = vkRenderPass;
+
   generateDescriptorSetLayout(gManager);
   // TODO generate shader header
 
   genreatePipeline(gManager);
 }
 
-void RenderPass::drawFrameWithSubpass(uint64_t frame,VkCommandBuffer commandBuffer) {
-  
-
+void RenderPass::drawFrameWithSubpass(uint64_t frame,
+                                      VkCommandBuffer commandBuffer) {
   // bind pipeline
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *mPipeline);
 
   // bind perpass descriptor
-  auto perpassDescriptor = mPerpassRenderable.descriptor;
-  vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS, *mPipelineLayout, 0,1, perpassDescriptor.getRes().get(),0 ,nullptr);
-  // loop renderList 
-  for (auto renderable: mRenderList)
-  {
+  auto perpassDescriptor = mPerpassRenderable.bufferDescriptor;
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          *mPipelineLayout, 0, 1,
+                          perpassDescriptor.getRes(frame).get(), 0, nullptr);
+  // loop renderList
+  for (auto renderable : mRenderList) {
     // -- bind meshdata
-    auto mesh = renderable.mesh.getRes();
+    auto mesh = renderable.mesh.getRes(frame);
     VkBuffer vertexBuffers[] = {mesh->vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0,
                          VK_INDEX_TYPE_UINT32);
 
-                         // -- bind perobj descriptor
-    auto bufDesc = renderable.bufferDescriptor.getRes()                             ;
-    auto texDesc = renderable.texDescriptor.getRes()         ;
-    VkDescriptorSet desc[2] = {*bufDesc,*texDesc};
-    vkCmdBindDescriptorSets(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS,*mPipelineLayout,1, 2, desc, 0,nullptr);
-     // -- draw
-    vkCmdDrawIndexed(commandBuffer,mesh->indexCount, 1, 0, 0, 0);
+    // -- bind perobj descriptor
+    Vector<VkDescriptorSet> desc;
+    if (renderable.bufferDescriptor.prepared)
+    {
+       auto bufDesc =  renderable.bufferDescriptor.getRes(frame);
+       desc.push_back(*bufDesc);
+    }
+    if (renderable.texDescriptor.prepared)
+    {
+      /* code */
+      auto texDesc = renderable.texDescriptor.getRes(frame);
+      desc.push_back(*texDesc);
+    }
+   
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            *mPipelineLayout, 1,desc.size(), desc.data(), 0, nullptr);
+    // -- draw
+    vkCmdDrawIndexed(commandBuffer, mesh->indices.size(), 1, 0, 0, 0);
   }
-  
 }
 
 }  // namespace crevice

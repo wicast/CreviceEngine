@@ -65,7 +65,8 @@ class GpuResourceManager {
     return fb;
   }
 
-  crevice::FrameResource<VkCommandBuffer> createCommandBuffers(uint8_t swapSize) {
+  crevice::FrameResource<VkCommandBuffer> createCommandBuffers(
+      uint8_t swapSize) {
     crevice::Vector<VkCommandBuffer> commandBuffers(swapSize);
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -80,7 +81,12 @@ class GpuResourceManager {
     return crevice::FrameResource<VkCommandBuffer>(commandBuffers);
   }
 
-  crevice::FrameResource<VkFramebuffer> createFrameResourceFramebuffer(
+  crevice::FrameResource<VkImageView> createFRImageView(
+      crevice::Vector<VkImageView> imgViews) {
+    return crevice::FrameResource<VkImageView>(imgViews);
+  };
+
+  crevice::FrameResource<VkFramebuffer> createFRFramebuffer(
       crevice::Vector<VkFramebufferCreateInfo> fbInfo) {
     uint8_t swapChainSize = fbInfo.size();
     auto Frfb = crevice::FrameResource<VkFramebuffer>(true, swapChainSize);
@@ -88,7 +94,7 @@ class GpuResourceManager {
     for (size_t i = 0; i < swapChainSize; i++) {
       auto fbr = Frfb.getForUpdate(i);
       auto cinfo = fbInfo[i];
-      fbr = crevice::make_shared<VkFramebuffer>(createFramebuffer(cinfo));
+      *fbr = crevice::make_shared<VkFramebuffer>(createFramebuffer(cinfo));
     }
 
     return Frfb;
@@ -101,7 +107,7 @@ class GpuResourceManager {
 
     for (size_t i = 0; i < swapSize; i++) {
       auto tex = fRes.getForUpdate(i);
-      tex = crevice::make_shared<crevice::CVTexture>(
+      *tex = crevice::make_shared<crevice::CVTexture>(
           createEmptyTexture(texWidth, texHeight, usage));
     }
     return fRes;
@@ -210,8 +216,13 @@ class GpuResourceManager {
 
   RID createDescriptorSets(uint32_t swapChainSize,
                            VkDescriptorSetLayout descriptorSetLayout,
-                           std::vector<VkBuffer> uniformBuffers,
+                           crevice::Vector<VkBuffer> uniformBuffers,
                            std::vector<RID> imageIds);
+
+  crevice::FrameResource<VkDescriptorSet> createFRDescriptorSet(
+      VkDescriptorSetLayout layout, crevice::Vector<VkBuffer> buffers = {},
+      VkDeviceSize bufferBlockSize = 0,
+      crevice::Vector<crevice::CVTexture> images = {});
 
   RID createIndexedDrawCommandBuffers(
       WindowContext windowContext, RID meshObjId, RID descriptorSets,

@@ -104,6 +104,11 @@ class RenderGraph {
   void present(uint64_t frame, uint32_t& imageIndex,
                VkSemaphore renderFinishSemaphores[]);
 
+
+  Vector<SharedPtr<VkDescriptorSetLayout>> getDescriptorSetLayouts(uint32_t passId){
+    return renderPasses[passId]->getDescriptorSetLayouts();
+  };         
+
   void clear();
 
   RenderGraph() {

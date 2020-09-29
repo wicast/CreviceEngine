@@ -21,6 +21,7 @@ class RenderPass {
   // attachment ids
   VectorSet<uint32_t> inputAttachments;
 
+  //Attachment ids
   VectorSet<uint32_t> outputAttachments;
   // uint32_t attachmentsDependency;
 
@@ -60,7 +61,7 @@ class RenderPass {
   SharedPtr<VkPipelineLayout> mPipelineLayout;
   //Framebuffer index from render graph
 
-  // TODO
+  // TODO this must be frame resource
   PerPassRenderAble mPerpassRenderable;
   Vector<RenderAble> mRenderList;
 
@@ -75,6 +76,9 @@ class RenderPass {
 
  std::tuple<VkVertexInputBindingDescription, Vector<VkVertexInputAttributeDescription>> generateVertexInputInfo();
   void generateDescriptorSetLayout(GpuResourceManager& gManager);
+  Vector<SharedPtr<VkDescriptorSetLayout>> getDescriptorSetLayouts(){
+    return mSetLayouts;
+  };
   void genreatePipeline(GpuResourceManager& gManager);
   void compile(GpuResourceManager& gManager,
               //  VectorMap<uint32_t, uint32_t> attachmentMap,

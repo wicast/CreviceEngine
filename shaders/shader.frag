@@ -10,7 +10,7 @@ layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 fragPos;
 
-layout(binding = 0,std140 ) uniform UniformBufferObject {
+layout(set=0,binding = 0,std140 ) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
@@ -19,8 +19,8 @@ layout(binding = 0,std140 ) uniform UniformBufferObject {
     vec3 lightPosition;
     vec3 lightDiffuse;
 } ubo;
-layout(binding = 1) uniform sampler2D texSampler;
-layout(binding = 2) uniform sampler2D specularSampler;
+layout(set=1, binding = 0) uniform sampler2D texSampler;
+layout(set=1, binding = 1) uniform sampler2D specularSampler;
 
 
 layout(location = 0) out vec4 outColor;

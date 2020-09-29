@@ -3,6 +3,7 @@
 
 #include <GLFW/glfw3.h>
 #include <volk.h>
+#include "stl/CreviceVector.h"
 
 class WindowContext {
  private:
@@ -15,7 +16,7 @@ class WindowContext {
   VkPresentModeKHR swapChainPresentMode;
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
-  std::vector<VkImageView> swapChainImageViews;
+  crevice::Vector<VkImageView> swapChainImageViews;
   float lastX, lastY;
   bool firstMouse = true;
 };

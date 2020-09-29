@@ -111,7 +111,7 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
   uint32_t inx = 0;
   for (auto attUsingId : attsUsing) {
     auto rgAttach = attachments[attUsingId];
-    VkAttachmentDescription attDes;
+    VkAttachmentDescription attDes{};
     attDes.format = rgAttach.format;
     attDes.samples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -138,33 +138,39 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
 
   VectorMap<uint32_t, uint32_t> passIdxMap;
   inx = 0;
+
+  //TODO size of true renderpass
+  Vector<Vector<VkAttachmentReference>> colorReferences(1);
+  Vector<Vector<VkAttachmentReference>> depthReferences(1);
+  Vector<Vector<VkAttachmentReference>> inputReferences(1);
   for (auto passId : mExeOrder) {
     auto p = *(renderPasses[passId]);
 
-    Vector<VkAttachmentReference> colorReference;
-    Vector<VkAttachmentReference> depthReference;
-    Vector<VkAttachmentReference> inputReferences;
-    for (auto col : p.inputAttachments) {
-      auto idx = attIndexMap[col];
-      colorReference.push_back({idx, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+    auto colorReference = &colorReferences[inx];
+    auto depthReference = &depthReferences[inx];
+    auto inputReference = &inputReferences[inx];
+    for (auto inAttId : p.inputAttachments) {
+      auto idx = attIndexMap[inAttId];
+      colorReference->push_back({idx, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
     }
 
-    for (auto col : p.outputAttachments) {
-      auto idx = attIndexMap[col];
-      if (attachments[idx].type == RGAttachmentTypes::Color) {
-        colorReference.push_back({idx, attachmentsInst[idx].finalLayout});
-      } else if (attachments[idx].type == RGAttachmentTypes::DepthStencil) {
-        depthReference.push_back({idx, attachmentsInst[idx].finalLayout});
+    for (auto outAttId : p.outputAttachments) {
+      auto idx = attIndexMap[outAttId];
+      auto type = attachments[outAttId].type;
+      if (type == RGAttachmentTypes::Color|| type == RGAttachmentTypes::Present) {
+        colorReference->push_back({idx, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+      } else if (type == RGAttachmentTypes::DepthStencil) {
+        depthReference->push_back({idx, attachmentsInst[idx].finalLayout});
       }
     }
 
-    VkSubpassDescription subpassDes;
+    VkSubpassDescription subpassDes{};
     subpassDes.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDes.colorAttachmentCount = colorReference.size();
-    subpassDes.pColorAttachments = colorReference.data();
-    subpassDes.pDepthStencilAttachment = depthReference.data();
-    subpassDes.inputAttachmentCount = inputReferences.size();
-    subpassDes.pInputAttachments = inputReferences.data();
+    subpassDes.colorAttachmentCount = colorReference->size();
+    subpassDes.pColorAttachments = colorReference->data();
+    subpassDes.pDepthStencilAttachment = depthReference->data();
+    subpassDes.inputAttachmentCount = inputReference->size();
+    subpassDes.pInputAttachments = inputReference->data();
 
     subpassDescriptions.push_back(subpassDes);
 
@@ -203,15 +209,18 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
   }
 
   for (auto endPassId : outputNodes) {
-    dependencies[2].srcSubpass = passIdxMap[endPassId];
-    dependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[2].srcStageMask =
+    VkSubpassDependency vkdep;
+
+    vkdep.srcSubpass = passIdxMap[endPassId];
+    vkdep.dstSubpass = VK_SUBPASS_EXTERNAL;
+    vkdep.srcStageMask =
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[2].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+    vkdep.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    vkdep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
                                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[2].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    vkdep.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    dependencies.push_back(vkdep);
   }
 
   VkRenderPassCreateInfo renderPassInfoCI{};
@@ -311,22 +320,22 @@ void RenderGraph::createFrameBufferForSubPass() {
   Vector<VkFramebufferCreateInfo> frameBufferCIs{};
 
   auto swapSize = GpuResourceManager::swapChainSize;
+  Vector<Vector<VkImageView>> views(swapSize);
   for (size_t i = 0; i < swapSize; i++) {
-    Vector<VkImageView> views;
     for (auto attId : attsUsing) {
       if (externalImageViews.count(attId) != 0) {
-        views.push_back(*(externalImageViews[attId].getForUpdate(i)));
+        views[i].push_back(*(externalImageViews[attId].getForUpdate(i)->get()));
       } else if (internalImages.count(attId) != 0) {
-        views.push_back(
-            internalImages[attId].getForUpdate(i)->textureImageView);
+        views[i].push_back(
+            internalImages[attId].getForUpdate(i)->get()->textureImageView);
       }
     }
 
     VkFramebufferCreateInfo frameBufferCI{};
     frameBufferCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     frameBufferCI.renderPass = *(renderPassInsts[0]);
-    frameBufferCI.attachmentCount = views.size();
-    frameBufferCI.pAttachments = views.data();
+    frameBufferCI.attachmentCount = views[i].size();
+    frameBufferCI.pAttachments = views[i].data();
     frameBufferCI.width = width;
     frameBufferCI.height = height;
     frameBufferCI.layers = 1;
@@ -334,8 +343,9 @@ void RenderGraph::createFrameBufferForSubPass() {
     frameBufferCIs.push_back(frameBufferCI);
   }
 
-  mFramebuffers[0] =
-      mGpuRManager->createFrameResourceFramebuffer(frameBufferCIs);
+  mFramebuffers.resize(1);
+
+  mFramebuffers[0] =  mGpuRManager->createFRFramebuffer(frameBufferCIs);
 }
 
 void RenderGraph::createInternalImageViews() {
@@ -346,6 +356,7 @@ void RenderGraph::createInternalImageViews() {
 
   for (auto usingId : attsUsing) {
     auto attach = attachments[usingId];
+    //find the image which is internal
     if (externalImageViews.count(usingId) == 0) {
       VkImageUsageFlags usage;
       if (attsOut.count(usingId) != 0 &&
@@ -376,6 +387,7 @@ void RenderGraph::bind() {}
 void RenderGraph::updateRenderData(Vector<PerPassRenderAble> perpassList,
                                    Vector<RenderAble> renderList) {
   for (auto perRenderable : perpassList) {
+    //TODO match renderlist with different method
     renderPasses[perRenderable.passId]->addPerpassRenderAble(perRenderable);
   }
   for (auto renderable : renderList) {
@@ -387,13 +399,13 @@ void RenderGraph::drawFrameWithSubpass(uint64_t frame) {
   // First:record commands
   // reset all current commands
   for (auto cb : mCommandBuffers) {
-    vkResetCommandBuffer(*(cb.getForUpdate(frame)),
+    vkResetCommandBuffer(*(cb.getForUpdate(frame)->get()),
                          VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
   }
 
   // pass the commanduffer
   // begin renderpass
-  auto commandBuffer = *(mCommandBuffers[0].getForUpdate(frame));
+  auto commandBuffer = *(mCommandBuffers[0].getForUpdate(frame)->get());
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -407,7 +419,7 @@ void RenderGraph::drawFrameWithSubpass(uint64_t frame) {
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = *renderPassInsts[0];
-  renderPassInfo.framebuffer = *(mFramebuffers[0].getForUpdate(frame));
+  renderPassInfo.framebuffer = *(mFramebuffers[0].getForUpdate(frame)->get());
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent =
       mGpuRManager->vkContext->windowContext->swapChainExtent;
@@ -485,8 +497,7 @@ void RenderGraph::submit(uint64_t frame, uint32_t& imageIndex) {
 
   submitInfo.commandBufferCount = 1;
   // TODO get all commandBuffer
-  auto commandBuff = *(mCommandBuffers[0].getForUpdate(frame));
-  submitInfo.pCommandBuffers = &commandBuff;
+  submitInfo.pCommandBuffers = mCommandBuffers[0].getForUpdate(frame)->get();
 
   VkSemaphore renderFinishSemaphores[] = {
       renderFinishedSemaphores[currentFrame]};
