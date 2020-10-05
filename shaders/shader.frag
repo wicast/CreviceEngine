@@ -10,7 +10,7 @@ layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 fragPos;
 
-layout(set=0,binding = 0,std140 ) uniform UniformBufferObject {
+layout(set=0,binding = 0 ) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
@@ -46,4 +46,5 @@ void main() {
     vec3 specular = specularStrength * spec  * vec3(texture(specularSampler, fragTexCoord));
     
     outColor = vec4(diffuse + specular + ambient , 1.0);
+    // outColor = vec4(0.0,1.0,0.0,1.0);
 }

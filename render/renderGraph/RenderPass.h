@@ -90,7 +90,7 @@ class RenderPass {
 
   void updateRenderList(uint64_t frame);
 
-  void drawFrameWithSubpass(uint64_t frame,VkCommandBuffer commandBuffer);
+  void recordFrameWithSubpass(uint64_t frame,VkCommandBuffer commandBuffer);
 
   RenderPass(/* args */) {}
   ~RenderPass() {}

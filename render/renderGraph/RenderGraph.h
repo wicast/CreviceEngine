@@ -99,10 +99,10 @@ class RenderGraph {
   void updateRenderData(Vector<PerPassRenderAble> perpassList,
                         Vector<RenderAble> renderList);
 
-  void drawFrameWithSubpass(uint64_t frame);
+  void recordFrameWithSubpass(uint64_t frame);
   void submit(uint64_t frame, uint32_t& imageIndex);
-  void present(uint64_t frame, uint32_t& imageIndex,
-               VkSemaphore renderFinishSemaphores[]);
+  void present(uint64_t frame, uint32_t& imageIndex);
+  void drawFrame(uint64_t frame);
 
 
   Vector<SharedPtr<VkDescriptorSetLayout>> getDescriptorSetLayouts(uint32_t passId){

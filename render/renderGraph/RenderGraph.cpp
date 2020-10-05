@@ -160,7 +160,7 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
       if (type == RGAttachmentTypes::Color|| type == RGAttachmentTypes::Present) {
         colorReference->push_back({idx, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
       } else if (type == RGAttachmentTypes::DepthStencil) {
-        depthReference->push_back({idx, attachmentsInst[idx].finalLayout});
+        depthReference->push_back({idx, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
       }
     }
 
@@ -181,47 +181,45 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
   Vector<VkSubpassDependency> dependencies;
 
   for (auto passId : startNodes) {
-    VkSubpassDependency vkdep;
+    VkSubpassDependency vkdep{};
     vkdep.srcSubpass = VK_SUBPASS_EXTERNAL;
-    vkdep.dstSubpass = passIdxMap[passId];
-    vkdep.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    vkdep.dstSubpass =  passIdxMap[passId];
+    vkdep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    vkdep.srcAccessMask = 0;
     vkdep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    vkdep.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    vkdep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    vkdep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     dependencies.push_back(vkdep);
   }
 
-  for (auto deps : dependencyEdges) {
-    for (auto src : deps.second) {
-      VkSubpassDependency vkdep;
-      vkdep.srcSubpass = passIdxMap[src];
-      vkdep.dstSubpass = passIdxMap[deps.first];
-      vkdep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-      vkdep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-      vkdep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-      vkdep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-      vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-      dependencies.push_back(vkdep);
-    }
-  }
+  // for (auto deps : dependencyEdges) {
+  //   for (auto src : deps.second) {
+  //     VkSubpassDependency vkdep{};
+  //     vkdep.srcSubpass = passIdxMap[src];
+  //     vkdep.dstSubpass = passIdxMap[deps.first];
+  //     vkdep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  //     vkdep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  //     vkdep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  //     vkdep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  //     vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+  //     dependencies.push_back(vkdep);
+  //   }
+  // }
 
-  for (auto endPassId : outputNodes) {
-    VkSubpassDependency vkdep;
+  // for (auto endPassId : outputNodes) {
+  //   VkSubpassDependency vkdep{};
 
-    vkdep.srcSubpass = passIdxMap[endPassId];
-    vkdep.dstSubpass = VK_SUBPASS_EXTERNAL;
-    vkdep.srcStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    vkdep.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    vkdep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    vkdep.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-    dependencies.push_back(vkdep);
-  }
+  //   vkdep.srcSubpass = passIdxMap[endPassId];
+  //   vkdep.dstSubpass = VK_SUBPASS_EXTERNAL;
+  //   vkdep.srcStageMask =
+  //       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  //   vkdep.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+  //   vkdep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+  //                                   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  //   vkdep.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+  //   vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+  //   dependencies.push_back(vkdep);
+  // }
 
   VkRenderPassCreateInfo renderPassInfoCI{};
   renderPassInfoCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -395,7 +393,15 @@ void RenderGraph::updateRenderData(Vector<PerPassRenderAble> perpassList,
   }
 }
 
-void RenderGraph::drawFrameWithSubpass(uint64_t frame) {
+
+void  RenderGraph::drawFrame(uint64_t frame) {
+  recordFrameWithSubpass(frame);
+  uint32_t imageIndex;
+  submit(frame, imageIndex);
+  present(frame, imageIndex);
+}
+
+void RenderGraph::recordFrameWithSubpass(uint64_t frame) {
   // First:record commands
   // reset all current commands
   for (auto cb : mCommandBuffers) {
@@ -426,10 +432,15 @@ void RenderGraph::drawFrameWithSubpass(uint64_t frame) {
 
   // TODO clear color setup
   Vector<VkClearValue> clearValues = {};
-  for (auto _ : mExeOrder) {
+  for (auto aid : attsUsing) {
     VkClearValue clearValue;
-    clearValue.color = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValue.depthStencil = {1.0f, 0};
+    auto att = attachments[aid];
+    if (att.type == RGAttachmentTypes::Color||att.type == RGAttachmentTypes::Present) {
+      clearValue.color = {0.0f, 0.0f, 0.0f, 1.0f};
+    } else if (att.type == RGAttachmentTypes::DepthStencil) {
+      clearValue.depthStencil = {1.0f, 0};
+    }
+
     clearValues.push_back(clearValue);
   }
 
@@ -442,7 +453,7 @@ void RenderGraph::drawFrameWithSubpass(uint64_t frame) {
   uint32_t count = 1;
   for (auto passId : mExeOrder) {
     auto pass = renderPasses[passId];
-    pass->drawFrameWithSubpass(frame, commandBuffer);
+    pass->recordFrameWithSubpass(frame, commandBuffer);
     if (count != mExeOrder.size()) {
       vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
     }
@@ -511,14 +522,15 @@ void RenderGraph::submit(uint64_t frame, uint32_t& imageIndex) {
   }
 }
 
-void RenderGraph::present(uint64_t frame, uint32_t& imageIndex,
-                          VkSemaphore renderFinishSemaphores[]) {
+void RenderGraph::present(uint64_t frame, uint32_t& imageIndex) {
   auto vkContext = mGpuRManager->vkContext;
   auto windowContext = vkContext->windowContext;
 
   VkPresentInfoKHR presentInfo = {};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
+VkSemaphore renderFinishSemaphores[] = {
+      renderFinishedSemaphores[currentFrame]};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = renderFinishSemaphores;
 

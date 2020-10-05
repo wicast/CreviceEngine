@@ -309,7 +309,7 @@ void RenderPass::compile(GpuResourceManager& gManager,
   genreatePipeline(gManager);
 }
 
-void RenderPass::drawFrameWithSubpass(uint64_t frame,
+void RenderPass::recordFrameWithSubpass(uint64_t frame,
                                       VkCommandBuffer commandBuffer) {
   // bind pipeline
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *mPipeline);

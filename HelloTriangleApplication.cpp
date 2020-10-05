@@ -250,8 +250,8 @@ void HelloTriangleApplication::createRenderGraph() {
   depthAtt.format = findDepthFormat();
   depthAtt.externalTexture = true;
   depthAtt.type = crevice::RGAttachmentTypes::DepthStencil;
-  depthAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  depthAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depthAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   depId = mRendergraph.addAttachment(depthAtt);
   auto depViews = crevice::Vector<VkImageView>(
       windowContext.swapChainImages.size(), depthImageView);
@@ -683,10 +683,11 @@ void HelloTriangleApplication::drawFrame() {
 }
 
 void HelloTriangleApplication::drawFrameWithFrameGraph() {
-  updateUniformBuffer(currentFrame);
-  mRendergraph.drawFrameWithSubpass(currentFrame);
-  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+  updateUniformBuffer(currentFrame % GpuResourceManager::swapChainSize);
+  mRendergraph.drawFrame(currentFrame);
+  currentFrame = (currentFrame + 1);
 }
+
 void HelloTriangleApplication::mainLoop() {
   // glfwSetKeyCallback(window, HelloTriangleApplication::keycallback_dispatch);
 
@@ -706,8 +707,8 @@ void HelloTriangleApplication::cleanupSwapChain() {
   for (auto framebuffer : swapChainFramebuffers) {
     vkDestroyFramebuffer(vkContext.device, framebuffer, nullptr);
   }
-  gpuResourceManager.destoryCommandBuffers(commandBuffers2);
-  gpuResourceManager.destoryCommandBuffers(commandBuffers);
+  // gpuResourceManager.destoryCommandBuffers(commandBuffers2);
+  // gpuResourceManager.destoryCommandBuffers(commandBuffers);
 
   vkDestroyPipeline(vkContext.device, graphicsPipeline, nullptr);
   vkDestroyPipelineLayout(vkContext.device, pipelineLayout, nullptr);
@@ -750,11 +751,11 @@ void HelloTriangleApplication::cleanup() {
   gpuResourceManager.destroyMesh(obj1);
   gpuResourceManager.destroyMesh(obj2);
 
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroySemaphore(vkContext.device, renderFinishedSemaphores[i], nullptr);
-    vkDestroySemaphore(vkContext.device, imageAvailableSemaphores[i], nullptr);
-    vkDestroyFence(vkContext.device, inFlightFences[i], nullptr);
-  }
+  // for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+  //   vkDestroySemaphore(vkContext.device, renderFinishedSemaphores[i], nullptr);
+  //   vkDestroySemaphore(vkContext.device, imageAvailableSemaphores[i], nullptr);
+  //   vkDestroyFence(vkContext.device, inFlightFences[i], nullptr);
+  // }
 
   vkDestroyCommandPool(vkContext.device, vkContext.commandPool, nullptr);
 

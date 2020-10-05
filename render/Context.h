@@ -103,6 +103,7 @@ class vkUtil {
     if (enableValidationLayers) {
       extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+    extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
     return extensions;
   }
@@ -379,6 +380,8 @@ class VkContext {
 
     VkPhysicalDeviceFeatures deviceFeatures = {};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
+    deviceFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
 
     VkDeviceCreateInfo deviceCreateInfo = {};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -396,7 +399,7 @@ class VkContext {
     }
 
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 1, &presentQueue);
+    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
   }
 
   void createCommandPool() {
