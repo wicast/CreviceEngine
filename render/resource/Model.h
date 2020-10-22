@@ -67,6 +67,7 @@ struct hash<Vertex> {
 
 class Mesh {
  public:
+ //TODO split to memory
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
 

@@ -3,7 +3,7 @@
 
 
 #include "common/Resource.h"
-#include "render/Model.h"
+#include "render/resource/Model.h"
 
 class ResourceManager {
  private:

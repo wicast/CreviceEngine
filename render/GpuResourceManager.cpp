@@ -6,7 +6,7 @@
 
 #include "render/FrameResource.h"
 #include "render/GpuResourceManager.h"
-#include "render/Model.h"
+#include "render/resource/Model.h"
 #include "render/Uniform.h"
 
 // TODO move to cpu resource

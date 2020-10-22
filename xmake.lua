@@ -3,7 +3,7 @@ if is_mode("debug") then
     set_optimize("none")
 end
 
-set_languages("cxx17")
+
 
 -- basic files
 add_files("HelloTriangleApplication.cpp", 
@@ -56,7 +56,7 @@ add_files("HelloTriangleApplication.cpp",
         add_links("gdi32")
     end
 
-
+set_languages("cxx17")
 target("MyVKLearn")
     set_kind("binary")
     add_files("main.cpp")

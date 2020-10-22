@@ -1,8 +1,8 @@
 #ifndef MYVK_RENDERSERVER_H
 #define MYVK_RENDERSERVER_H 1
 
-#include "render/Model.h"
-#include "render/Texture.h"
+#include "render/resource/Model.h"
+#include "render/resource/Texture.h"
 #include "render/ShaderPack.h"
 #include "common/ResourceManager.h"
 #include <volk.h>

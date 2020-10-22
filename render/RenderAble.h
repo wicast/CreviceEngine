@@ -4,7 +4,7 @@
 
 #include "common/Resource.h"
 #include "render/FrameResource.h"
-#include "render/Model.h"
+#include "render/resource/Model.h"
 #include "render/descriptor/ShaderInputKey.h"
 #include "stl/CreviceSTL.h"
 
