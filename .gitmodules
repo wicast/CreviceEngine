@@ -10,3 +10,6 @@
 [submodule "3rd/EABase"]
 	path = 3rd/EABase
 	url = https://github.com/electronicarts/EABase.git
+[submodule "3rd/flecs/flecs"]
+	path = 3rd/flecs/flecs
+	url = https://github.com/SanderMertens/flecs.git

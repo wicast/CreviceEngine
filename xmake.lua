@@ -1,9 +1,6 @@
-if is_mode("debug") then
-    set_symbols("debug")
-    set_optimize("none")
-end
+add_rules("mode.debug")
 
-
+includes("3rd/flecs/xmake.lua")
 
 -- basic files
 add_files("HelloTriangleApplication.cpp", 
@@ -58,6 +55,9 @@ add_files("HelloTriangleApplication.cpp",
 
 set_languages("cxx17")
 target("MyVKLearn")
+    add_deps("flecs")
+    add_defines("flecs_STATIC")
+
     set_kind("binary")
     add_files("main.cpp")
 
