@@ -1,6 +1,3 @@
-[submodule "3rd/volk"]
-	path = 3rd/volk
-	url = https://github.com/zeux/volk
 [submodule "3rd/Vulkan-Headers"]
 	path = 3rd/Vulkan-Headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers.git
