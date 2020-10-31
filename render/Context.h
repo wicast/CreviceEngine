@@ -1,7 +1,6 @@
-#ifndef MYVK_GPUCONTEXT_H
-#define MYVK_GPUCONTEXT_H 1
+#pragma once
 
-#include <volk.h>
+#include "3rd/volk/volk_imp.h"
 
 #include <algorithm>
 #include <iostream>
@@ -461,5 +460,3 @@ class VkContext {
     }
   }
 };
-
-#endif

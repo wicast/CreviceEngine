@@ -1,7 +1,6 @@
-#ifndef MYVK_SHADERPACK_H
-#define MYVK_SHADERPACK_H 1
+#pragma once
 
-#include <volk.h>
+#include "3rd/volk/volk_imp.h"
 
 namespace crevice {
     struct ShaderPack {
@@ -9,5 +8,3 @@ namespace crevice {
         VkShaderModule fragShaderModule;
     };
 }
-
-#endif

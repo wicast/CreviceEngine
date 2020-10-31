@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <volk.h>
+#include "3rd/volk/volk_imp.h"
 #include "stl/CreviceVector.h"
 
 namespace crevice {

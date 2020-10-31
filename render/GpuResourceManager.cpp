@@ -4,8 +4,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "render/FrameResource.h"
 #include "render/GpuResourceManager.h"
+#include "render/FrameResource.h"
 #include "render/resource/Model.h"
 #include "render/Uniform.h"
 
@@ -537,7 +537,7 @@ void GpuResourceManager::generateMipmaps(VkImage image, VkFormat imageFormat,
   vkContext->endSingleTimeCommands(commandBuffer);
 }
 
-void GpuResourceManager::createSwapChain(WindowContext& windowContext) {
+void GpuResourceManager::createSwapChain(crevice::GLFWContainer& container , WindowContext& windowContext) {
   SwapChainSupportDetails swapChainSupport = vkUtil::querySwapChainSupport(
       vkContext->physicalDevice, vkContext->surface);
 
@@ -546,7 +546,7 @@ void GpuResourceManager::createSwapChain(WindowContext& windowContext) {
   VkPresentModeKHR presentMode =
       vkUtil::chooseSwapPresentMode(swapChainSupport.presentModes);
   VkExtent2D extent =
-      chooseSwapExtent(swapChainSupport.capabilities, windowContext.window);
+      chooseSwapExtent(swapChainSupport.capabilities, container.window);
 
   // TODO select swapchain buffer size
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;

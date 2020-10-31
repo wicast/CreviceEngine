@@ -1,8 +1,7 @@
-#ifndef MYVK_WINDOWCONTEXT_H
-#define MYVK_WINDOWCONTEXT_H 1
+#pragma once
 
-#include <GLFW/glfw3.h>
-#include <volk.h>
+// #include <GLFW/glfw3.h>
+#include "3rd/volk/volk_imp.h"
 #include "stl/CreviceVector.h"
 
 class WindowContext {
@@ -10,15 +9,17 @@ class WindowContext {
   /* data */
 
  public:
-  GLFWwindow* window;
   VkSwapchainKHR swapChain;
-  std::vector<VkImage> swapChainImages;
+  crevice::Vector<VkImage> swapChainImages;
   VkPresentModeKHR swapChainPresentMode;
   VkFormat swapChainImageFormat;
   VkExtent2D swapChainExtent;
   crevice::Vector<VkImageView> swapChainImageViews;
+
+  VkImage depthImage;
+  VkDeviceMemory depthImageMemory;
+  VkImageView depthImageView;
+
   float lastX, lastY;
   bool firstMouse = true;
 };
-
-#endif

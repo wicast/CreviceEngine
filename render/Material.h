@@ -1,6 +1,8 @@
+#pragma once
+
 #include <vector>
 
-#include <volk.h>
+#include "3rd/volk/volk_imp.h"
 #include "render/ShaderPack.h"
 
 

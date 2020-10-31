@@ -1,7 +1,6 @@
-#ifndef CREVICE_RG_RENDER_PASS_H
-#define CREVICE_RG_RENDER_PASS_H 1
+#pragma once
 
-#include <volk.h>
+#include "3rd/volk/volk_imp.h"
 #include <tuple>
 
 #include "render/GpuResourceManager.h"
@@ -97,5 +96,3 @@ class RenderPass {
 };
 
 }  // namespace crevice
-
-#endif

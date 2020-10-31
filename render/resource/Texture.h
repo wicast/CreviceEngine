@@ -1,6 +1,5 @@
-#ifndef MYVK_MYTEXTURE_H
-#define MYVK_MYTEXTURE_H
-#include <volk.h>
+#pragma once
+#include "3rd/volk/volk_imp.h"
 
 namespace crevice {
     struct CVTexture {
@@ -14,5 +13,3 @@ namespace crevice {
         VkSampler textureSampler;
     };
 }
-
-#endif

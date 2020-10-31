@@ -5,11 +5,10 @@
 #define MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
 
 // #define VK_USE_PLATFORM_WIN32_KHR
-#include <volk.h>
+#include "3rd/volk/volk_imp.h"
 
-#define GLFW_INCLUDE_VULKAN
-
-#include <GLFW/glfw3.h>
+#include "3rd/GLFW/glfw.h"
+// #include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <array>
@@ -33,13 +32,18 @@
 #include "render/Uniform.h"
 #include "render/vulkan/windowContext.h"
 #include "render/renderGraph/RenderGraph.h"
+#include "render/RenderServer.h"
+#include "containers/glfw/glfwContainerImpl.h"
 #include "components/Camera.h"
 
 class HelloTriangleApplication {
  private:
   // GLFWwindow *window;
   // float lastX, lastY;
-  WindowContext windowContext;
+
+  crevice::RenderServer renderServer;
+  crevice::GLFWContainer container;
+  // WindowContext windowContext;
 
   // bool firstMouse = true;
   std::chrono::high_resolution_clock::time_point lastTime =
@@ -47,7 +51,7 @@ class HelloTriangleApplication {
   ;
   float frameDeltaTime;
 
-  VkContext vkContext;
+  // VkContext vkContext;
 
   crevice::RenderGraph mRendergraph;
   uint32_t mainPassId;
@@ -63,12 +67,12 @@ class HelloTriangleApplication {
   RID specTexId;
 
   // TODO via manager
-  VkImage depthImage;
-  VkDeviceMemory depthImageMemory;
-  VkImageView depthImageView;
+  // VkImage depthImage;
+  // VkDeviceMemory depthImageMemory;
+  // VkImageView depthImageView;
 
   ResourceManager resourceManager;
-  GpuResourceManager gpuResourceManager;
+  // GpuResourceManager gpuResourceManager;
 
   RID obj1;
   RID obj2;
@@ -103,48 +107,50 @@ class HelloTriangleApplication {
   glm::vec3 camDirect = glm::vec3(-1.f, 0.0f, 0.0f);
   Camera camera;
 
+  void serverSetup();
+
   void createResourceManager();
 
-  void createVkContext();
+  // void createVkContext();
 
-  void createGpuResourceManager();
+  // void createGpuResourceManager();
 
-  void createSurface();
+  // void createSurface();
 
-  VkShaderModule createShaderModule(const std::vector<char> &code);
+  // VkShaderModule createShaderModule(const std::vector<char> &code);
 
-  void createGraphicsPipeline();
+  // void createGraphicsPipeline();
 
-  void createRenderPass();
+  // void createRenderPass();
   void createRenderGraph();
   void setPassAndCompileRenderGraph();
   void createRenderAble();
 
-  void createFramebuffers();
+  // void createFramebuffers();
 
-  void createCommandBuffers();
+  // void createCommandBuffers();
 
   void switchCommandBuffer(RID *commandId);
 
-  void createSyncObjects();
+  // void createSyncObjects();
 
-  VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
-                               VkImageTiling tiling,
-                               VkFormatFeatureFlags features);
+  // VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
+  //                              VkImageTiling tiling,
+  //                              VkFormatFeatureFlags features);
 
-  VkFormat findDepthFormat();
+  // VkFormat findDepthFormat();
 
-  void createDescriptorSetLayout();
+  // void createDescriptorSetLayout();
 
   void createPerPassUniformBuffers();
 
-  void initDescriptorPool();
+  // void initDescriptorPool();
 
-  void createDescriptorSets();
+  // void createDescriptorSets();
 
   void createObjectTextureImage();
 
-  void createTextureSampler();
+  // void createTextureSampler();
 
   void createDepthResources();
 
@@ -154,7 +160,7 @@ class HelloTriangleApplication {
 
   void updateUniformBuffer(uint32_t currentImage);
 
-  void drawFrame();
+  // void drawFrame();
   void drawFrameWithFrameGraph();
 
   void mainLoop();

@@ -1,5 +1,4 @@
-#ifndef MYVK_GPU_RESOURCEMANAGER_H
-#define MYVK_GPU_RESOURCEMANAGER_H 1
+#pragma once
 
 #include <unordered_map>
 
@@ -12,6 +11,8 @@
 #include "stl/CreviceHashMap.h"
 #include "stl/CreviceSharedPtr.h"
 #include "stl/CreviceVector.h"
+#include "containers/glfw/glfwContainerImpl.h"
+
 
 typedef std::vector<VkDescriptorSet> DescriptorSets;
 typedef std::vector<VkCommandBuffer> CommandBuffers;
@@ -172,7 +173,7 @@ class GpuResourceManager {
 
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
                               GLFWwindow* window);
-  void createSwapChain(WindowContext& windowContext);
+  void createSwapChain(crevice::GLFWContainer& container , WindowContext& windowContext);
 
   void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
                     VkMemoryPropertyFlags properties, VkBuffer& buffer,
@@ -240,6 +241,7 @@ class GpuResourceManager {
   }
 
   /* getter for resources */
+  //TODO error: explicit specialization in non-namespace scope
   template <typename T>
   T getById(RID rid){};
 
@@ -273,5 +275,3 @@ class GpuResourceManager {
     return commandBuffers.at(rid);
   }
 };
-
-#endif

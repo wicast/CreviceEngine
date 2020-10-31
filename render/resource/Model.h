@@ -1,7 +1,6 @@
-#ifndef MYVK_MODEL_H
-#define MYVK_MODEL_H 1
+#pragma once
 
-#include <volk.h>
+#include "3rd/volk/volk_imp.h"
 
 #include <array>
 #include <vector>
@@ -84,5 +83,3 @@ class Mesh {
 //     std::vector<crevice::CVTexture> textures;
 
 // };
-
-#endif

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <volk.h>
+#include "3rd/volk/volk_imp.h"
 
 #include "common/Resource.h"
 #include "render/FrameResource.h"

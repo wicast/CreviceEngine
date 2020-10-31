@@ -1,25 +1,27 @@
 add_rules("mode.debug")
+if is_mode("debug") then
+    set_warnings("all")
+end
 
 includes("3rd/flecs/xmake.lua")
 
 -- basic files
 add_files("HelloTriangleApplication.cpp", 
      "common/*.cpp",
-     "render/*.cpp", 
-     "render/RenderGraph/*.cpp",
-    --  "scene/*.cpp",
-     "components/*.cpp")
+     "render/**.cpp", 
+     "components/*.cpp", 
+     "containers/**.cpp")
     add_includedirs("$(projectdir)",
     "D:/SDKs/glm")
 
     -- 3rdParty ------------------
     -- 3rd root directory
     add_includedirs("3rd")
-    -- add_files("3rd/*.cpp")
 
     -- volk
-    add_files("3rd/volk/*.c")
-    add_includedirs("3rd/volk/", "3rd/Vulkan-Headers/include")
+    add_files("3rd/volk/volk/*.c")
+    add_defines("VK_NO_PROTOTYPES")
+    add_includedirs("3rd/volk/volk/", "3rd/Vulkan-Headers/include")
 
     -- eastl
     add_files("3rd/EASTL/source/*.cpp")
