@@ -1,5 +1,4 @@
-#ifndef CREVICE_RG
-#define CREVICE_RG 1
+#pragma once
 
 #include "render/FrameResource.h"
 #include "render/RenderAble.h"
@@ -119,5 +118,3 @@ class RenderGraph {
 };
 
 }  // namespace crevice
-
-#endif

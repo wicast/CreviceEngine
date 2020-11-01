@@ -1,5 +1,4 @@
-#ifndef CREVICE_STL_VECTOR_MAP
-#define CREVICE_STL_VECTOR_MAP 1
+#pragma once
 
 #include "EASTL/vector_map.h"
 
@@ -11,5 +10,3 @@ template <typename Key, typename T, typename Compare = eastl::less<Key>,
 using VectorMap =
     eastl::vector_map<Key, T, Compare, Allocator, RandomAccessContainer>;
 }  // namespace crevice
-
-#endif

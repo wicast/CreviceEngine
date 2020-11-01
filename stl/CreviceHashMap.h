@@ -1,5 +1,4 @@
-#ifndef CREVICE_STL_HASH_MAP
-#define CREVICE_STL_HASH_MAP 1
+#pragma once
 
 #include "EASTL/hash_map.h"
 
@@ -9,5 +8,3 @@ namespace crevice
 			  typename Allocator = EASTLAllocatorType, bool bCacheHashCode = false>
     using HashMap = eastl::hash_map<Key, T, Hash , Predicate,  Allocator, bCacheHashCode>;
 } // namespace crevice
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef MYVKLEARN_GLMATH_H
-#define MYVKLEARN_GLMATH_H
+#pragma once
 
 #define GLM_FORCE_RADIANS
 
@@ -14,5 +13,3 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#endif

@@ -1,14 +1,11 @@
 //
 // Created by wicas on 2020/1/5.
 //
-#ifndef MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
-#define MYVKLEARN_HELLOTRIANGLEAPPLICATION_H
+#pragma once
 
-// #define VK_USE_PLATFORM_WIN32_KHR
 #include "3rd/volk/volk_imp.h"
 
 #include "3rd/GLFW/glfw.h"
-// #include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <array>
@@ -38,20 +35,13 @@
 
 class HelloTriangleApplication {
  private:
-  // GLFWwindow *window;
-  // float lastX, lastY;
-
+crevice::GLFWContainer container;
   crevice::RenderServer renderServer;
-  crevice::GLFWContainer container;
-  // WindowContext windowContext;
 
-  // bool firstMouse = true;
   std::chrono::high_resolution_clock::time_point lastTime =
       std::chrono::high_resolution_clock::now();
   ;
   float frameDeltaTime;
-
-  // VkContext vkContext;
 
   crevice::RenderGraph mRendergraph;
   uint32_t mainPassId;
@@ -66,13 +56,7 @@ class HelloTriangleApplication {
   RID obj1TexId;
   RID specTexId;
 
-  // TODO via manager
-  // VkImage depthImage;
-  // VkDeviceMemory depthImageMemory;
-  // VkImageView depthImageView;
-
   ResourceManager resourceManager;
-  // GpuResourceManager gpuResourceManager;
 
   RID obj1;
   RID obj2;
@@ -111,46 +95,16 @@ class HelloTriangleApplication {
 
   void createResourceManager();
 
-  // void createVkContext();
-
-  // void createGpuResourceManager();
-
-  // void createSurface();
-
-  // VkShaderModule createShaderModule(const std::vector<char> &code);
-
-  // void createGraphicsPipeline();
-
-  // void createRenderPass();
   void createRenderGraph();
   void setPassAndCompileRenderGraph();
   void createRenderAble();
 
-  // void createFramebuffers();
-
-  // void createCommandBuffers();
-
   void switchCommandBuffer(RID *commandId);
 
-  // void createSyncObjects();
-
-  // VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
-  //                              VkImageTiling tiling,
-  //                              VkFormatFeatureFlags features);
-
-  // VkFormat findDepthFormat();
-
-  // void createDescriptorSetLayout();
 
   void createPerPassUniformBuffers();
 
-  // void initDescriptorPool();
-
-  // void createDescriptorSets();
-
   void createObjectTextureImage();
-
-  // void createTextureSampler();
 
   void createDepthResources();
 
@@ -160,7 +114,6 @@ class HelloTriangleApplication {
 
   void updateUniformBuffer(uint32_t currentImage);
 
-  // void drawFrame();
   void drawFrameWithFrameGraph();
 
   void mainLoop();
@@ -183,12 +136,6 @@ class HelloTriangleApplication {
  public:
   static HelloTriangleApplication *event_handling_instance;
 
-  static void keycallback_dispatch(GLFWwindow *window, int key, int scancode,
-                                   int action, int mods) {
-    if (event_handling_instance)
-      event_handling_instance->keycallback(window, key, scancode, action, mods);
-  }
-
   static void mouse_callback_dispatch(GLFWwindow *window, double xpos,
                                       double ypos) {
     if (event_handling_instance)
@@ -197,13 +144,8 @@ class HelloTriangleApplication {
 
   void setEventHandling() { event_handling_instance = this; }
 
-  // TODO keycallback is passive callback with different deltatime
-  void keycallback(GLFWwindow *window, int key, int scancode, int action,
-                   int mods);
-
   void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 
   void run();
 };
 
-#endif  // MYVKLEARN_HELLOTRIANGLEAPPLICATION_H

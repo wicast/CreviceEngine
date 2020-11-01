@@ -31,54 +31,6 @@ void HelloTriangleApplication::createResourceManager() {
   resourceManager = ResourceManager{};
 }
 
-// void HelloTriangleApplication::createGpuResourceManager() {
-//   gpuResourceManager.initManager(&vkContext);
-// }
-
-// // TODO createSurface with several function
-// void HelloTriangleApplication::createVkContext() {
-//   vkContext.enableValidationLayers = enableValidationLayers;
-
-//   uint32_t glfwExtensionCount = 0;
-//   const char **glfwExtensions;
-//   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-//   volkInitialize();
-//   vkContext.createInstance(vkUtil::getRequiredExtensions(
-//       vkContext.enableValidationLayers, glfwExtensions, glfwExtensionCount));
-//   volkLoadInstance(vkContext.instance);
-
-//   createSurface();
-//   vkContext.pickPhysicalDevice();
-//   vkContext.createLogicalDevice();
-
-//   vkContext.setupDebugMessenger();
-// }
-
-// void HelloTriangleApplication::createSurface() {
-//   if (glfwCreateWindowSurface(vkContext.instance, windowContext.window,
-//   nullptr,
-//                               &vkContext.surface) != VK_SUCCESS) {
-//     throw std::runtime_error("failed to create window surface!");
-//   }
-// }
-
-// VkShaderModule HelloTriangleApplication::createShaderModule(
-//     const std::vector<char> &code) {
-//   VkShaderModuleCreateInfo createInfo = {};
-//   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-//   createInfo.codeSize = code.size();
-//   createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
-
-//   VkShaderModule shaderModule;
-//   if (vkCreateShaderModule(vkContext.device, &createInfo, nullptr,
-//                            &shaderModule) != VK_SUCCESS) {
-//     throw std::runtime_error("failed to create shader module!");
-//   }
-
-//   return shaderModule;
-// }
-
 void HelloTriangleApplication::createRenderGraph() {
   mRendergraph = crevice::RenderGraph();
   mRendergraph.setGpuRManager(renderServer.gpuRManager);
@@ -105,8 +57,8 @@ void HelloTriangleApplication::createRenderGraph() {
   depthAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   depId = mRendergraph.addAttachment(depthAtt);
-  auto depViews = crevice::Vector<VkImageView>(renderServer.swapChainSize(),
-                                               renderServer.windowContext->depthImageView);
+  auto depViews = crevice::Vector<VkImageView>(
+      renderServer.swapChainSize(), renderServer.windowContext->depthImageView);
   auto depImgViews = renderServer.gpuRManager->createFRImageView(depViews);
   mRendergraph.setExternalImageView(depId, depImgViews);
 
@@ -193,32 +145,6 @@ void HelloTriangleApplication::createRenderAble() {
   mRendergraph.updateRenderData({cameraRenderable}, {renderableObj1});
 }
 
-// VkFormat HelloTriangleApplication::findSupportedFormat(
-//     const std::vector<VkFormat> &candidates, VkImageTiling tiling,
-//     VkFormatFeatureFlags features) {
-//   for (VkFormat format : candidates) {
-//     VkFormatProperties props;
-//     vkGetPhysicalDeviceFormatProperties(vkContext.physicalDevice, format,
-//                                         &props);
-//     if (tiling == VK_IMAGE_TILING_LINEAR &&
-//         (props.linearTilingFeatures & features) == features) {
-//       return format;
-//     } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
-//                (props.optimalTilingFeatures & features) == features) {
-//       return format;
-//     }
-//   }
-//   return VK_FORMAT_UNDEFINED;
-// }
-
-// VkFormat HelloTriangleApplication::findDepthFormat() {
-//   return findSupportedFormat(
-//       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
-//        VK_FORMAT_D24_UNORM_S8_UINT},
-//       VK_IMAGE_TILING_OPTIMAL,
-//       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-// }
-
 void HelloTriangleApplication::createPerPassUniformBuffers() {
   VkDeviceSize bufferSize = sizeof(UniformBufferObject);
   auto swapChainSize = renderServer.swapChainSize();
@@ -234,28 +160,12 @@ void HelloTriangleApplication::createPerPassUniformBuffers() {
   }
 }
 
-// void HelloTriangleApplication::initDescriptorPool() {
-//   gpuResourceManager.initDescriptorPool();
-// }
-
 void HelloTriangleApplication::createObjectTextureImage() {
   obj1TexId = renderServer.gpuRManager->createMyTexture(TEXTURE_PATH);
   specTexId = renderServer.gpuRManager->createMyTexture(SPEC_TEXTURE_PATH);
 }
 
 void HelloTriangleApplication::createDepthResources() {
-  // VkFormat depthFormat = findDepthFormat();
-  // gpuResourceManager.createImage(
-  //     windowContext.swapChainExtent.width,
-  //     windowContext.swapChainExtent.height, 1, depthFormat,
-  //     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-  //     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-  // depthImageView = gpuResourceManager.createImageView(
-  //     depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-  // gpuResourceManager.transitionImageLayout(
-  //     depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
-  //     VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
-
   renderServer.createSwapChainDepthResources();
 }
 
@@ -308,82 +218,6 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
                 cameraUniformBuffersMemory[currentImage]);
 }
 
-// void HelloTriangleApplication::drawFrame() {
-//   vkWaitForFences(renderServer.vkContext->device, 1,
-//   &inFlightFences[currentFrame], VK_TRUE,
-//                   UINT64_MAX);
-
-//   uint32_t imageIndex;
-//   VkResult vkResult = vkAcquireNextImageKHR(
-//       vkContext.device, windowContext.swapChain, UINT64_MAX,
-//       imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-//   if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
-//     recreateSwapChain();
-//     return;
-//   } else if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR) {
-//     throw std::runtime_error("failed to acquire swap chain image!");
-//   }
-
-//   if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-//     vkWaitForFences(vkContext.device, 1, &imagesInFlight[imageIndex],
-//     VK_TRUE,
-//                     UINT64_MAX);
-//   }
-//   imagesInFlight[imageIndex] = inFlightFences[currentFrame];
-
-//   updateUniformBuffer(imageIndex);
-
-//   VkSubmitInfo submitInfo = {};
-//   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-//   VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
-//   VkPipelineStageFlags waitStages[] = {
-//       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-//   submitInfo.waitSemaphoreCount = 1;
-//   submitInfo.pWaitSemaphores = waitSemaphores;
-//   submitInfo.pWaitDstStageMask = waitStages;
-
-//   submitInfo.commandBufferCount = 1;
-//   auto commandBuff =
-//       gpuResourceManager.getById<CommandBuffers>(*drawingBuffersId);
-//   submitInfo.pCommandBuffers = &commandBuff[imageIndex];
-
-//   VkSemaphore renderFinishSemaphores[] = {
-//       renderFinishedSemaphores[currentFrame]};
-//   submitInfo.signalSemaphoreCount = 1;
-//   submitInfo.pSignalSemaphores = renderFinishSemaphores;
-
-//   vkResetFences(vkContext.device, 1, &inFlightFences[currentFrame]);
-//   if (vkQueueSubmit(vkContext.graphicsQueue, 1, &submitInfo,
-//                     inFlightFences[currentFrame]) != VK_SUCCESS) {
-//     throw std::runtime_error("failed to submit draw command buffer!");
-//   }
-
-//   VkPresentInfoKHR presentInfo = {};
-//   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-//   presentInfo.waitSemaphoreCount = 1;
-//   presentInfo.pWaitSemaphores = renderFinishSemaphores;
-
-//   VkSwapchainKHR swapChains[] = {windowContext.swapChain};
-//   presentInfo.swapchainCount = 1;
-//   presentInfo.pSwapchains = swapChains;
-//   presentInfo.pImageIndices = &imageIndex;
-
-//   presentInfo.pResults = nullptr;  // Optional
-//   vkResult = vkQueuePresentKHR(vkContext.presentQueue, &presentInfo);
-//   if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR
-//   ||
-//       framebufferResized) {
-//     framebufferResized = false;
-//     recreateSwapChain();
-//   } else if (vkResult != VK_SUCCESS) {
-//     throw std::runtime_error("failed to present swap chain image!");
-//   }
-
-//   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-// }
-
 void HelloTriangleApplication::drawFrameWithFrameGraph() {
   updateUniformBuffer(currentFrame % GpuResourceManager::swapChainSize);
   mRendergraph.drawFrame(currentFrame);
@@ -401,9 +235,10 @@ void HelloTriangleApplication::mainLoop() {
 }
 
 void HelloTriangleApplication::cleanupSwapChain() {
-  // vkDestroyImageView(renderServer.vkContext->device, depthImageView, nullptr);
-  // vkDestroyImage(renderServer.vkContext->device, depthImage, nullptr);
-  // vkFreeMemory(renderServer.vkContext->device, depthImageMemory, nullptr);
+  // vkDestroyImageView(renderServer.vkContext->device, depthImageView,
+  // nullptr); vkDestroyImage(renderServer.vkContext->device, depthImage,
+  // nullptr); vkFreeMemory(renderServer.vkContext->device, depthImageMemory,
+  // nullptr);
 
   for (auto framebuffer : swapChainFramebuffers) {
     vkDestroyFramebuffer(renderServer.vkContext->device, framebuffer, nullptr);
@@ -433,7 +268,7 @@ void HelloTriangleApplication::recreateSwapChain() {
   // gpuResourceManager.createSwapChainImageViews(windowContext, 1);
   // createRenderPass();
   // createGraphicsPipeline();
-  createDepthResources();
+  // createDepthResources();
   // createFramebuffers();
   // createCommandBuffers();
 }
@@ -498,24 +333,6 @@ void HelloTriangleApplication::mouse_callback(GLFWwindow *window, double xpos,
   camera.ProcessMouseMovement(xoffset, yoffset, true);
 }
 
-void HelloTriangleApplication::keycallback(GLFWwindow *window, int key,
-                                           int scancode, int action, int mods) {
-  // if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-  //   camera.ProcessKeyboard(FORWARD, frameDeltaTime);
-  // if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-  //   camera.ProcessKeyboard(BACKWARD, frameDeltaTime);
-  // if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-  //   camera.ProcessKeyboard(LEFT, frameDeltaTime);
-  // if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-  //   camera.ProcessKeyboard(RIGHT, frameDeltaTime);
-
-  // if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-  //   glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-  // moveCount++;
-  // std::cout << moveCount << std::endl;
-}
-
 void HelloTriangleApplication::processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, true);
@@ -551,27 +368,7 @@ void HelloTriangleApplication::switchCommandBuffer(RID *bufferId) {
 }
 
 void HelloTriangleApplication::initVulkan() {
-  // glfwInit();
 
-  // glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-  // windowContext.window =
-  //     glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-  // glfwSetWindowUserPointer(windowContext.window, this);
-  // glfwSetFramebufferSizeCallback(windowContext.window,
-  //                                framebufferResizeCallback);
-  // glfwSetInputMode(windowContext.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  // glfwSetCursorPosCallback(windowContext.window,
-  //                          HelloTriangleApplication::mouse_callback_dispatch);
-
-  // createResourceManager();
-  // createVkContext();
-  // // TODO more ealgent Bind;
-  // vkContext.windowContext = &windowContext;
-  // createGpuResourceManager();
-  // gpuResourceManager.createSwapChain(windowContext);
-  // gpuResourceManager.createSwapChainImageViews(windowContext, 1);
-  // vkContext.createCommandPool();
   createDepthResources();
 
   createRenderGraph();
@@ -601,7 +398,8 @@ void HelloTriangleApplication::serverSetup() {
         &HelloTriangleApplication::processInput, this, std::placeholders::_1);
     container.framebufferResizeCallback =
         &HelloTriangleApplication::framebufferResizeCallback;
-    container.mouse_callback_dispatch = &HelloTriangleApplication::mouse_callback_dispatch;
+    container.mouse_callback_dispatch =
+        &HelloTriangleApplication::mouse_callback_dispatch;
   }
   container.setUpInput(this);
   renderServer = crevice::RenderServer();

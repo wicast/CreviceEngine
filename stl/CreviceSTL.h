@@ -1,5 +1,4 @@
-#ifndef CREVICE_STL
-#define CREVICE_STL 1
+#pragma once
 
 #include "stl/CreviceHashMap.h"
 #include "stl/CreviceHashSet.h"
@@ -30,5 +29,3 @@ template <typename BidirectionalIterator>
     }
 
 }  // namespace crevice
-
-#endif

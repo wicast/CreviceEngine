@@ -1,5 +1,4 @@
-#ifndef MYVK_GPU_UNIFORM_H
-#define MYVK_GPU_UNIFORM_H 1
+#pragma once
 
 #include <common\GLMath.h>
 
@@ -13,5 +12,3 @@ struct UniformBufferObject {
   alignas(16) glm::vec3 lightPosition;
   alignas(16) glm::vec3 lightDiffuse;
 };
-
-#endif

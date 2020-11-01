@@ -1,5 +1,4 @@
-#ifndef CREVICE_STL_HASH_SET
-#define CREVICE_STL_HASH_SET 1
+#pragma once
 
 #include "EASTL/hash_set.h"
 
@@ -9,5 +8,3 @@ namespace crevice
 			  typename Allocator = EASTLAllocatorType, bool bCacheHashCode = false>
     using HashSet = eastl::hash_set<Value, Hash, Predicate, Allocator , bCacheHashCode>;
 } // namespace crevice
-
-#endif

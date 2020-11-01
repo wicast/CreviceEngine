@@ -1,5 +1,4 @@
-#ifndef CREVICE_RG_ATTACHMENT
-#define CREVICE_RG_ATTACHMENT 1
+#pragma once
 
 #include <cstdint>
 
@@ -27,5 +26,3 @@ struct RGAttachment {
 };
 
 }  // namespace crevice
-
-#endif

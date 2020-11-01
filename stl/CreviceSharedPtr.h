@@ -1,5 +1,4 @@
-#ifndef CREVICE_STL_SHARED_PTR
-#define CREVICE_STL_SHARED_PTR 1
+#pragma once
 
 #include "EASTL/shared_ptr.h"
 
@@ -15,5 +14,3 @@ namespace crevice
         return eastl::make_shared<T>(eastl::forward<Args>(args)...);
     }
 } // namespace crevice
-
-#endif

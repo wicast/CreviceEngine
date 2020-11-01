@@ -25,28 +25,6 @@ class RenderServer {
 
   bool enableValidationLayers = true;
 
-  // VkDevice device;
-  // VkInstance instance;
-  // VkQueue graphicsQueue;
-  // VkQueue presentQueue;
-  // VkDebugUtilsMessengerEXT debugMessenger;
-  // VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-  // VkSurfaceKHR surface;
-
-  // VkSwapchainKHR swapChain;
-  // std::vector<VkImage> swapChainImages;
-  // VkPresentModeKHR swapChainPresentMode;
-  // VkFormat swapChainImageFormat;
-  // VkExtent2D swapChainExtent;
-  // std::vector<VkImageView> swapChainImageViews;
-
-  // ResourceManager resourceManager;
-
-  // public:
-  // void bindResourceManager(ResourceManager resm) {
-  //     resourceManager = resm;
-  // }
-
   RenderServer(){
 
   };
