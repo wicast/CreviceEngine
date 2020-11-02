@@ -13,7 +13,13 @@
 
 namespace crevice {
 class RenderServer {
+ private:
+  static RenderServer* instance;
+
+  RenderServer(){};
+
  public:
+  static size_t currentFrame;
   // TODO use container api
   GLFWContainer* container;
 
@@ -25,14 +31,12 @@ class RenderServer {
 
   bool enableValidationLayers = true;
 
-  RenderServer(){
-
-  };
-
-  RenderServer(GLFWContainer* container)
-      : container(container){
-
-        };
+  static RenderServer* getInstance() {
+    if (instance == nullptr) {
+      instance = new RenderServer();
+    }
+    return instance;
+  }
 
   void init() {
     createVkContext();
@@ -75,7 +79,7 @@ class RenderServer {
     gpuRManager->createSwapChain(*container, *windowContext);
     gpuRManager->createSwapChainImageViews(*windowContext, 1);
 
-    //TODO no need for this
+    // TODO no need for this
     vkContext->windowContext = windowContext;
   };
 

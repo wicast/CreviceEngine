@@ -10,10 +10,10 @@
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-const std::string MODEL_PATH = "../../../../models/box.obj";
+const std::string MODEL_PATH = "../../../../models/monkey.obj";
 const std::string MODEL2_PATH = "../../../../models/box2.obj";
 const std::string APPLE_MODEL_PATH = "../../../../models/apple.obj";
-const std::string TEXTURE_PATH = "../../../../textures/container2.png";
+const std::string TEXTURE_PATH = "../../../../textures/badApple.png";
 const std::string SPEC_TEXTURE_PATH =
     "../../../../textures/container2_specular.png";
 
@@ -27,13 +27,15 @@ const bool enableValidationLayers = true;
 
 HelloTriangleApplication *HelloTriangleApplication::event_handling_instance;
 
-void HelloTriangleApplication::createResourceManager() {
+void HelloTriangleApplication::createResourceManager()
+{
   resourceManager = ResourceManager{};
 }
 
-void HelloTriangleApplication::createRenderGraph() {
+void HelloTriangleApplication::createRenderGraph()
+{
   mRendergraph = crevice::RenderGraph();
-  mRendergraph.setGpuRManager(renderServer.gpuRManager);
+  mRendergraph.setGpuRManager(renderServer->gpuRManager);
 
   // TODO rewrite rendergraph usage
 
@@ -43,23 +45,23 @@ void HelloTriangleApplication::createRenderGraph() {
   swapChainAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   swapChainAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   swapChainAtt.type = crevice::RGAttachmentTypes::Present;
-  swapChainAtt.format = renderServer.swapChainFormat();
+  swapChainAtt.format = renderServer->swapChainFormat();
   swapId = mRendergraph.addAttachment(swapChainAtt);
-  auto swapChainImgViews = renderServer.gpuRManager->createFRImageView(
-      renderServer.windowContext->swapChainImageViews);
+  auto swapChainImgViews = renderServer->gpuRManager->createFRImageView(
+      renderServer->windowContext->swapChainImageViews);
   mRendergraph.setExternalImageView(swapId, swapChainImgViews);
 
   crevice::RGAttachment depthAtt{};
   depthAtt.name = "depth";
-  depthAtt.format = renderServer.findDepthFormat();
+  depthAtt.format = renderServer->findDepthFormat();
   depthAtt.externalTexture = true;
   depthAtt.type = crevice::RGAttachmentTypes::DepthStencil;
   depthAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   depId = mRendergraph.addAttachment(depthAtt);
   auto depViews = crevice::Vector<VkImageView>(
-      renderServer.swapChainSize(), renderServer.windowContext->depthImageView);
-  auto depImgViews = renderServer.gpuRManager->createFRImageView(depViews);
+      renderServer->swapChainSize(), renderServer->windowContext->depthImageView);
+  auto depImgViews = renderServer->gpuRManager->createFRImageView(depViews);
   mRendergraph.setExternalImageView(depId, depImgViews);
 
   // crevice::RGAttachment mainImage{};
@@ -71,7 +73,8 @@ void HelloTriangleApplication::createRenderGraph() {
   // mRendergraph.addAttachment(mainImage);
 }
 
-void HelloTriangleApplication::setPassAndCompileRenderGraph() {
+void HelloTriangleApplication::setPassAndCompileRenderGraph()
+{
   using namespace crevice;
 
   crevice::RenderPass mainPass{};
@@ -83,7 +86,8 @@ void HelloTriangleApplication::setPassAndCompileRenderGraph() {
   auto bindDes = Vertex::getBindingDescription();
   mainPass.vertexInputInfoDesc.bindingDescription = {bindDes.stride};
   auto attributeDescriptions = Vertex::getAttributeDescriptions();
-  for (auto att : attributeDescriptions) {
+  for (auto att : attributeDescriptions)
+  {
     mainPass.vertexInputInfoDesc.attributeDescriptions.push_back(
         {att.format, att.offset});
   }
@@ -102,7 +106,8 @@ void HelloTriangleApplication::setPassAndCompileRenderGraph() {
   mRendergraph.compileWithSubPass();
 }
 
-void HelloTriangleApplication::createRenderAble() {
+void HelloTriangleApplication::createRenderAble()
+{
   using namespace crevice;
 
   auto setLayouts = mRendergraph.getDescriptorSetLayouts(mainPassId);
@@ -116,17 +121,17 @@ void HelloTriangleApplication::createRenderAble() {
 
   // create buffer descriptorSet
   cameraRenderable.bufferDescriptor =
-      renderServer.gpuRManager->createFRDescriptorSet(
+      renderServer->gpuRManager->createFRDescriptorSet(
           *setLayouts[0], cameraUniformBuffers, sizeof(UniformBufferObject));
 
   // get mesh
-  auto mesh1 = renderServer.gpuRManager->getById<Mesh>(obj1);
+  auto mesh1 = renderServer->gpuRManager->getById<Mesh>(obj1);
   auto meshRes = FrameResource<Mesh>(mesh1, GpuResourceManager::swapChainSize);
   // get mesh tex
   auto diffuseTex =
-      renderServer.gpuRManager->getById<crevice::CVTexture>(obj1TexId);
+      renderServer->gpuRManager->getById<crevice::CVTexture>(obj1TexId);
   auto specTex =
-      renderServer.gpuRManager->getById<crevice::CVTexture>(specTexId);
+      renderServer->gpuRManager->getById<crevice::CVTexture>(specTexId);
 
   // perpass
   // get perpass set layout
@@ -139,20 +144,22 @@ void HelloTriangleApplication::createRenderAble() {
   renderableObj1.mesh = meshRes;
   // TODO setLayout location
   renderableObj1.texDescriptor =
-      renderServer.gpuRManager->createFRDescriptorSet(*setLayouts[1], {}, 0,
-                                                      {diffuseTex, specTex});
+      renderServer->gpuRManager->createFRDescriptorSet(*setLayouts[1], {}, 0,
+                                                       {diffuseTex, specTex});
 
   mRendergraph.updateRenderData({cameraRenderable}, {renderableObj1});
 }
 
-void HelloTriangleApplication::createPerPassUniformBuffers() {
+void HelloTriangleApplication::createPerPassUniformBuffers()
+{
   VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-  auto swapChainSize = renderServer.swapChainSize();
+  auto swapChainSize = renderServer->swapChainSize();
   cameraUniformBuffers.resize(swapChainSize);
   cameraUniformBuffersMemory.resize(swapChainSize);
 
-  for (size_t i = 0; i < swapChainSize; i++) {
-    renderServer.gpuRManager->createBuffer(
+  for (size_t i = 0; i < swapChainSize; i++)
+  {
+    renderServer->gpuRManager->createBuffer(
         bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -160,37 +167,61 @@ void HelloTriangleApplication::createPerPassUniformBuffers() {
   }
 }
 
-void HelloTriangleApplication::createObjectTextureImage() {
-  obj1TexId = renderServer.gpuRManager->createMyTexture(TEXTURE_PATH);
-  specTexId = renderServer.gpuRManager->createMyTexture(SPEC_TEXTURE_PATH);
+void HelloTriangleApplication::createObjectTextureImage()
+{
+  obj1TexId = renderServer->gpuRManager->createMyTexture(TEXTURE_PATH);
+  specTexId = renderServer->gpuRManager->createMyTexture(SPEC_TEXTURE_PATH);
 }
 
-void HelloTriangleApplication::createDepthResources() {
-  renderServer.createSwapChainDepthResources();
+void HelloTriangleApplication::createDepthResources()
+{
+  renderServer->createSwapChainDepthResources();
 }
 
-void HelloTriangleApplication::loadObj1Model() {
-  obj1 = renderServer.gpuRManager->addModel(MODEL_PATH);
-  renderServer.gpuRManager->generateVkMeshBuffer(obj1);
+void HelloTriangleApplication::loadObj1Model()
+{
+  obj1 = renderServer->gpuRManager->addModel(MODEL_PATH);
+  renderServer->gpuRManager->generateVkMeshBuffer(obj1);
 
-  obj2 = renderServer.gpuRManager->addModel(APPLE_MODEL_PATH);
-  renderServer.gpuRManager->generateVkMeshBuffer(obj2);
+  obj2 = renderServer->gpuRManager->addModel(APPLE_MODEL_PATH);
+  renderServer->gpuRManager->generateVkMeshBuffer(obj2);
 }
 
-void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
+void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage)
+{
   static auto startTime = std::chrono::high_resolution_clock::now();
   auto currentTime = std::chrono::high_resolution_clock::now();
 
   frameDeltaTime = std::chrono::duration<float, std::chrono::seconds::period>(
                        currentTime - lastTime)
                        .count();
+
+  auto timepast = std::chrono::duration<float, std::chrono::seconds::period>(
+                      startTime - currentTime)
+                      .count();
   lastTime = currentTime;
 
   // if (camXMoveSpeed != 0.0f) {
   //     camPosition += camDirect * camXMoveSpeed;
   // }
   UniformBufferObject ubo = {};
-  ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+  //TODO setup uniform in ecs
+
+  glm::vec3 pos = {0.0f, 0.0f, -5.0f};
+
+  // auto r = static_cast<float>(currentTime) * 1.f;
+  glm::vec3 rotation = {45.f, 100.0f, 0.0f};
+  glm::vec3 scale = {1.f, 1.0f, 1.0f};
+
+  glm::mat4 model = glm::mat4(1.f);
+  model = glm::translate(model, pos);
+  auto q = glm::quat(glm::radians(rotation));
+  model *= glm::mat4_cast(q);
+  model = glm::scale(model, scale);
+
+  ubo.model = model;
+
+  // ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
   //    ubo.model = glm::rotate(ubo.model, time * glm::radians(90.0f),
   //    glm::vec3(0.0f, 0.0f, 1.0f));
   ubo.view = camera.GetViewMatrix();
@@ -198,67 +229,75 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
   //    time/sqrt(1)));
   ubo.proj = glm::perspective(
       glm::radians(45.f),
-      renderServer.windowContext->swapChainExtent.width /
-          (float)renderServer.windowContext->swapChainExtent.height,
+      renderServer->windowContext->swapChainExtent.width /
+          (float)renderServer->windowContext->swapChainExtent.height,
       0.1f, 20.0f);
 
-  // ubo.model[1][1] *= -1;
   ubo.proj[1][1] *= -1;
 
   ubo.viewPos = camera.Position;
 
   ubo.lightPosition = glm::vec3(5.0f, 5.0f, 5.0f);
   ubo.lightDiffuse = {0.250f, 0.235f, 0.168f};
+
+  //TODO update uniform buffer to certain pass
   void *data;
-  vkMapMemory(renderServer.vkContext->device,
+  vkMapMemory(renderServer->vkContext->device,
               cameraUniformBuffersMemory[currentImage], 0, sizeof(ubo), 0,
               &data);
   memcpy(data, &ubo, sizeof(ubo));
-  vkUnmapMemory(renderServer.vkContext->device,
+  vkUnmapMemory(renderServer->vkContext->device,
                 cameraUniformBuffersMemory[currentImage]);
 }
 
-void HelloTriangleApplication::drawFrameWithFrameGraph() {
+void HelloTriangleApplication::drawFrameWithFrameGraph()
+{
   updateUniformBuffer(currentFrame % GpuResourceManager::swapChainSize);
   mRendergraph.drawFrame(currentFrame);
   currentFrame = (currentFrame + 1);
 }
 
-void HelloTriangleApplication::mainLoop() {
+void HelloTriangleApplication::mainLoop()
+{
   // glfwSetKeyCallback(window, HelloTriangleApplication::keycallback_dispatch);
 
-  while (!container.windowShouldClose()) {
+  while (!container.windowShouldClose())
+  {
     container.processInputAndEvent();
     drawFrameWithFrameGraph();
   }
-  renderServer.waitIdle();
+  renderServer->waitIdle();
 }
 
-void HelloTriangleApplication::cleanupSwapChain() {
-  // vkDestroyImageView(renderServer.vkContext->device, depthImageView,
-  // nullptr); vkDestroyImage(renderServer.vkContext->device, depthImage,
-  // nullptr); vkFreeMemory(renderServer.vkContext->device, depthImageMemory,
+void HelloTriangleApplication::cleanupSwapChain()
+{
+  // vkDestroyImageView(renderServer->vkContext->device, depthImageView,
+  // nullptr); vkDestroyImage(renderServer->vkContext->device, depthImage,
+  // nullptr); vkFreeMemory(renderServer->vkContext->device, depthImageMemory,
   // nullptr);
 
-  for (auto framebuffer : swapChainFramebuffers) {
-    vkDestroyFramebuffer(renderServer.vkContext->device, framebuffer, nullptr);
+  for (auto framebuffer : swapChainFramebuffers)
+  {
+    vkDestroyFramebuffer(renderServer->vkContext->device, framebuffer, nullptr);
   }
   // gpuResourceManager.destoryCommandBuffers(commandBuffers2);
   // gpuResourceManager.destoryCommandBuffers(commandBuffers);
 
-  vkDestroyPipeline(renderServer.vkContext->device, graphicsPipeline, nullptr);
-  vkDestroyPipelineLayout(renderServer.vkContext->device, pipelineLayout,
+  vkDestroyPipeline(renderServer->vkContext->device, graphicsPipeline, nullptr);
+  vkDestroyPipelineLayout(renderServer->vkContext->device, pipelineLayout,
                           nullptr);
-  vkDestroyRenderPass(renderServer.vkContext->device, renderPass, nullptr);
-  for (auto imageView : renderServer.windowContext->swapChainImageViews) {
-    vkDestroyImageView(renderServer.vkContext->device, imageView, nullptr);
+  vkDestroyRenderPass(renderServer->vkContext->device, renderPass, nullptr);
+  for (auto imageView : renderServer->windowContext->swapChainImageViews)
+  {
+    vkDestroyImageView(renderServer->vkContext->device, imageView, nullptr);
   }
 
-  vkDestroySwapchainKHR(renderServer.vkContext->device,
-                        renderServer.windowContext->swapChain, nullptr);
+  vkDestroySwapchainKHR(renderServer->vkContext->device,
+                        renderServer->windowContext->swapChain, nullptr);
 }
 
-void HelloTriangleApplication::recreateSwapChain() {
+void HelloTriangleApplication::recreateSwapChain()
+{
   // TODO render pass,pipeline must recate in render graph
   // vkDeviceWaitIdle(vkContext.device);
 
@@ -273,7 +312,8 @@ void HelloTriangleApplication::recreateSwapChain() {
   // createCommandBuffers();
 }
 
-void HelloTriangleApplication::cleanup() {
+void HelloTriangleApplication::cleanup()
+{
   cleanupSwapChain();
   // vkDestroyDescriptorPool(vkContext.device,
   //                         gpuResourceManager.descriptorPools[0], nullptr);
@@ -317,23 +357,26 @@ void HelloTriangleApplication::cleanup() {
 }
 
 void HelloTriangleApplication::mouse_callback(GLFWwindow *window, double xpos,
-                                              double ypos) {
+                                              double ypos)
+{
   // TODO this should in input server
-  if (renderServer.windowContext->firstMouse) {
-    renderServer.windowContext->lastX = xpos;
-    renderServer.windowContext->lastY = ypos;
-    renderServer.windowContext->firstMouse = false;
+  if (renderServer->windowContext->firstMouse)
+  {
+    renderServer->windowContext->lastX = xpos;
+    renderServer->windowContext->lastY = ypos;
+    renderServer->windowContext->firstMouse = false;
   }
-  float xoffset = xpos - renderServer.windowContext->lastX;
-  float yoffset = renderServer.windowContext->lastY - ypos;
+  float xoffset = xpos - renderServer->windowContext->lastX;
+  float yoffset = renderServer->windowContext->lastY - ypos;
 
-  renderServer.windowContext->lastX = xpos;
-  renderServer.windowContext->lastY = ypos;
+  renderServer->windowContext->lastX = xpos;
+  renderServer->windowContext->lastY = ypos;
 
   camera.ProcessMouseMovement(xoffset, yoffset, true);
 }
 
-void HelloTriangleApplication::processInput(GLFWwindow *window) {
+void HelloTriangleApplication::processInput(GLFWwindow *window)
+{
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, true);
 
@@ -355,19 +398,20 @@ void HelloTriangleApplication::processInput(GLFWwindow *window) {
   if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-  if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-    switchCommandBuffer(&commandBuffers2);
-  }
-  if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
-    switchCommandBuffer(&commandBuffers);
-  }
+  // if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+  //   switchCommandBuffer(&commandBuffers2);
+  // }
+  // if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+  //   switchCommandBuffer(&commandBuffers);
+  // }
 }
 
-void HelloTriangleApplication::switchCommandBuffer(RID *bufferId) {
-  drawingBuffersId = bufferId;
-}
+// void HelloTriangleApplication::switchCommandBuffer(RID *bufferId) {
+//   drawingBuffersId = bufferId;
+// }
 
-void HelloTriangleApplication::initVulkan() {
+void HelloTriangleApplication::initVulkan()
+{
 
   createDepthResources();
 
@@ -390,7 +434,8 @@ void HelloTriangleApplication::initVulkan() {
   createRenderAble();
 }
 
-void HelloTriangleApplication::serverSetup() {
+void HelloTriangleApplication::serverSetup()
+{
   container = crevice::GLFWContainer(WIDTH, HEIGHT, "Vulkan");
   {
     using namespace std::placeholders;
@@ -402,14 +447,25 @@ void HelloTriangleApplication::serverSetup() {
         &HelloTriangleApplication::mouse_callback_dispatch;
   }
   container.setUpInput(this);
-  renderServer = crevice::RenderServer();
-  renderServer.setContainer(&container);
-  renderServer.init();
+  renderServer = crevice::RenderServer::getInstance();
+  renderServer->setContainer(&container);
+  renderServer->init();
 }
 
-void HelloTriangleApplication::run() {
+void HelloTriangleApplication::setupECS()
+{
+  //add persistant entities
+
+  //add systems for update
+}
+
+void HelloTriangleApplication::run()
+{
   serverSetup();
   initVulkan();
+  setupECS();
   mainLoop();
   cleanup();
 }
+
+// std::chrono::high_resolution_clock::time_point HelloTriangleApplication::startTime = std::chrono::high_resolution_clock::now()

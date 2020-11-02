@@ -3,10 +3,6 @@
 //
 #pragma once
 
-#include "3rd/volk/volk_imp.h"
-
-#include "3rd/GLFW/glfw.h"
-
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -20,24 +16,29 @@
 #include <stdexcept>
 #include <vector>
 
-#include "stl/CreviceSharedPtr.h"
-
+#include "3rd/GLFW/glfw.h"
+#include "3rd/volk/volk_imp.h"
 #include "common/GLMath.h"
 #include "common/ResourceManager.h"
+#include "components/Camera.h"
+#include "containers/glfw/glfwContainerImpl.h"
+#include "flecs.h"
 #include "render/Context.h"
 #include "render/GpuResourceManager.h"
-#include "render/Uniform.h"
-#include "render/vulkan/windowContext.h"
-#include "render/renderGraph/RenderGraph.h"
 #include "render/RenderServer.h"
-#include "containers/glfw/glfwContainerImpl.h"
-#include "components/Camera.h"
+#include "render/Uniform.h"
+#include "render/renderGraph/RenderGraph.h"
+#include "render/vulkan/windowContext.h"
+#include "stl/CreviceSharedPtr.h"
 
 class HelloTriangleApplication {
  private:
-crevice::GLFWContainer container;
-  crevice::RenderServer renderServer;
+  crevice::GLFWContainer container;
+  crevice::RenderServer *renderServer;
 
+  flecs::world ecs;
+
+  // static std::chrono::high_resolution_clock::time_point startTime;
   std::chrono::high_resolution_clock::time_point lastTime =
       std::chrono::high_resolution_clock::now();
   ;
@@ -93,14 +94,15 @@ crevice::GLFWContainer container;
 
   void serverSetup();
 
+  void setupECS();
+
   void createResourceManager();
 
   void createRenderGraph();
   void setPassAndCompileRenderGraph();
   void createRenderAble();
 
-  void switchCommandBuffer(RID *commandId);
-
+  // void switchCommandBuffer(RID *commandId);
 
   void createPerPassUniformBuffers();
 
@@ -148,4 +150,3 @@ crevice::GLFWContainer container;
 
   void run();
 };
-

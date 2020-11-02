@@ -1,6 +1,6 @@
 add_rules("mode.debug")
 if is_mode("debug") then
-    set_warnings("all")
+    -- set_warnings("all")
 end
 
 includes("3rd/flecs/xmake.lua")
@@ -11,11 +11,11 @@ add_files("HelloTriangleApplication.cpp",
      "render/**.cpp", 
      "components/*.cpp", 
      "containers/**.cpp")
-    add_includedirs("$(projectdir)",
-    "D:/SDKs/glm")
+    add_includedirs("$(projectdir)")
 
     -- 3rdParty ------------------
     -- 3rd root directory
+    add_includedirs("3rd/glm/glm")
     add_includedirs("3rd")
 
     -- volk
@@ -58,8 +58,6 @@ add_files("HelloTriangleApplication.cpp",
 set_languages("cxx17")
 target("MyVKLearn")
     add_deps("flecs")
-    add_defines("flecs_STATIC")
-
     set_kind("binary")
     add_files("main.cpp")
 

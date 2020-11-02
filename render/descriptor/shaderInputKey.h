@@ -1,5 +1,4 @@
-#ifndef CREVICE_SHADERINPUTKEY_H
-#define CREVICE_SHADERINPUTKEY_H 1
+#pragma once
 
 #include <cstdint>
 #include "stl/CreviceVector.h"
@@ -29,5 +28,3 @@ struct ShaderInputKey {
 };
 
 }  // namespace crevice
-
-#endif
