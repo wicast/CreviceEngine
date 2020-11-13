@@ -8,6 +8,8 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 
+// #define GLM_FORCE_LEFT_HANDED
+
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
 #include "glm/gtc/type_ptr.hpp"

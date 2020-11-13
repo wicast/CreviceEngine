@@ -98,15 +98,15 @@ class RenderGraph {
   void updateRenderData(Vector<PerPassRenderAble> perpassList,
                         Vector<RenderAble> renderList);
 
-  void recordFrameWithSubpass(uint64_t frame);
+  void recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex);
   void submit(uint64_t frame, uint32_t& imageIndex);
   void present(uint64_t frame, uint32_t& imageIndex);
   void drawFrame(uint64_t frame);
 
-
-  Vector<SharedPtr<VkDescriptorSetLayout>> getDescriptorSetLayouts(uint32_t passId){
+  Vector<SharedPtr<VkDescriptorSetLayout>> getDescriptorSetLayouts(
+      uint32_t passId) {
     return renderPasses[passId]->getDescriptorSetLayouts();
-  };         
+  };
 
   void clear();
 

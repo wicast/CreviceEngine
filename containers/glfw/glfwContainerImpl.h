@@ -27,6 +27,10 @@ class GLFWContainer : public Container {
     glfwPollEvents();
   }
 
+  void setClose() {
+    glfwSetWindowShouldClose(window, true);
+  }
+
   int windowShouldClose() { return glfwWindowShouldClose(window); };
 
   GLFWContainer();

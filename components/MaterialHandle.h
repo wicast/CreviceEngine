@@ -3,9 +3,11 @@
 #include <vector>
 
 #include "3rd/volk/volk_imp.h"
+#include "common/Resource.h"
 #include "render/ShaderPack.h"
 
 
-class Material {
+struct MaterialHandle {
     //TODO
+    RID obj1TexId,specTexId;
 };

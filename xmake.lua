@@ -11,7 +11,7 @@ add_files("HelloTriangleApplication.cpp",
      "render/**.cpp", 
      "components/*.cpp", 
      "containers/**.cpp")
-    add_includedirs("$(projectdir)")
+    add_includedirs(".")
 
     -- 3rdParty ------------------
     -- 3rd root directory
@@ -62,6 +62,7 @@ target("MyVKLearn")
     add_files("main.cpp")
 
     
-target("test")
-    set_kind("binary")
-    add_files("tests/testRenderGraph.cpp")
+-- target("test")
+--     add_deps("flecs")
+--     set_kind("binary")
+--     add_files("tests/testRenderGraph.cpp")

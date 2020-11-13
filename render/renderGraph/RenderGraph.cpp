@@ -49,7 +49,7 @@ void RenderGraph::detachNode(uint32_t firstPassId, uint32_t secondPassId) {
 }
 
 void RenderGraph::compileWithSubPass() {
-  //create sync obj
+  // create sync obj
   createSyncObj();
   // TODO for now only support single renderpass with subpass
   analyzeExecutionOrder();
@@ -139,7 +139,7 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
   VectorMap<uint32_t, uint32_t> passIdxMap;
   inx = 0;
 
-  //TODO size of true renderpass
+  // TODO size of true renderpass
   Vector<Vector<VkAttachmentReference>> colorReferences(1);
   Vector<Vector<VkAttachmentReference>> depthReferences(1);
   Vector<Vector<VkAttachmentReference>> inputReferences(1);
@@ -151,16 +151,20 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
     auto inputReference = &inputReferences[inx];
     for (auto inAttId : p.inputAttachments) {
       auto idx = attIndexMap[inAttId];
-      colorReference->push_back({idx, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+      colorReference->push_back(
+          {idx, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
     }
 
     for (auto outAttId : p.outputAttachments) {
       auto idx = attIndexMap[outAttId];
       auto type = attachments[outAttId].type;
-      if (type == RGAttachmentTypes::Color|| type == RGAttachmentTypes::Present) {
-        colorReference->push_back({idx, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+      if (type == RGAttachmentTypes::Color ||
+          type == RGAttachmentTypes::Present) {
+        colorReference->push_back(
+            {idx, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
       } else if (type == RGAttachmentTypes::DepthStencil) {
-        depthReference->push_back({idx, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+        depthReference->push_back(
+            {idx, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
       }
     }
 
@@ -183,7 +187,7 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
   for (auto passId : startNodes) {
     VkSubpassDependency vkdep{};
     vkdep.srcSubpass = VK_SUBPASS_EXTERNAL;
-    vkdep.dstSubpass =  passIdxMap[passId];
+    vkdep.dstSubpass = passIdxMap[passId];
     vkdep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     vkdep.srcAccessMask = 0;
     vkdep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -343,7 +347,7 @@ void RenderGraph::createFrameBufferForSubPass() {
 
   mFramebuffers.resize(1);
 
-  mFramebuffers[0] =  mGpuRManager->createFRFramebuffer(frameBufferCIs);
+  mFramebuffers[0] = mGpuRManager->createFRFramebuffer(frameBufferCIs);
 }
 
 void RenderGraph::createInternalImageViews() {
@@ -354,7 +358,7 @@ void RenderGraph::createInternalImageViews() {
 
   for (auto usingId : attsUsing) {
     auto attach = attachments[usingId];
-    //find the image which is internal
+    // find the image which is internal
     if (externalImageViews.count(usingId) == 0) {
       VkImageUsageFlags usage;
       if (attsOut.count(usingId) != 0 &&
@@ -385,7 +389,7 @@ void RenderGraph::bind() {}
 void RenderGraph::updateRenderData(Vector<PerPassRenderAble> perpassList,
                                    Vector<RenderAble> renderList) {
   for (auto perRenderable : perpassList) {
-    //TODO match renderlist with different method
+    // TODO match renderlist with different method
     renderPasses[perRenderable.passId]->addPerpassRenderAble(perRenderable);
   }
   for (auto renderable : renderList) {
@@ -393,17 +397,39 @@ void RenderGraph::updateRenderData(Vector<PerPassRenderAble> perpassList,
   }
 }
 
-
-void  RenderGraph::drawFrame(uint64_t frame) {
-  recordFrameWithSubpass(frame);
+void RenderGraph::drawFrame(uint64_t frame) {
   uint32_t imageIndex;
+  recordFrameWithSubpass(frame, imageIndex);
   submit(frame, imageIndex);
   present(frame, imageIndex);
 }
 
-void RenderGraph::recordFrameWithSubpass(uint64_t frame) {
-  // First:record commands
-  // reset all current commands
+void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
+  auto vkContext = mGpuRManager->vkContext;
+  auto windowContext = vkContext->windowContext;
+
+  vkWaitForFences(vkContext->device, 1, &inFlightFences[currentFrame], VK_TRUE,
+                  UINT64_MAX);
+
+  VkResult vkResult = vkAcquireNextImageKHR(
+      vkContext->device, windowContext->swapChain, UINT64_MAX,
+      imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+  if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
+    // TODO
+    // recreateSwapChain();
+    return;
+  } else if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR) {
+    throw std::runtime_error("failed to acquire swap chain image!");
+  }
+
+  if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+    vkWaitForFences(vkContext->device, 1, &imagesInFlight[imageIndex], VK_TRUE,
+                    UINT64_MAX);
+  }
+  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+  // record commands
+  // First: reset all current commands
   for (auto cb : mCommandBuffers) {
     vkResetCommandBuffer(*(cb.getForUpdate(frame)->get()),
                          VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
@@ -435,7 +461,8 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame) {
   for (auto aid : attsUsing) {
     VkClearValue clearValue;
     auto att = attachments[aid];
-    if (att.type == RGAttachmentTypes::Color||att.type == RGAttachmentTypes::Present) {
+    if (att.type == RGAttachmentTypes::Color ||
+        att.type == RGAttachmentTypes::Present) {
       clearValue.color = {0.0f, 0.0f, 0.0f, 1.0f};
     } else if (att.type == RGAttachmentTypes::DepthStencil) {
       clearValue.depthStencil = {1.0f, 0};
@@ -468,33 +495,10 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame) {
   }
 }
 
-
 // vulkan can submit multiple commandBuffers
 void RenderGraph::submit(uint64_t frame, uint32_t& imageIndex) {
   auto vkContext = mGpuRManager->vkContext;
   auto windowContext = vkContext->windowContext;
-
-  vkWaitForFences(vkContext->device, 1, &inFlightFences[currentFrame], VK_TRUE,
-                  UINT64_MAX);
-
-  VkResult vkResult = vkAcquireNextImageKHR(
-      vkContext->device, windowContext->swapChain, UINT64_MAX,
-      imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-  if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
-    // TODO
-    // recreateSwapChain();
-    return;
-  } else if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR) {
-    throw std::runtime_error("failed to acquire swap chain image!");
-  }
-
-  if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-    vkWaitForFences(vkContext->device, 1, &imagesInFlight[imageIndex], VK_TRUE,
-                    UINT64_MAX);
-  }
-  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
-
-  // updateUniformBuffer(imageIndex);
 
   VkSubmitInfo submitInfo = {};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -529,7 +533,7 @@ void RenderGraph::present(uint64_t frame, uint32_t& imageIndex) {
   VkPresentInfoKHR presentInfo = {};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-VkSemaphore renderFinishSemaphores[] = {
+  VkSemaphore renderFinishSemaphores[] = {
       renderFinishedSemaphores[currentFrame]};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = renderFinishSemaphores;

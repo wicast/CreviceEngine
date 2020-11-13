@@ -11,6 +11,8 @@
 #include "render/resource/Texture.h"
 #include "render/vulkan/windowContext.h"
 
+#include "render/renderGraph/RenderGraph.h"
+
 namespace crevice {
 class RenderServer {
  private:
@@ -43,6 +45,8 @@ class RenderServer {
     createGPUResourceManager();
     createWindowContext();
     createCommandPool();
+
+    createSwapChainDepthResources();
   };
 
   void setContainer(GLFWContainer* container) { this->container = container; };
