@@ -14,10 +14,13 @@ class GLFWContainer : public Container {
   static GLFWframebuffersizefun framebufferResizeCallback;
   static GLFWcursorposfun mouse_callback_dispatch;
 
-  void createWindow(int width, int height, const char* title,
+  void createWindow(int width,
+                    int height,
+                    const char* title,
                     GLFWmonitor* monitor = nullptr,
                     GLFWwindow* share = nullptr);
-  void createSurface(VkInstance instance, VkSurfaceKHR* surface,
+  void createSurface(VkInstance instance,
+                     VkSurfaceKHR* surface,
                      const VkAllocationCallbacks* allocator = nullptr);
 
   void setUpInput(void* pointer);
@@ -27,15 +30,16 @@ class GLFWContainer : public Container {
     glfwPollEvents();
   }
 
-  void setClose() {
-    glfwSetWindowShouldClose(window, true);
-  }
+  void setClose() { glfwSetWindowShouldClose(window, true); }
 
   int windowShouldClose() { return glfwWindowShouldClose(window); };
 
   GLFWContainer();
-  GLFWContainer(int width, int height, const char* title,
-                GLFWmonitor* monitor = nullptr, GLFWwindow* share = nullptr) {
+  GLFWContainer(int width,
+                int height,
+                const char* title,
+                GLFWmonitor* monitor = nullptr,
+                GLFWwindow* share = nullptr) {
     createWindow(width, height, title, monitor, share);
   };
   ~GLFWContainer();

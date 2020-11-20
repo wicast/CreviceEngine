@@ -191,7 +191,7 @@ void updatePerObjRenderAbleDescriptor(flecs::iter it,
     ShaderInputKey perobjInputKey{};
     perobjInputKey.keys = {TextureSample2D, TextureSample2D};
     renderableObj.passId = renderHandler->mainPassId;
-    ;
+
     renderableObj.key = perobjInputKey;
     renderableObj.mesh = meshRes;
     // TODO setLayout location

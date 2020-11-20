@@ -49,7 +49,6 @@ class HelloTriangleApplication {
 
   void setupECS();
 
-
   void mainLoop();
 
   void processInput(GLFWwindow* window);
