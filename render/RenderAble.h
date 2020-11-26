@@ -2,6 +2,17 @@
 
 #include "3rd/volk/volk_imp.h"
 
+/**
+ * @file RenderAble.h
+ * @author wicast (wicast@hotmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2020-11-26
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
+
 #include "common/Resource.h"
 #include "render/FrameResource.h"
 #include "render/resource/Model.h"

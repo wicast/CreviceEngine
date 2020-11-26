@@ -1,11 +1,25 @@
+/**
+ * @file Camera.h
+ * @author wicast (wicast@hotmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2020-11-25
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
+
 #pragma once
 
 #include "common/GLMath.h"
 
 #include "render/descriptor/shaderInputKey.h"
 
-// Defines several possible options for camera movement. Used as abstraction to
-// stay away from window-system specific input methods
+/**
+ * @brief Defines several possible options for camera movement. Used as abstraction to \n
+ *  stay away from window-system specific input methods
+ * 
+ */
 enum Camera_Movement {
   FORWARD,
   BACKWARD,
@@ -22,6 +36,10 @@ const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
+/**
+ * @brief 
+ * 
+ */
 class Camera {
  private:
   /* data */

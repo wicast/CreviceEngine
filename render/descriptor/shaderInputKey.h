@@ -1,3 +1,14 @@
+/**
+ * @file shaderInputKey.h
+ * @author wicast (wicast@hotmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2020-11-25
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -5,6 +16,10 @@
 
 namespace crevice {
 
+/**
+ * @brief Shader Slot Types
+ * 
+ */
 enum ShaderSlotType{
     Bool,Int,Uint,Float,Double,
     Bvec1,Bvec2,Bvec3,Bvec4,
@@ -16,10 +31,17 @@ enum ShaderSlotType{
     PixelLocalTextureSampler
 };
 
-//shaderInputKey generate descriptorSetLayout
-//shaderInputKey generate shader input uniforms
+/**
+ * @brief shaderInputKey generate descriptorSetLayout \n
+ * shaderInputKey generate shader input uniforms
+ * 
+ */
 struct ShaderInputKey {
-  //
+  
+  /**
+   * @brief key values
+   * 
+   */
   crevice::Vector<crevice::ShaderSlotType> keys;
 
    bool operator==(const ShaderInputKey& other) const {

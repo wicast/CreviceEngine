@@ -1,3 +1,14 @@
+/**
+ * @file default_render_sys.h
+ * @author wicast (wicast@hotmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2020-11-25
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
+
 #include "flecs.h"
 
 #include "common/CVTimer.h"
@@ -13,6 +24,11 @@
 
 #include "common/InputState.h"
 
+/**
+ * @brief Set the Render Handler object
+ * 
+ * @param world 
+ */
 void SetRenderHandler(flecs::world& world) {
   using namespace crevice;
   auto mRendergraph = new RenderGraph();
@@ -103,7 +119,12 @@ void SetRenderHandler(flecs::world& world) {
   world.set<RenderHandler>(renderHandler);
 }
 
-// Query with $RenderHandler
+/**
+ * @brief Query with $RenderHandler
+ * 
+ * @param it 
+ * @param cam 
+ */
 void setupPerpassRenderAble(flecs::iter it, Camera cam[]) {
   using namespace crevice;
 
@@ -129,7 +150,12 @@ void setupPerpassRenderAble(flecs::iter it, Camera cam[]) {
   renderHandler->mainRendergraph->updateRenderData({cameraRenderable}, {});
 }
 
-// Query with $RenderHandler
+/**
+ * @brief Query with $RenderHandler
+ * 
+ * @param it 
+ * @param cams 
+ */
 void updatePerpassRenderAble(flecs::iter it, Camera cams[]) {
   using namespace crevice;
 
@@ -146,7 +172,12 @@ void updatePerpassRenderAble(flecs::iter it, Camera cams[]) {
   }
 }
 
-// Query with $RenderHandler
+/**
+ * @brief Query with $RenderHandler
+ * 
+ * @param it 
+ * @param t 
+ */
 void updateModelUniform(flecs::iter it, Transform t[]) {
   using namespace crevice;
 
@@ -159,8 +190,14 @@ void updateModelUniform(flecs::iter it, Transform t[]) {
   }
 }
 
-// This is not perframe
-// Query with $RenderHandler
+/**
+ * @brief  This is not perframe \n
+ * Query with $RenderHandler
+ * @param it 
+ * @param objs 
+ * @param meshes 
+ * @param mats 
+ */
 void updatePerObjRenderAbleDescriptor(flecs::iter it,
                                       Transform objs[],
                                       MeshHandler meshes[],
@@ -208,7 +245,11 @@ void updatePerObjRenderAbleDescriptor(flecs::iter it,
   renderHandler->mainRendergraph->updateRenderData({}, renderList);
 }
 
-// Query with $RenderHandler
+/**
+ * @brief Query with $RenderHandler
+ * 
+ * @param it 
+ */
 void updateUboBuffer(flecs::iter it) {
   using namespace crevice;
 
@@ -226,7 +267,11 @@ void updateUboBuffer(flecs::iter it) {
       renderHandler->cameraUniformBuffersMemory[renderHandler->currentImage]);
 }
 
-// Query with $RenderHandler
+/**
+ * @brief Query with $RenderHandler
+ * 
+ * @param it 
+ */
 void increaseCurrentFrame(flecs::iter it) {
   using namespace crevice;
   auto renderServer = RenderServer::getInstance();

@@ -1,3 +1,14 @@
+/**
+ * @file Context.h
+ * @author wicast (wicast@hotmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2020-11-26
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
+
 #pragma once
 
 #include "3rd/volk/volk_imp.h"
@@ -16,6 +27,10 @@ const std::vector<const char*> validationLayers = {
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
+/**
+ * @brief 
+ * 
+ */
 struct QueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
   std::optional<uint32_t> presentFamily;
@@ -27,12 +42,20 @@ struct QueueFamilyIndices {
   }
 };
 
+/**
+ * @brief 
+ * 
+ */
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
   std::vector<VkSurfaceFormatKHR> formats;
   std::vector<VkPresentModeKHR> presentModes;
 };
 
+/**
+ * @brief 
+ * 
+ */
 class vkUtil {
  private:
   /* data */

@@ -1,9 +1,23 @@
-#ifndef MYVK_RESOURCE_H
-#define MYVK_RESOURCE_H 1
+/**
+ * @file Resource.h
+ * @author wicast (wicast@hotmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2020-11-25
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
+
+#pragma once
 
 #include <fstream>
 #include <vector>
 
+/**
+ * @brief RID
+ * 
+ */
 typedef uint32_t RID;
 
 static std::vector<char> readFile(const std::string& filename) {

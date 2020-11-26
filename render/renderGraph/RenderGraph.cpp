@@ -384,7 +384,7 @@ void RenderGraph::createInternalImageViews() {
   internalImages;
 }
 
-void RenderGraph::bind() {}
+// void RenderGraph::bind() {}
 
 void RenderGraph::updateRenderData(Vector<PerPassRenderAble> perpassList,
                                    Vector<RenderAble> renderList) {

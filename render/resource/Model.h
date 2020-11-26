@@ -1,3 +1,14 @@
+/**
+ * @file Model.h
+ * @author wicast (wicast@hotmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2020-11-25
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
+
 #pragma once
 
 #include "3rd/volk/volk_imp.h"
@@ -8,6 +19,10 @@
 #include "common/GLMath.h"
 // #include "render/Texture.h"
 
+/**
+ * @brief Vertex struct
+ * 
+ */
 struct Vertex {
   glm::vec3 pos;
   glm::vec3 color;
@@ -64,6 +79,10 @@ struct hash<Vertex> {
 };
 }  // namespace std
 
+/**
+ * @brief Mesh class
+ * 
+ */
 class Mesh {
  public:
  //TODO split to memory
