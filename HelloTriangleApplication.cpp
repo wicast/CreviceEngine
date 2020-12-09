@@ -35,7 +35,7 @@ void HelloTriangleApplication::mainLoop() {
 }
 
 void HelloTriangleApplication::cleanupSwapChain() {
-  // TODO
+  // TODO cleanup resource
   // vkDestroyImageView(renderServer->vkContext->device, depthImageView,
   // nullptr); vkDestroyImage(renderServer->vkContext->device, depthImage,
   // nullptr); vkFreeMemory(renderServer->vkContext->device, depthImageMemory,
@@ -76,6 +76,8 @@ void HelloTriangleApplication::recreateSwapChain() {
 
 void HelloTriangleApplication::cleanup() {
   cleanupSwapChain();
+  // TODO resource clear in resource manager;
+
   // vkDestroyDescriptorPool(vkContext.device,
   //                         gpuResourceManager.descriptorPools[0], nullptr);
 
@@ -83,7 +85,6 @@ void HelloTriangleApplication::cleanup() {
   //   vkDestroyBuffer(vkContext.device, cameraUniformBuffers[i], nullptr);
   //   vkFreeMemory(vkContext.device, cameraUniformBuffersMemory[i], nullptr);
   // }
-  // // TODO resource clear bucket;
   // gpuResourceManager.destroyTexture(obj1TexId);
   // gpuResourceManager.destroyTexture(specTexId);
   // // gpuResourceManager.destoryDescriptorSetLayout(*descriptorSetLayout);
@@ -111,7 +112,6 @@ void HelloTriangleApplication::cleanup() {
   // vkDestroySurfaceKHR(vkContext.instance, vkContext.surface, nullptr);
   // vkDestroyInstance(vkContext.instance, nullptr);
 
-  // // TODO
   // glfwDestroyWindow(windowContext.window);
 
   // glfwTerminate();

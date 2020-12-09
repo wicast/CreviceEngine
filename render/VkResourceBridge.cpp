@@ -78,6 +78,10 @@ void VkResourceBridge::createVkTextureFromMem(RID rid, VkTexture& newTex) {
   auto texHeight = tex.height;
   auto mipLevels = tex.mipLevels;
 
+  newTex.width = texWidth;
+  newTex.height = texHeight;
+  newTex.mipLevels = mipLevels;
+
 //   crevice::VkTexture newTex{};
 
   VkBuffer stagingBuffer;

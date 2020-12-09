@@ -228,16 +228,10 @@ void updatePerObjRenderAbleDescriptor(flecs::iter it,
     auto meshRes =
         FrameResource<VkMesh>(mesh1, GpuResourceManager::swapChainSize);
     // get mesh tex
-    
-    // auto diffuseTex =
-    //     *(renderServer->gpuRManager->getById<eastl::shared_ptr<crevice::VkTexture>>(mat.obj1TexId));
-    // auto specTex =
-    //     *(renderServer->gpuRManager->getById<eastl::shared_ptr<crevice::VkTexture>>(mat.specTexId));
-
     auto diffuseTex =
         *(texs[i].textureLoaded[mat.obj1TexId]);
     auto specTex =
-        *(texs[i].textureLoaded[mat.specTexId]);;
+        *(texs[i].textureLoaded[mat.specTexId]);
 
     RenderAble renderableObj{};
     ShaderInputKey perobjInputKey{};

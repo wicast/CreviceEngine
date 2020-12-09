@@ -1,12 +1,12 @@
 /**
  * @file Context.h
  * @author wicast (wicast@hotmail.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2020-11-26
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
 
 #pragma once
@@ -18,6 +18,9 @@
 #include <optional>
 #include <set>
 #include <stdexcept>
+#include <vector>
+
+#include "utils/MutexUtil.hpp"
 
 #include "render/vulkan/windowContext.h"
 
@@ -28,23 +31,23 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  */
 struct QueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
   std::optional<uint32_t> presentFamily;
   std::optional<uint32_t> transferFamily;
 
+  // TODO check with user config
   bool isComplete() {
-    return graphicsFamily.has_value() && presentFamily.has_value() &&
-           transferFamily.has_value();
+    return graphicsFamily.has_value() && presentFamily.has_value();
   }
 };
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  */
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
@@ -53,8 +56,8 @@ struct SwapChainSupportDetails {
 };
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  */
 class vkUtil {
  private:
@@ -117,7 +120,8 @@ class vkUtil {
   }
 
   static std::vector<const char*> getRequiredExtensions(
-      bool enableValidationLayers, const char** glfwExtensions,
+      bool enableValidationLayers,
+      const char** glfwExtensions,
       uint32_t glfwExtensionCount) {
     std::vector<const char*> extensions(glfwExtensions,
                                         glfwExtensions + glfwExtensionCount);
@@ -157,40 +161,6 @@ class vkUtil {
     return details;
   }
 
-  static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,
-                                              VkSurfaceKHR surface) {
-    QueueFamilyIndices indices;
-    // Logic to find queue family indices to populate struct with
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
-                                             nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
-                                             queueFamilies.data());
-    int i = 0;
-
-    for (const auto& queueFamily : queueFamilies) {
-      if (queueFamily.queueCount > 0 &&
-          queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-        indices.graphicsFamily = i;
-      }
-      if (queueFamily.queueCount > 0 &&
-          queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) {
-        indices.transferFamily = i;
-      }
-      VkBool32 presentSupport = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-      if (queueFamily.queueCount > 0 && presentSupport) {
-        indices.presentFamily = i;
-      }
-      if (indices.isComplete()) break;
-
-      i++;
-    }
-    return indices;
-  }
-
   static bool checkDeviceExtensionSupport(
       VkPhysicalDevice device,
       const std::vector<const char*> deviceExtensions) {
@@ -209,25 +179,26 @@ class vkUtil {
     return requiredExtension.empty();
   }
 
-  static bool isDeviceSuitable(
-      VkPhysicalDevice device, VkSurfaceKHR surface,
-      const std::vector<const char*> deviceExtensions) {
-    QueueFamilyIndices indices = findQueueFamilies(device, surface);
-    bool extensionsSupported =
-        checkDeviceExtensionSupport(device, deviceExtensions);
+  // static bool isDeviceSuitable(
+  //     VkPhysicalDevice device,
+  //     VkSurfaceKHR surface,
+  //     const std::vector<const char*> deviceExtensions) {
+  //   QueueFamilyIndices indices = findQueueFamilies(device, surface);
+  //   bool extensionsSupported =
+  //       checkDeviceExtensionSupport(device, deviceExtensions);
 
-    bool swapChainAdequate = false;
-    if (extensionsSupported) {
-      SwapChainSupportDetails swapChainSupport =
-          querySwapChainSupport(device, surface);
-      swapChainAdequate = !swapChainSupport.formats.empty() &&
-                          !swapChainSupport.presentModes.empty();
-    }
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-    return indices.isComplete() && extensionsSupported && swapChainAdequate &&
-           supportedFeatures.samplerAnisotropy;
-  }
+  //   bool swapChainAdequate = false;
+  //   if (extensionsSupported) {
+  //     SwapChainSupportDetails swapChainSupport =
+  //         querySwapChainSupport(device, surface);
+  //     swapChainAdequate = !swapChainSupport.formats.empty() &&
+  //                         !swapChainSupport.presentModes.empty();
+  //   }
+  //   VkPhysicalDeviceFeatures supportedFeatures;
+  //   vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+  //   return indices.isComplete() && extensionsSupported && swapChainAdequate &&
+  //          supportedFeatures.samplerAnisotropy;
+  // }
 
   static VkResult CreateDebugUtilsMessengerEXT(
       VkInstance instance,
@@ -244,7 +215,8 @@ class vkUtil {
   }
 
   static void DestroyDebugUtilsMessengerEXT(
-      VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+      VkInstance instance,
+      VkDebugUtilsMessengerEXT debugMessenger,
       const VkAllocationCallbacks* pAllocator) {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
         instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -285,14 +257,83 @@ class VkContext {
   VkDevice device;
   VkQueue graphicsQueue;
   VkQueue presentQueue;
+  // TODO deal with device that only has 1 QueueCount
+  VkQueue singleOpQueue;
+  bool sameQueueGraphicAndOp=true;
+  // TODO for now just make sure there is only one thread operating, multi
+  // thread submition should used in future
+  priorityMutex singleOpQueueLock;
+  VkFence singleOpFence;
+
+  // TODO set into feature info
+  // TODO hardcode for testing
+  static eastl::vector<size_t> queueFamCount;  
+
   VkCommandPool commandPool;
-  
-  //TODO for convenient usage
+  VkCommandPool singleTimeOpCommandPool;
+
+  // TODO for convenient usage
   WindowContext* windowContext;
 
   bool deviceEnabled;
   bool enableValidationLayers;
   VkDebugUtilsMessengerEXT debugMessenger;
+
+
+
+  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice pDevice,
+                                              VkSurfaceKHR surface) {
+    QueueFamilyIndices indices;
+    // Logic to find queue family indices to populate struct with
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(pDevice, &queueFamilyCount,
+                                             nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(pDevice, &queueFamilyCount,
+                                             queueFamilies.data());
+    int i = 0;
+    queueFamCount.resize(queueFamilies.size());
+    for (const auto& queueFamily : queueFamilies) {
+      queueFamCount[i] = queueFamily.queueCount;
+      if (queueFamily.queueCount > 0 &&
+          queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        indices.graphicsFamily = i;
+      }
+      VkBool32 presentSupport = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(pDevice, i, surface, &presentSupport);
+      if (queueFamily.queueCount > 0 && presentSupport) {
+        indices.presentFamily = i;
+      }
+      if (indices.isComplete()) {
+        break;
+      }
+
+      i++;
+    }
+    return indices;
+  }
+
+bool isDeviceSuitable(
+      VkPhysicalDevice device,
+      VkSurfaceKHR surface,
+      const std::vector<const char*> deviceExtensions) {
+    QueueFamilyIndices indices = findQueueFamilies(device, surface);
+    bool extensionsSupported =
+        vkUtil::checkDeviceExtensionSupport(device, deviceExtensions);
+
+    bool swapChainAdequate = false;
+    if (extensionsSupported) {
+      SwapChainSupportDetails swapChainSupport =
+          vkUtil::querySwapChainSupport(device, surface);
+      swapChainAdequate = !swapChainSupport.formats.empty() &&
+                          !swapChainSupport.presentModes.empty();
+    }
+    VkPhysicalDeviceFeatures supportedFeatures;
+    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+    return indices.isComplete() && extensionsSupported && swapChainAdequate &&
+           supportedFeatures.samplerAnisotropy;
+  }
 
   // TODO with proper init
   // void initContext(const char **glfwRequiredExtensions,
@@ -371,7 +412,7 @@ class VkContext {
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
     for (const auto& device : devices) {
-      if (vkUtil::isDeviceSuitable(device, surface, deviceExtensions)) {
+      if (isDeviceSuitable(device, surface, deviceExtensions)) {
         physicalDevice = device;
         break;
       }
@@ -384,18 +425,24 @@ class VkContext {
 
   void createLogicalDevice() {
     QueueFamilyIndices indices =
-        vkUtil::findQueueFamilies(physicalDevice, surface);
+        findQueueFamilies(physicalDevice, surface);
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(),
                                               indices.presentFamily.value()};
 
     float queuePriority = 1.0f;
-    //TODO this is wrong for split workload to different queue
+    // HACK hardcoded number of queue number in a family
+    // TODO smart select queue for graphic and transfer
     for (uint32_t queueFamily : uniqueQueueFamilies) {
       VkDeviceQueueCreateInfo queueCreateInfo = {};
       queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
       queueCreateInfo.queueFamilyIndex = queueFamily;
-      queueCreateInfo.queueCount = 2;
+
+      auto qcount = 1;
+      if (queueFamCount[queueFamily] > 1) {
+        qcount = 2;
+      }
+      queueCreateInfo.queueCount = qcount;
       queueCreateInfo.pQueuePriorities = &queuePriority;
       queueCreateInfos.push_back(queueCreateInfo);
     }
@@ -420,30 +467,58 @@ class VkContext {
       throw std::runtime_error("failed to create logical device!");
     }
 
+    // TODO do smart auto config, hardcode for now
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+    auto singleQIdx = 0;
+    if (queueFamCount[indices.graphicsFamily.value()] > 1) {
+      singleQIdx = 1;
+      sameQueueGraphicAndOp = false;
+    }
+    vkGetDeviceQueue(device, indices.graphicsFamily.value(), singleQIdx,
+                     &singleOpQueue);
+
+    VkFenceCreateInfo fenceInfo = {};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    if (vkCreateFence(device, &fenceInfo, nullptr, &singleOpFence) !=
+        VK_SUCCESS) {
+      throw std::runtime_error("failed to create singleOpFence!");
+    }
   }
 
   void createCommandPool() {
     QueueFamilyIndices queueFamilyIndices =
-        vkUtil::findQueueFamilies(physicalDevice, surface);
+        findQueueFamilies(physicalDevice, surface);
 
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // Optional
+    poolInfo.flags =
+        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // Optional
 
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) !=
         VK_SUCCESS) {
       throw std::runtime_error("failed to create command pool!");
     }
+
+    VkCommandPoolCreateInfo poolInfoDataOp = {};
+    poolInfoDataOp.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfoDataOp.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    poolInfoDataOp.flags =
+        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // Optional
+
+    if (vkCreateCommandPool(device, &poolInfoDataOp, nullptr,
+                            &singleTimeOpCommandPool) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create command pool!");
+    }
   }
 
   VkCommandBuffer beginSingleTimeCommands() {
+    singleOpQueueLock.lockLow();
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
+    allocInfo.commandPool = singleTimeOpCommandPool;
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
@@ -461,19 +536,21 @@ class VkContext {
   void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
     vkEndCommandBuffer(commandBuffer);
 
+    vkResetFences(device, 1, &singleOpFence);
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
-
-    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    vkQueueSubmit(singleOpQueue, 1, &submitInfo, singleOpFence);
+    vkWaitForFences(device, 1, &singleOpFence, VK_TRUE, UINT64_MAX);
+    vkFreeCommandBuffers(device, singleTimeOpCommandPool, 1, &commandBuffer);
+    singleOpQueueLock.unlockLow();
   }
 
   void setupDebugMessenger() {
-    if (!enableValidationLayers) return;
+    if (!enableValidationLayers)
+      return;
     VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
     vkUtil::populateDebugMessengerCreateInfo(createInfo, vkUtil::debugCallback);
 

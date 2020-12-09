@@ -6,7 +6,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-void AssetResourceBridge::setup(ResourceManager* rm,AssetManager* am) {
+void AssetResourceBridge::setup(ResourceManager* rm, AssetManager* am) {
   rManager = rm;
   aManager = am;
 }
@@ -36,9 +36,11 @@ Mesh AssetResourceBridge::createMeshFromObjPath(eastl::string modelPath) {
       vertex.texCoord = {attrib.texcoords[2 * index.texcoord_index + 0],
                          1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
 
-      vertex.normal = {attrib.normals[3 * index.normal_index + 0],
-                       attrib.normals[3 * index.normal_index + 1],
-                       attrib.normals[3 * index.normal_index + 2]};
+      if (!attrib.normals.empty()) {
+        vertex.normal = {attrib.normals[3 * index.normal_index + 0],
+                         attrib.normals[3 * index.normal_index + 1],
+                         attrib.normals[3 * index.normal_index + 2]};
+      }
 
       vertex.color = {1.0f, 1.0f, 1.0f};
       if (uniqueVertices.count(vertex) == 0) {
@@ -53,16 +55,15 @@ Mesh AssetResourceBridge::createMeshFromObjPath(eastl::string modelPath) {
   return mesh;
 }
 
-
 crevice::Image2D AssetResourceBridge::createTex2dFromPath(eastl::string path) {
   crevice::Image2D newTex{};
 
   int texWidth, texHeight, texChannels;
   auto pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels,
-                              STBI_rgb_alpha);
+                          STBI_rgb_alpha);
   auto imageSize = texWidth * texHeight * 4;
 
-  //TODO mip from prebuild image, not generated
+  // TODO mip from prebuild image, not generated
   int mipLevels = static_cast<uint32_t>(
                       std::floor(std::log2(std::max(texWidth, texHeight)))) +
                   1;
@@ -80,10 +81,8 @@ crevice::Image2D AssetResourceBridge::createTex2dFromPath(eastl::string path) {
   return newTex;
 }
 
-
 AssetResourceBridge::AssetResourceBridge(/* args */) {}
 
 AssetResourceBridge::~AssetResourceBridge() {}
-
 
 AssetResourceBridge* AssetResourceBridge::instance = nullptr;

@@ -183,47 +183,21 @@ void RenderGraph::createRenderPassInstanceWithSubPass() {
   }
 
   Vector<VkSubpassDependency> dependencies;
-
-  for (auto passId : startNodes) {
-    VkSubpassDependency vkdep{};
-    vkdep.srcSubpass = VK_SUBPASS_EXTERNAL;
-    vkdep.dstSubpass = passIdxMap[passId];
-    vkdep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    vkdep.srcAccessMask = 0;
-    vkdep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    vkdep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    dependencies.push_back(vkdep);
+  if (dependencyEdges.size() > 1) {
+    for (auto deps : dependencyEdges) {
+      for (auto src : deps.second) {
+        VkSubpassDependency vkdep{};
+        vkdep.srcSubpass = passIdxMap[src];
+        vkdep.dstSubpass = passIdxMap[deps.first];
+        vkdep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        vkdep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        vkdep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        vkdep.dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+        vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies.push_back(vkdep);
+      }
+    }
   }
-
-  // for (auto deps : dependencyEdges) {
-  //   for (auto src : deps.second) {
-  //     VkSubpassDependency vkdep{};
-  //     vkdep.srcSubpass = passIdxMap[src];
-  //     vkdep.dstSubpass = passIdxMap[deps.first];
-  //     vkdep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  //     vkdep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-  //     vkdep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  //     vkdep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-  //     vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-  //     dependencies.push_back(vkdep);
-  //   }
-  // }
-
-  // for (auto endPassId : outputNodes) {
-  //   VkSubpassDependency vkdep{};
-
-  //   vkdep.srcSubpass = passIdxMap[endPassId];
-  //   vkdep.dstSubpass = VK_SUBPASS_EXTERNAL;
-  //   vkdep.srcStageMask =
-  //       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  //   vkdep.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-  //   vkdep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-  //                                   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  //   vkdep.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-  //   vkdep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-  //   dependencies.push_back(vkdep);
-  // }
 
   VkRenderPassCreateInfo renderPassInfoCI{};
   renderPassInfoCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -415,7 +389,7 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
       vkContext->device, windowContext->swapChain, UINT64_MAX,
       imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
   if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
-    // TODO
+    // TODO recreate swapchains
     // recreateSwapChain();
     return;
   } else if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR) {
@@ -431,6 +405,7 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
   // record commands
   // First: reset all current commands
   for (auto cb : mCommandBuffers) {
+    // TODO use reset command pool will have lower CPU overhead
     vkResetCommandBuffer(**(cb.getForUpdate(frame)),
                          VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
   }
@@ -520,9 +495,17 @@ void RenderGraph::submit(uint64_t frame, uint32_t& imageIndex) {
   submitInfo.pSignalSemaphores = renderFinishSemaphores;
 
   vkResetFences(vkContext->device, 1, &inFlightFences[currentFrame]);
+
+  if (vkContext->sameQueueGraphicAndOp) {
+    vkContext->singleOpQueueLock.lockHigh();
+  }
   if (vkQueueSubmit(vkContext->graphicsQueue, 1, &submitInfo,
                     inFlightFences[currentFrame]) != VK_SUCCESS) {
+    vkContext->singleOpQueueLock.unlockHigh();
     throw std::runtime_error("failed to submit draw command buffer!");
+  }
+  if (vkContext->sameQueueGraphicAndOp) {
+    vkContext->singleOpQueueLock.unlockHigh();
   }
 }
 
@@ -548,7 +531,7 @@ void RenderGraph::present(uint64_t frame, uint32_t& imageIndex) {
   if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR ||
       framebufferResized) {
     framebufferResized = false;
-    // TODO
+    // TODO recreate swapchains
     // recreateSwapChain();
   } else if (vkResult != VK_SUCCESS) {
     throw std::runtime_error("failed to present swap chain image!");

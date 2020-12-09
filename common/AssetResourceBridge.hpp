@@ -40,6 +40,7 @@ class AssetResourceBridge {
       return img;
     }
 
+    // TODO deal with archive pipeline, etc.
     auto path = aManager->getPathByRID(rid);
     return rManager->addTexture2D(rid, createTex2dFromPath(path));
   }

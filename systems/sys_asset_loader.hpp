@@ -136,7 +136,7 @@ void loadImageFromAsset(flecs::entity e, ImageResComp& imageRes) {
 }
 
 void triggerLoadVkTex(flecs::entity e, ImageResComp& imageRes) {
-  // TODO this might replace by data broadcast
+  // HACK this will replace by data broadcast
   if (imageRes.imagesLoadedContinue.empty()) {
     return;
   }
@@ -177,7 +177,7 @@ void loadVkTextureFromMem(flecs::entity e,
     if (imageRes.imagesLoading.empty() &&
         vkTextureRes.textureLoading.empty() && !matInfo.loaded) {
       matInfo.loaded = true;
-      // Just for trigger OnSet
+      // HACK Just for trigger OnSet
       e.set<VkTextureResComp>(vkTextureRes);
     }
   }

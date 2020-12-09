@@ -27,6 +27,13 @@ class ResourceManager {
 
   // Mesh createMeshFromObjPath(std::string modelPath);
 
+  
+  /**
+   * @brief garbage collection
+   * TODO
+   */ 
+  void gc();
+
   template <typename T>
   T getById(RID rid){};
 

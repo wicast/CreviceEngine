@@ -42,7 +42,7 @@ class GpuResourceManager {
   // std::unordered_map<RID, VkDeviceMemory> uniformBuffersMemory;
   // std::unordered_map<RID, VkFramebuffer> swapChainFramebuffers;
 
-  // TODO
+  // TODO manage these resource
   // VkPipelineLayout pipelineLayout;
   // VkRenderPass renderPass;
   // VkPipeline graphicsPipeline;
@@ -242,7 +242,7 @@ class GpuResourceManager {
   crevice::SharedPtr<VkDescriptorSetLayout> addDescriptorSetLayout(
       VkDescriptorSetLayoutCreateInfo layoutInfo);
 
-  // TODO
+  // TODO auto recycle resource 
   void destoryDescriptorSetLayout(VkDescriptorSetLayout layout) {
     // VkDescriptorSetLayout layout
     vkDestroyDescriptorSetLayout(vkContext->device, layout, nullptr);
@@ -285,6 +285,12 @@ class GpuResourceManager {
     textures.emplace(rid, m);
     return m;
   }
+
+  /**
+   * @brief garbage collection
+   * TODO
+   */ 
+  void gc();
 
   template <class T>
   eastl::shared_ptr<T> getOrNullById(RID rid){};

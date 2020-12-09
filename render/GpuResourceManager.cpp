@@ -570,7 +570,7 @@ void GpuResourceManager::createSwapChain(crevice::GLFWContainer& container , Win
   swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
   QueueFamilyIndices indices =
-      vkUtil::findQueueFamilies(vkContext->physicalDevice, vkContext->surface);
+      vkContext->findQueueFamilies(vkContext->physicalDevice, vkContext->surface);
   uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
                                    indices.presentFamily.value()};
 
