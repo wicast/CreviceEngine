@@ -45,6 +45,16 @@ public:
         prepared =true;
     };
 
+    FrameResource(eastl::shared_ptr<R> res, uint8_t chainSize) {
+        fRes.resize(chainSize);
+        for (auto i = 0; i < chainSize; i++)
+        {
+           fRes[i] = res;
+        }
+        swapChainSize = chainSize;
+        prepared =true;
+    };
+
 
     FrameResource(Vector<R> res) {
         for (auto r : res)

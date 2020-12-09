@@ -1,132 +1,134 @@
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+// #define TINYOBJLOADER_IMPLEMENTATION
+// #include <tiny_obj_loader.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+// #define STB_IMAGE_IMPLEMENTATION
+// #include <stb_image.h>
 
 #include "render/GpuResourceManager.h"
 #include "render/FrameResource.h"
-#include "render/resource/Model.h"
+#include "resource/Model.h"
 #include "render/Uniform.h"
 
 // TODO move to cpu resource
-Mesh GpuResourceManager::createMeshFromObj(std::string modelPath) {
-  tinyobj::attrib_t attrib;
-  std::vector<tinyobj::shape_t> shapes;
-  std::vector<tinyobj::material_t> materials;
-  std::string warn, err;
+// Mesh GpuResourceManager::createMeshFromObj(std::string modelPath) {
+//   tinyobj::attrib_t attrib;
+//   std::vector<tinyobj::shape_t> shapes;
+//   std::vector<tinyobj::material_t> materials;
+//   std::string warn, err;
 
-  Mesh mesh;
+//   Mesh mesh;
 
-  if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
-                        modelPath.c_str())) {
-    throw std::runtime_error(warn + err);
-  }
+//   if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
+//                         modelPath.c_str())) {
+//     throw std::runtime_error(warn + err);
+//   }
 
-  std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+//   std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
-  for (const auto& shape : shapes) {
-    for (const auto& index : shape.mesh.indices) {
-      Vertex vertex = {};
-      vertex.pos = {attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]};
+//   for (const auto& shape : shapes) {
+//     for (const auto& index : shape.mesh.indices) {
+//       Vertex vertex = {};
+//       vertex.pos = {attrib.vertices[3 * index.vertex_index + 0],
+//                     attrib.vertices[3 * index.vertex_index + 1],
+//                     attrib.vertices[3 * index.vertex_index + 2]};
 
-      vertex.texCoord = {attrib.texcoords[2 * index.texcoord_index + 0],
-                         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
+//       vertex.texCoord = {attrib.texcoords[2 * index.texcoord_index + 0],
+//                          1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
 
-      vertex.normal = {attrib.normals[3 * index.normal_index + 0],
-                       attrib.normals[3 * index.normal_index + 1],
-                       attrib.normals[3 * index.normal_index + 2]};
+//       vertex.normal = {attrib.normals[3 * index.normal_index + 0],
+//                        attrib.normals[3 * index.normal_index + 1],
+//                        attrib.normals[3 * index.normal_index + 2]};
 
-      vertex.color = {1.0f, 1.0f, 1.0f};
-      if (uniqueVertices.count(vertex) == 0) {
-        uniqueVertices[vertex] = static_cast<uint32_t>(mesh.vertices.size());
-        mesh.vertices.push_back(vertex);
-      }
+//       vertex.color = {1.0f, 1.0f, 1.0f};
+//       if (uniqueVertices.count(vertex) == 0) {
+//         uniqueVertices[vertex] = static_cast<uint32_t>(mesh.vertices.size());
+//         mesh.vertices.push_back(vertex);
+//       }
 
-      mesh.indices.push_back(uniqueVertices[vertex]);
-    }
-  }
+//       mesh.indices.push_back(uniqueVertices[vertex]);
+//     }
+//   }
 
-  return mesh;
-}
+//   return mesh;
+// }
 
-RID GpuResourceManager::addModel(std::string modelPath) {
-  // TODO beyond obj type
-  Mesh newMesh = createMeshFromObj(modelPath);
-  RID rid = rand();
-  this->meshs.emplace(rid, newMesh);
+// RID GpuResourceManager::addModel(std::string modelPath) {
+//   // TODO beyond obj type
+//   Mesh newMesh = createMeshFromObj(modelPath);
+//   RID rid = rand();
+//   this->meshes.emplace(rid, newMesh);
 
-  return rid;
-}
+//   return rid;
+// }
 
-RID GpuResourceManager::generateVkMeshBuffer(RID rid) {
-  // VertexBuffer
-  auto mesh = getById<Mesh>(rid);
-  VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
+// RID GpuResourceManager::generateVkMeshBuffer(RID rid) {
+//   // VertexBuffer
+//   //TODO from resource manager
+//   // auto mesh = getById<Mesh>(rid);
+//   Mesh mesh;
 
-  VkBuffer stagingBuffer = VK_NULL_HANDLE;
-  VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
+//   VkMesh vkMesh{};
 
-  createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-               stagingBuffer, stagingBufferMemory);
+//   vkMesh.indicesSize = mesh.indices.size();
+//   vkMesh.vertexSize = mesh.vertices.size();
+//   VkDeviceSize bufferSize = sizeof(Vertex) * vkMesh.vertexSize;
+//   vkMesh.bufferSize = bufferSize;
 
-  void* data;
-  vkMapMemory(vkContext->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, mesh.vertices.data(), (size_t)bufferSize);
-  vkUnmapMemory(vkContext->device, stagingBufferMemory);
+//   VkBuffer stagingBuffer = VK_NULL_HANDLE;
+//   VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
 
-  createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh.vertexBuffer,
-      mesh.vertexBufferMemory);
+//   createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+//                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+//                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+//                stagingBuffer, stagingBufferMemory);
 
-  copyBuffer(stagingBuffer, mesh.vertexBuffer, bufferSize);
+//   void* data;
+//   vkMapMemory(vkContext->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+//   memcpy(data, mesh.vertices.data(), (size_t)bufferSize);
+//   vkUnmapMemory(vkContext->device, stagingBufferMemory);
 
-  vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
-  vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
+//   createBuffer(
+//       bufferSize,
+//       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+//       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vkMesh.vertexBuffer,
+//       vkMesh.vertexBufferMemory);
 
-  // IndexBuffer
-  bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
+//   copyBuffer(stagingBuffer, vkMesh.vertexBuffer, bufferSize);
 
-  createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-               stagingBuffer, stagingBufferMemory);
+//   vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
+//   vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
 
-  vkMapMemory(vkContext->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, mesh.indices.data(), (size_t)bufferSize);
-  vkUnmapMemory(vkContext->device, stagingBufferMemory);
+//   // IndexBuffer
+//   bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
 
-  createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh.indexBuffer,
-      mesh.indexBufferMemory);
+//   createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+//                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+//                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+//                stagingBuffer, stagingBufferMemory);
 
-  copyBuffer(stagingBuffer, mesh.indexBuffer, bufferSize);
+//   vkMapMemory(vkContext->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+//   memcpy(data, mesh.indices.data(), (size_t)bufferSize);
+//   vkUnmapMemory(vkContext->device, stagingBufferMemory);
 
-  vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
-  vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
+//   createBuffer(
+//       bufferSize,
+//       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+//       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vkMesh.indexBuffer,
+//       vkMesh.indexBufferMemory);
 
-  meshs[rid] = mesh;
+//   copyBuffer(stagingBuffer, vkMesh.indexBuffer, bufferSize);
 
-  return rid;
-}
+//   vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
+//   vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
+
+//   meshes.emplace(rid, vkMesh);
+
+//   return rid;
+// }
 
 void GpuResourceManager::destroyMesh(RID rid) {
-  auto mesh = getById<Mesh>(rid);
-
-  vkDestroyBuffer(vkContext->device, mesh.indexBuffer, nullptr);
-  vkFreeMemory(vkContext->device, mesh.indexBufferMemory, nullptr);
-
-  vkDestroyBuffer(vkContext->device, mesh.vertexBuffer, nullptr);
-  vkFreeMemory(vkContext->device, mesh.vertexBufferMemory, nullptr);
-  meshs.erase(rid);
+  // auto mesh = getById<VkMesh>(rid);
+  meshes.erase(rid);
 }
 
 crevice::SharedPtr<crevice::ShaderPack> GpuResourceManager::createShaderPack(
@@ -174,7 +176,7 @@ void GpuResourceManager::destroyShaderPack(crevice::ShaderPack sp) {
 }
 
 void GpuResourceManager::destroyTexture(RID rid) {
-  auto tex = getById<crevice::CVTexture>(rid);
+  auto tex = *(getById<eastl::shared_ptr<crevice::VkTexture>>(rid));
 
   vkDestroySampler(vkContext->device, tex.textureSampler, nullptr);
   vkDestroyImageView(vkContext->device, tex.textureImageView, nullptr);
@@ -308,66 +310,66 @@ void GpuResourceManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
   vkContext->endSingleTimeCommands(commandBuffer);
 }
 
-RID GpuResourceManager::createMyTexture(std::string path) {
-  crevice::CVTexture newTex{};
+// RID GpuResourceManager::createMyTexture(std::string path) {
+//   crevice::VkTexture newTex{};
 
-  int texWidth, texHeight, texChannels;
-  stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels,
-                              STBI_rgb_alpha);
-  VkDeviceSize imageSize = texWidth * texHeight * 4;
-  int mipLevels = static_cast<uint32_t>(
-                      std::floor(std::log2(std::max(texWidth, texHeight)))) +
-                  1;
+//   int texWidth, texHeight, texChannels;
+//   stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels,
+//                               STBI_rgb_alpha);
+//   VkDeviceSize imageSize = texWidth * texHeight * 4;
+//   int mipLevels = static_cast<uint32_t>(
+//                       std::floor(std::log2(std::max(texWidth, texHeight)))) +
+//                   1;
 
-  if (!pixels) {
-    throw std::runtime_error("failed to load texture image!");
-  }
-  newTex.mipLevels = mipLevels;
-  newTex.width = texWidth;
-  newTex.hight = texHeight;
+//   if (!pixels) {
+//     throw std::runtime_error("failed to load texture image!");
+//   }
+//   newTex.mipLevels = mipLevels;
+//   newTex.width = texWidth;
+//   newTex.height = texHeight;
 
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-               stagingBuffer, stagingBufferMemory);
-  void* data;
-  vkMapMemory(vkContext->device, stagingBufferMemory, 0, imageSize, 0, &data);
-  memcpy(data, pixels, static_cast<size_t>(imageSize));
-  vkUnmapMemory(vkContext->device, stagingBufferMemory);
-  stbi_image_free(pixels);
+//   VkBuffer stagingBuffer;
+//   VkDeviceMemory stagingBufferMemory;
+//   createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+//                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+//                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+//                stagingBuffer, stagingBufferMemory);
+//   void* data;
+//   vkMapMemory(vkContext->device, stagingBufferMemory, 0, imageSize, 0, &data);
+//   memcpy(data, pixels, static_cast<size_t>(imageSize));
+//   vkUnmapMemory(vkContext->device, stagingBufferMemory);
+//   stbi_image_free(pixels);
 
-  createImage(texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
-              VK_IMAGE_TILING_OPTIMAL,
-              VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, newTex.textureImage,
-              newTex.textureImageMemory);
+//   createImage(texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
+//               VK_IMAGE_TILING_OPTIMAL,
+//               VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+//                   VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+//               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, newTex.textureImage,
+//               newTex.textureImageMemory);
 
-  transitionImageLayout(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
-                        VK_IMAGE_LAYOUT_UNDEFINED,
-                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-  copyBufferToImage(stagingBuffer, newTex.textureImage,
-                    static_cast<uint32_t>(texWidth),
-                    static_cast<uint32_t>(texHeight));
-  generateMipmaps(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM, texWidth,
-                  texHeight, mipLevels);
+//   transitionImageLayout(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+//                         VK_IMAGE_LAYOUT_UNDEFINED,
+//                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
+//   copyBufferToImage(stagingBuffer, newTex.textureImage,
+//                     static_cast<uint32_t>(texWidth),
+//                     static_cast<uint32_t>(texHeight));
+//   generateMipmaps(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM, texWidth,
+//                   texHeight, mipLevels);
 
-  vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
-  vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
+//   vkDestroyBuffer(vkContext->device, stagingBuffer, nullptr);
+//   vkFreeMemory(vkContext->device, stagingBufferMemory, nullptr);
 
-  newTex.textureImageView =
-      createImageView(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
-                      VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+//   newTex.textureImageView =
+//       createImageView(newTex.textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+//                       VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 
-  // TODO some image like depth don't need sampler sometime
-  createTextureSampler(mipLevels, newTex.textureSampler);
+//   // TODO some image like depth don't need sampler sometime
+//   createTextureSampler(mipLevels, newTex.textureSampler);
 
-  RID rid = rand();
-  textures.emplace(rid, newTex);
-  return rid;
-}
+//   RID rid = rand();
+//   textures.emplace(rid, newTex);
+//   return rid;
+// }
 
 void GpuResourceManager::copyBufferToImage(VkBuffer buffer, VkImage image,
                                            uint32_t width, uint32_t height) {
@@ -722,7 +724,7 @@ GpuResourceManager::addDescriptorSetLayout(
 RID GpuResourceManager::createDescriptorSets(
     uint32_t swapChainSize, VkDescriptorSetLayout descriptorSetLayout,
     crevice::Vector<VkBuffer> uniformBuffers, std::vector<RID> imageIds) {
-  std::vector<VkDescriptorSetLayout> layouts(swapChainSize,
+  eastl::vector<VkDescriptorSetLayout> layouts(swapChainSize,
                                              descriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -730,7 +732,7 @@ RID GpuResourceManager::createDescriptorSets(
   allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainSize);
   allocInfo.pSetLayouts = layouts.data();
 
-  std::vector<VkDescriptorSet> descriptorSets(swapChainSize);
+  eastl::vector<VkDescriptorSet> descriptorSets(swapChainSize);
 
   if (vkAllocateDescriptorSets(vkContext->device, &allocInfo,
                                descriptorSets.data()) != VK_SUCCESS) {
@@ -738,7 +740,7 @@ RID GpuResourceManager::createDescriptorSets(
   }
 
   for (size_t i = 0; i < swapChainSize; i++) {
-    std::vector<VkWriteDescriptorSet> descriptorWrites;
+    eastl::vector<VkWriteDescriptorSet> descriptorWrites;
 
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = uniformBuffers[i];
@@ -756,10 +758,10 @@ RID GpuResourceManager::createDescriptorSets(
 
     descriptorWrites.push_back(desWriteUbo);
 
-    std::vector<VkDescriptorImageInfo> imageInfos(imageIds.size());
+    eastl::vector<VkDescriptorImageInfo> imageInfos(imageIds.size());
 
     for (auto j = 0; j < imageIds.size(); j++) {
-      auto tex = getById<crevice::CVTexture>(imageIds[j]);
+      auto tex = *(getById<eastl::shared_ptr<crevice::VkTexture>>(imageIds[j]));
 
       imageInfos[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       imageInfos[j].imageView = tex.textureImageView;
@@ -791,7 +793,7 @@ RID GpuResourceManager::createDescriptorSets(
 crevice::FrameResource<VkDescriptorSet>
 GpuResourceManager::createFRDescriptorSet(
     VkDescriptorSetLayout layout, crevice::Vector<VkBuffer> buffers,
-    VkDeviceSize bufferBlockSize, crevice::Vector<crevice::CVTexture> images) {
+    VkDeviceSize bufferBlockSize, crevice::Vector<crevice::VkTexture> images) {
   if (!buffers.empty() && !images.empty()) {
     throw std::runtime_error(
         "only create a buffer or image descriptor once a time");
@@ -819,8 +821,8 @@ GpuResourceManager::createFRDescriptorSet(
   }
 
   for (size_t i = 0; i < swapChainSize; i++) {
-    std::vector<VkWriteDescriptorSet> descriptorWrites;
-    std::vector<VkDescriptorImageInfo> imageInfos;
+    eastl::vector<VkWriteDescriptorSet> descriptorWrites;
+    eastl::vector<VkDescriptorImageInfo> imageInfos;
 
     if (!buffers.empty()) {
       VkDescriptorBufferInfo bufferInfo = {};
@@ -869,14 +871,14 @@ GpuResourceManager::createFRDescriptorSet(
   return FrameResource<VkDescriptorSet>(descriptorSets);
 }
 
-// TODO this part is really dynamic
+// TODO this part should is really dynamic
 RID GpuResourceManager::createIndexedDrawCommandBuffers(
     WindowContext windowContext, RID meshObjId, RID descriptorSets,
     VkRenderPass renderPass, VkPipeline graphicsPipeline,
     VkPipelineLayout pipelineLayout,
     std::vector<VkFramebuffer> swapChainFramebuffers,
     VkClearColorValue clearColor) {
-  std::vector<VkCommandBuffer> commandBuffers(
+  eastl::vector<VkCommandBuffer> commandBuffers(
       windowContext.swapChainImages.size());
 
   VkCommandBufferAllocateInfo allocInfo = {};
@@ -890,7 +892,7 @@ RID GpuResourceManager::createIndexedDrawCommandBuffers(
     throw std::runtime_error("failed to allocate command buffers!");
   }
 
-  auto mesh = getById<Mesh>(meshObjId);
+  auto mesh = *(getById<crevice::SharedPtr<VkMesh>>(meshObjId));
 
   for (size_t i = 0; i < commandBuffers.size(); i++) {
     VkCommandBufferBeginInfo beginInfo = {};
@@ -930,7 +932,7 @@ RID GpuResourceManager::createIndexedDrawCommandBuffers(
     vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipelineLayout, 0, 1, &desSet[i], 0, nullptr);
     vkCmdDrawIndexed(commandBuffers[i],
-                     static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+                     static_cast<uint32_t>(mesh.indicesSize), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffers[i]);
     if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {

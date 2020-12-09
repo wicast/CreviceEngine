@@ -13,7 +13,7 @@
 
 #include <cstdint>
 
-#include "render/resource/Texture.h"
+#include "resource/Image.h"
 #include "stl/CreviceString.h"
 
 namespace crevice {

@@ -1,32 +1,32 @@
 /**
  * @file GpuResourceManager.h
  * @author wicast (wicast@hotmail.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2020-11-26
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
 
 #pragma once
 
-#include <unordered_map>
+#include <shared_mutex>
 
 #include "common/Resource.h"
+#include "containers/glfw/glfwContainerImpl.h"
 #include "render/Context.h"
 #include "render/FrameResource.h"
-#include "render/resource/Model.h"
 #include "render/ShaderPack.h"
-#include "render/resource/Texture.h"
+#include "render/resource/VkMesh.hpp"
+#include "render/resource/VkTexture.hpp"
+#include "resource/Model.h"
 #include "stl/CreviceHashMap.h"
 #include "stl/CreviceSharedPtr.h"
 #include "stl/CreviceVector.h"
-#include "containers/glfw/glfwContainerImpl.h"
 
-
-typedef std::vector<VkDescriptorSet> DescriptorSets;
-typedef std::vector<VkCommandBuffer> CommandBuffers;
+typedef eastl::vector<VkDescriptorSet> DescriptorSets;
+typedef eastl::vector<VkCommandBuffer> CommandBuffers;
 
 class GpuResourceManager {
  private:
@@ -51,9 +51,11 @@ class GpuResourceManager {
   // crevice::HashMap<RID, VkDescriptorSetLayout> descriptorSetLayouts;
   crevice::HashMap<RID, DescriptorSets> descriptors;
 
-  crevice::HashMap<RID, Mesh> meshs;
+  crevice::HashMap<RID, crevice::SharedPtr<VkMesh>> meshes;
+  mutable std::shared_mutex meshMutex;
   // crevice::HashMap<RID, crevice::ShaderPack> shaders;
-  crevice::HashMap<RID, crevice::CVTexture> textures;
+  crevice::HashMap<RID, eastl::shared_ptr<crevice::VkTexture>> textures;
+  mutable std::shared_mutex texMutex;
 
   void initManager(VkContext* vkContext);
 
@@ -112,25 +114,28 @@ class GpuResourceManager {
     return Frfb;
   }
 
-  crevice::FrameResource<crevice::CVTexture> createFrameResourceEmptyTexture(
-      uint32_t texWidth, uint32_t texHeight, VkImageUsageFlags usage,
+  crevice::FrameResource<crevice::VkTexture> createFrameResourceEmptyTexture(
+      uint32_t texWidth,
+      uint32_t texHeight,
+      VkImageUsageFlags usage,
       uint32_t swapSize) {
-    auto fRes = crevice::FrameResource<crevice::CVTexture>(true, swapSize);
+    auto fRes = crevice::FrameResource<crevice::VkTexture>(true, swapSize);
 
     for (size_t i = 0; i < swapSize; i++) {
       auto tex = fRes.getForUpdate(i);
-      *tex = crevice::make_shared<crevice::CVTexture>(
+      *tex = crevice::make_shared<crevice::VkTexture>(
           createEmptyTexture(texWidth, texHeight, usage));
     }
     return fRes;
   }
 
-  crevice::CVTexture createEmptyTexture(uint32_t texWidth, uint32_t texHeight,
+  crevice::VkTexture createEmptyTexture(uint32_t texWidth,
+                                        uint32_t texHeight,
                                         VkImageUsageFlags usage) {
-    crevice::CVTexture newTex{};
+    crevice::VkTexture newTex{};
 
     auto mipLevels = 1;
-    newTex.hight = texWidth;
+    newTex.height = texWidth;
     newTex.width = texHeight;
     newTex.mipLevels = mipLevels;
     createImage(texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
@@ -148,9 +153,9 @@ class GpuResourceManager {
     return newTex;
   }
 
-  Mesh createMeshFromObj(std::string modelPath);
-  RID addModel(std::string modelPath);
-  RID generateVkMeshBuffer(RID rid);
+  // Mesh createMeshFromObj(std::string modelPath);
+  // RID addModel(std::string modelPath);
+  // RID generateVkMeshBuffer(RID rid);
   void destroyMesh(RID rid);
 
   // RID addShaderPack(crevice::ShaderPack shader) {
@@ -161,18 +166,25 @@ class GpuResourceManager {
 
   void destroyShaderPack(crevice::ShaderPack sp);
   crevice::SharedPtr<crevice::ShaderPack> createShaderPack(
-      const std::string& vertPath, const std::string& fragPath);
+      const std::string& vertPath,
+      const std::string& fragPath);
   VkShaderModule createShaderModule(const std::vector<char>& code);
 
   RID createMyTexture(std::string path);
   void destroyTexture(RID rid);
 
-  void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
-                   VkFormat format, VkImageTiling tiling,
-                   VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                   VkImage& image, VkDeviceMemory& imageMemory);
+  void createImage(uint32_t width,
+                   uint32_t height,
+                   uint32_t mipLevels,
+                   VkFormat format,
+                   VkImageTiling tiling,
+                   VkImageUsageFlags usage,
+                   VkMemoryPropertyFlags properties,
+                   VkImage& image,
+                   VkDeviceMemory& imageMemory);
 
-  VkImageView createImageView(VkImage image, VkFormat format,
+  VkImageView createImageView(VkImage image,
+                              VkFormat format,
                               VkImageAspectFlags aspectFlags,
                               uint32_t mipLevels);
 
@@ -184,28 +196,39 @@ class GpuResourceManager {
 
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
                               GLFWwindow* window);
-  void createSwapChain(crevice::GLFWContainer& container , WindowContext& windowContext);
+  void createSwapChain(crevice::GLFWContainer& container,
+                       WindowContext& windowContext);
 
-  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-                    VkMemoryPropertyFlags properties, VkBuffer& buffer,
+  void createBuffer(VkDeviceSize size,
+                    VkBufferUsageFlags usage,
+                    VkMemoryPropertyFlags properties,
+                    VkBuffer& buffer,
                     VkDeviceMemory& bufferMemory);
 
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
   void createTextureSampler(uint32_t mipLevels, VkSampler& obj1TextureSampler);
 
-  void transitionImageLayout(VkImage image, VkFormat format,
-                             VkImageLayout oldLayout, VkImageLayout newLayout,
+  void transitionImageLayout(VkImage image,
+                             VkFormat format,
+                             VkImageLayout oldLayout,
+                             VkImageLayout newLayout,
                              uint32_t mipLevels);
 
-  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+  void copyBufferToImage(VkBuffer buffer,
+                         VkImage image,
+                         uint32_t width,
                          uint32_t height);
 
-  void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
-                       int32_t texHeight, uint32_t mipLevels);
+  void generateMipmaps(VkImage image,
+                       VkFormat imageFormat,
+                       int32_t texWidth,
+                       int32_t texHeight,
+                       uint32_t mipLevels);
 
   inline VkDescriptorPoolSize createDescriptorPoolSize(
-      VkDescriptorType type, uint32_t descriptorCount) {
+      VkDescriptorType type,
+      uint32_t descriptorCount) {
     VkDescriptorPoolSize descriptorPoolSize{};
     descriptorPoolSize.type = type;
     descriptorPoolSize.descriptorCount = descriptorCount;
@@ -232,13 +255,17 @@ class GpuResourceManager {
                            std::vector<RID> imageIds);
 
   crevice::FrameResource<VkDescriptorSet> createFRDescriptorSet(
-      VkDescriptorSetLayout layout, crevice::Vector<VkBuffer> buffers = {},
+      VkDescriptorSetLayout layout,
+      crevice::Vector<VkBuffer> buffers = {},
       VkDeviceSize bufferBlockSize = 0,
-      crevice::Vector<crevice::CVTexture> images = {});
+      crevice::Vector<crevice::VkTexture> images = {});
 
   RID createIndexedDrawCommandBuffers(
-      WindowContext windowContext, RID meshObjId, RID descriptorSets,
-      VkRenderPass renderPass, VkPipeline graphicsPipeline,
+      WindowContext windowContext,
+      RID meshObjId,
+      RID descriptorSets,
+      VkRenderPass renderPass,
+      VkPipeline graphicsPipeline,
       VkPipelineLayout pipelineLayout,
       std::vector<VkFramebuffer> swapChainFramebuffers,
       VkClearColorValue clearColor = {0.250f, 0.235f, 0.168f, 1.0f});
@@ -251,8 +278,64 @@ class GpuResourceManager {
     commandBuffers.erase(rid);
   }
 
+  crevice::SharedPtr<crevice::VkTexture> addVkTexture(RID rid,
+                                                      crevice::VkTexture tex) {
+    std::unique_lock lock(texMutex);
+    auto m = eastl::make_shared<crevice::VkTexture>(tex);
+    textures.emplace(rid, m);
+    return m;
+  }
+
+  template <class T>
+  eastl::shared_ptr<T> getOrNullById(RID rid){};
+
+  template <>
+  eastl::shared_ptr<VkMesh> getOrNullById(RID rid) {
+    std::shared_lock lock(meshMutex);
+    if (meshes.count(rid) == 0) {
+      return nullptr;
+    }
+    return meshes[rid];
+  }
+
+  template <>
+  eastl::shared_ptr<crevice::VkTexture> getOrNullById(RID rid) {
+    std::shared_lock lock(texMutex);
+    if (textures.count(rid) == 0) {
+      return nullptr;
+    }
+    return textures[rid];
+  }
+
+  template <class T>
+  eastl::shared_ptr<T> getOrNew(RID rid){};
+
+  template <>
+  eastl::shared_ptr<VkMesh> getOrNew<VkMesh>(RID rid) {
+    auto m = getOrNullById<VkMesh>(rid);
+    if (m != nullptr) {
+      return m;
+    }
+    std::unique_lock lock(meshMutex);
+    m = eastl::make_shared<VkMesh>(*(new VkMesh));
+    meshes[rid] = m;
+    return m;
+  }
+
+  template <>
+  eastl::shared_ptr<crevice::VkTexture> getOrNew<crevice::VkTexture>(RID rid) {
+    auto m = getOrNullById<crevice::VkTexture>(rid);
+    if (m != nullptr) {
+      return m;
+    }
+    std::shared_lock lock(texMutex);
+    m = eastl::make_shared<crevice::VkTexture>(*(new crevice::VkTexture));
+    textures[rid] = m;
+    return m;
+  }
+
   /* getter for resources */
-  //TODO error: explicit specialization in non-namespace scope
+  // TODO error: explicit specialization in non-namespace scope
   template <typename T>
   T getById(RID rid){};
 
@@ -262,14 +345,22 @@ class GpuResourceManager {
   // }
 
   template <>
-  crevice::CVTexture getById<crevice::CVTexture>(RID rid) {
-    return textures.at(rid);
+  crevice::SharedPtr<VkMesh> getById<crevice::SharedPtr<VkMesh>>(RID rid) {
+    std::shared_lock lock(meshMutex);
+    return meshes.at(rid);
   }
 
   template <>
-  Mesh getById<Mesh>(RID rid) {
-    return meshs.at(rid);
+  eastl::shared_ptr<crevice::VkTexture>
+  getById<eastl::shared_ptr<crevice::VkTexture>>(RID rid) {
+    std::shared_lock lock(texMutex);
+    return textures.at(rid);
   }
+
+  // template <>
+  // VkMesh getById<VkMesh>(RID rid) {
+  //   return meshes.at(rid);
+  // }
 
   // template <>
   // VkDescriptorSetLayout getById<VkDescriptorSetLayout>(RID rid) {

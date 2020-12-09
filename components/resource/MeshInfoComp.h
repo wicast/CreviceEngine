@@ -1,5 +1,5 @@
 /**
- * @file MeshHandler.h
+ * @file MeshInfoComp.h
  * @author wicast (wicast@hotmail.com)
  * @brief 
  * @version 0.1
@@ -14,9 +14,12 @@
 #include "common/Resource.h"
 
 /**
- * @brief 
+ * @brief Mesh information component
  * 
  */
-struct MeshHandler {
+struct MeshInfoComp {
+  //TODO multiple mesh
   RID meshId;
+  bool autoLoadMem = true;
+  bool autoLoadGpu = true;
 };

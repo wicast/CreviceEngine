@@ -9,7 +9,8 @@ includes("3rd/flecs/xmake.lua")
 add_files("HelloTriangleApplication.cpp", 
      "common/*.cpp",
      "render/**.cpp", 
-     "components/*.cpp", 
+     "components/**.cpp", 
+     "assetsManager/**.cpp",
      "containers/**.cpp")
     add_includedirs(".")
 

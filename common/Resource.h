@@ -13,12 +13,28 @@
 
 #include <fstream>
 #include <vector>
+#include "eastl/shared_ptr.h"
 
 /**
  * @brief RID
  * 
  */
 typedef uint32_t RID;
+
+//TODO use Resource class or not
+/**
+ * @brief 
+ * 
+ * @tparam T 
+ */
+template <class T>
+struct Resource
+{
+  RID id;
+  uint32_t type;
+  eastl::shared_ptr<T> data;
+};
+
 
 static std::vector<char> readFile(const std::string& filename) {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -36,5 +52,3 @@ static std::vector<char> readFile(const std::string& filename) {
 
   return buffer;
 }
-
-#endif

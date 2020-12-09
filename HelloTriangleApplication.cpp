@@ -7,16 +7,11 @@
 #include "common/InputState.h"
 #include "systems/default_render_sys.h"
 #include "systems_cust/cust_system.h"
+#include "systems/sys_asset_loader.hpp"
+#include "components/ecs_register_comp.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
-
-const std::string MODEL_PATH = "../../../../models/monkey.obj";
-const std::string MODEL2_PATH = "../../../../models/box2.obj";
-const std::string APPLE_MODEL_PATH = "../../../../models/apple.obj";
-const std::string TEXTURE_PATH = "../../../../textures/badApple.png";
-const std::string SPEC_TEXTURE_PATH =
-    "../../../../textures/container2_specular.png";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -143,6 +138,7 @@ void HelloTriangleApplication::mouse_callback(GLFWwindow* window,
 
 void HelloTriangleApplication::processInput(GLFWwindow* window) {
   crevice::InputState::states.clear();
+  //TODO key mapping
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     crevice::InputState::states.emplace(GLFW_KEY_ESCAPE);
 
@@ -180,23 +176,35 @@ void HelloTriangleApplication::serverSetup() {
   renderServer = crevice::RenderServer::getInstance();
   renderServer->setContainer(&container);
   renderServer->init();
+
+  assetManager = new AssetManager();
+  rManager = new ResourceManager();
+
+  assetResourceBridge = AssetResourceBridge::getInstance();
+  assetResourceBridge->setup(rManager, assetManager);
+
+  vkResourceBridge = crevice::VkResourceBridge::getInstance();
+  vkResourceBridge->setup(rManager, renderServer->gpuRManager, renderServer->vkContext);
 }
 
 void HelloTriangleApplication::setupECS() {
+  ecs_reg_comp(ecs);
   // ecs.set_target_fps(144);
   SetRenderHandler(ecs);
 
   ecs.system<Camera>(nullptr, "$RenderHandler")
-      .kind(flecs::Monitor)
+      .kind(flecs::OnSet)
       .iter(setupPerpassRenderAble);
 
-  ecs.system<Transform, MeshHandler, MaterialHandle>(nullptr, "$RenderHandler")
-      .kind(flecs::Monitor)
-      .iter(loadPerObjRenderAbleAsset);
+  // ecs.system<Transform, MeshInfoComp, MaterialInfoComp>(nullptr, "$RenderHandler")
+  //     .kind(flecs::OnSet)
+  //     .iter(loadPerObjRenderAbleAsset);
 
-  ecs.system<Transform, MeshHandler, MaterialHandle>(nullptr, "$RenderHandler")
-      .kind(flecs::Monitor)
+  ecs.system<Transform, VkMeshRes, MaterialInfoComp, VkTextureResComp>(nullptr, "$RenderHandler")
+      .kind(flecs::OnSet)
       .iter(updatePerObjRenderAbleDescriptor);
+
+  setAssetResourceSystems(ecs);
 
   // add systems for update
 
@@ -217,11 +225,13 @@ void HelloTriangleApplication::setupECS() {
   cam.set<Camera>(Camera());
 
   auto obj = ecs.entity();
-  Transform t;
+  Transform t{};
   t.position = {0.0f, 0.0f, -5.0f};
   obj.set<Transform>(t);
-  obj.set<MeshHandler>(MeshHandler{});
-  obj.set<MaterialHandle>(MaterialHandle{});
+
+  //TODO get rid from asset
+  obj.set<MeshInfoComp>(MeshInfoComp{2,true,true});
+  obj.set<MaterialInfoComp>(MaterialInfoComp{3,4,true,true,false});
 }
 
 void HelloTriangleApplication::run() {

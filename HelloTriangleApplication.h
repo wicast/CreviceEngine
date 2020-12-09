@@ -1,12 +1,12 @@
 /**
  * @file HelloTriangleApplication.h
  * @author wicast (wicast@hotmail.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2020-11-26
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
 
 #pragma once
@@ -29,6 +29,8 @@
 #include "common/CVTimer.h"
 #include "common/GLMath.h"
 #include "common/ResourceManager.h"
+#include "common/AssetResourceBridge.hpp"
+#include "assetsManager/AssetManager.hpp"
 #include "components/Camera.h"
 #include "containers/glfw/glfwContainerImpl.h"
 #include "flecs.h"
@@ -36,6 +38,7 @@
 #include "render/GpuResourceManager.h"
 #include "render/RenderServer.h"
 #include "render/Uniform.h"
+#include "render/VkResourceBridge.hpp"
 #include "render/renderGraph/RenderGraph.h"
 #include "render/vulkan/windowContext.h"
 #include "stl/CreviceSharedPtr.h"
@@ -44,11 +47,13 @@ class HelloTriangleApplication {
  private:
   crevice::GLFWContainer container;
   crevice::RenderServer* renderServer;
+  AssetManager* assetManager;
+  ResourceManager* rManager;
+
+  AssetResourceBridge* assetResourceBridge;
+  crevice::VkResourceBridge* vkResourceBridge;
 
   flecs::world ecs;
-
-  // TODO
-  // ResourceManager resourceManager;
 
   // TODO
   bool framebufferResized = false;

@@ -15,7 +15,8 @@
 
 #include "common/Resource.h"
 #include "render/FrameResource.h"
-#include "render/resource/Model.h"
+#include "resource/Model.h"
+#include "render/resource/VkMesh.hpp"
 #include "render/descriptor/ShaderInputKey.h"
 #include "stl/CreviceSTL.h"
 
@@ -27,7 +28,7 @@ struct RenderAble {
   ShaderInputKey key;
   FrameResource<VkDescriptorSet> bufferDescriptor;
   FrameResource<VkDescriptorSet> texDescriptor;
-  FrameResource<Mesh> mesh;
+  FrameResource<VkMesh> mesh;
 
   // TOOD PerPass or PerObj,this might not needed
   uint8_t type;
@@ -41,7 +42,7 @@ struct PerPassRenderAble {
   ShaderInputKey key;
   FrameResource<VkDescriptorSet> bufferDescriptor;
   // FrameResource<VkDescriptorSet> descriptor;
-  FrameResource<Mesh> mesh;
+  // FrameResource<VkMesh> mesh;
 };
 
 struct DescriptorLayoutInfo {

@@ -14,11 +14,14 @@
 #include "common/CVTimer.h"
 #include "common/CamControl.h"
 #include "components/Camera.h"
-#include "components/MaterialHandle.h"
-#include "components/MeshHandler.h"
+#include "components/resource/MaterialInfoComp.h"
+#include "components/resource/MeshInfoComp.h"
+#include "components/resource/VkMeshRes.hpp"
+#include "components/resource/VkTextureResComp.hpp"
 #include "components/RenderHandler.h"
 #include "components/Transform.h"
 #include "render/Uniform.h"
+#include "render/utils/vkUtils.hpp"
 
 #include "render/RenderServer.h"
 
@@ -72,9 +75,9 @@ void SetRenderHandler(flecs::world& world) {
                         "../../../../shaders/frag.spv");
   mainPass.outputAttachments = {swapId, depId};
   // Mesh infos
-  auto bindDes = Vertex::getBindingDescription();
+  auto bindDes = getBindingDescription<Vertex>();
   mainPass.vertexInputInfoDesc.bindingDescription = {bindDes.stride};
-  auto attributeDescriptions = Vertex::getAttributeDescriptions();
+  auto attributeDescriptions = getAttributeDescriptions();
   for (auto att : attributeDescriptions) {
     mainPass.vertexInputInfoDesc.attributeDescriptions.push_back(
         {att.format, att.offset});
@@ -200,29 +203,41 @@ void updateModelUniform(flecs::iter it, Transform t[]) {
  */
 void updatePerObjRenderAbleDescriptor(flecs::iter it,
                                       Transform objs[],
-                                      MeshHandler meshes[],
-                                      MaterialHandle mats[]) {
+                                      VkMeshRes meshes[],
+                                      MaterialInfoComp mats[],
+                                      VkTextureResComp texs[]) {
   // TODO load assets
   using namespace crevice;
   auto renderServer = RenderServer::getInstance();
-  auto renderHandler = it.column<RenderHandler>(4);
+  auto renderHandler = it.column<RenderHandler>(5);
 
   auto setLayouts = renderHandler->mainRendergraph->getDescriptorSetLayouts(
       renderHandler->mainPassId);
 
   Vector<RenderAble> renderList;
   for (auto i : it) {
-    /* code */
-    // get mesh
-    auto mesh1 = renderServer->gpuRManager->getById<Mesh>(meshes[i].meshId);
-    auto meshRes =
-        FrameResource<Mesh>(mesh1, GpuResourceManager::swapChainSize);
-    // get mesh tex
     auto mat = mats[i];
+    if (!mat.loaded)
+    {
+      /* code */
+      continue;
+    }
+    
+    // get mesh
+    auto mesh1 = meshes[i].mesh;
+    auto meshRes =
+        FrameResource<VkMesh>(mesh1, GpuResourceManager::swapChainSize);
+    // get mesh tex
+    
+    // auto diffuseTex =
+    //     *(renderServer->gpuRManager->getById<eastl::shared_ptr<crevice::VkTexture>>(mat.obj1TexId));
+    // auto specTex =
+    //     *(renderServer->gpuRManager->getById<eastl::shared_ptr<crevice::VkTexture>>(mat.specTexId));
+
     auto diffuseTex =
-        renderServer->gpuRManager->getById<crevice::CVTexture>(mat.obj1TexId);
+        *(texs[i].textureLoaded[mat.obj1TexId]);
     auto specTex =
-        renderServer->gpuRManager->getById<crevice::CVTexture>(mat.specTexId);
+        *(texs[i].textureLoaded[mat.specTexId]);;
 
     RenderAble renderableObj{};
     ShaderInputKey perobjInputKey{};

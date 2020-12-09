@@ -346,7 +346,7 @@ void RenderPass::recordFrameWithSubpass(uint64_t frame,
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             *mPipelineLayout, 1,desc.size(), desc.data(), 0, nullptr);
     // -- draw
-    vkCmdDrawIndexed(commandBuffer, mesh->indices.size(), 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, mesh->indicesSize, 1, 0, 0, 0);
   }
 }
 

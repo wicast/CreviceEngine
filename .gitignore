@@ -3,6 +3,7 @@
 /shaders/frag.spv
 /shaders/vert.spv
 /cmake-build-relwithdebinfo/
+/.cache
 /.xmake
 /.vscode/*
 !/.vscode/launch.json

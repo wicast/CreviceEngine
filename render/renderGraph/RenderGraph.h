@@ -66,9 +66,10 @@ class RenderGraph {
 
   // TOOD better way to manage resource;
   GpuResourceManager* mGpuRManager;
+  VkContext* vkContext;
 
   VectorMap<uint32_t, FrameResource<VkImageView>> externalImageViews;
-  VectorMap<uint32_t, FrameResource<CVTexture>> internalImages;
+  VectorMap<uint32_t, FrameResource<VkTexture>> internalImages;
 
   Vector<FrameResource<VkFramebuffer>> mFramebuffers;
   Vector<FrameResource<VkCommandBuffer>> mCommandBuffers;
@@ -226,6 +227,10 @@ class RenderGraph {
    */
   void updateRenderData(Vector<PerPassRenderAble> perpassList,
                         Vector<RenderAble> renderList);
+
+
+  //TODO delete render data
+  void deleteRenderDate();                        
 
   /**
    * @brief record Frame With Subpass

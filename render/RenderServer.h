@@ -18,8 +18,8 @@
 #include "render/Context.h"
 #include "render/GpuResourceManager.h"
 #include "render/ShaderPack.h"
-#include "render/resource/Model.h"
-#include "render/resource/Texture.h"
+#include "resource/Model.h"
+#include "resource/Image.h"
 #include "render/vulkan/windowContext.h"
 
 #include "render/renderGraph/RenderGraph.h"
@@ -82,6 +82,7 @@ class RenderServer {
 
     vkContext->setupDebugMessenger();
   }
+
   void createGPUResourceManager() {
     gpuRManager = new GpuResourceManager();
 

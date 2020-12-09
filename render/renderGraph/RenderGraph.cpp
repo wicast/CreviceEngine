@@ -326,10 +326,10 @@ void RenderGraph::createFrameBufferForSubPass() {
   for (size_t i = 0; i < swapSize; i++) {
     for (auto attId : attsUsing) {
       if (externalImageViews.count(attId) != 0) {
-        views[i].push_back(*(externalImageViews[attId].getForUpdate(i)->get()));
+        views[i].push_back(**(externalImageViews[attId].getForUpdate(i)));
       } else if (internalImages.count(attId) != 0) {
         views[i].push_back(
-            internalImages[attId].getForUpdate(i)->get()->textureImageView);
+            (**internalImages[attId].getForUpdate(i)).textureImageView);
       }
     }
 
@@ -431,13 +431,13 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
   // record commands
   // First: reset all current commands
   for (auto cb : mCommandBuffers) {
-    vkResetCommandBuffer(*(cb.getForUpdate(frame)->get()),
+    vkResetCommandBuffer(**(cb.getForUpdate(frame)),
                          VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
   }
 
   // pass the commanduffer
   // begin renderpass
-  auto commandBuffer = *(mCommandBuffers[0].getForUpdate(frame)->get());
+  auto commandBuffer = **(mCommandBuffers[0].getForUpdate(frame));
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -451,7 +451,7 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = *renderPassInsts[0];
-  renderPassInfo.framebuffer = *(mFramebuffers[0].getForUpdate(frame)->get());
+  renderPassInfo.framebuffer = **(mFramebuffers[0].getForUpdate(frame));
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent =
       mGpuRManager->vkContext->windowContext->swapChainExtent;
