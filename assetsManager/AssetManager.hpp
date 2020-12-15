@@ -7,7 +7,7 @@
 // TODO ad-hoc asset mapping
 constexpr auto MODEL_PATH_tmp = "../../../../models/monkey.obj";
 constexpr auto MODEL2_PATH_tmp = "../../../../models/box2.obj";
-constexpr auto APPLE_MODEL_PATH_tmp = "../../../../models/apple.obj";
+constexpr auto APPLE_MODEL_PATH_tmp = "../../../../models/Mandalorian.obj";
 constexpr auto TEXTURE_PATH_tmp = "../../../../textures/badApple.png";
 constexpr auto SPEC_TEXTURE_PATH_tmp =
     "../../../../textures/container2_specular.png";
