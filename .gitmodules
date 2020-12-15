@@ -1,18 +1,21 @@
 [submodule "3rd/Vulkan-Headers"]
-	path = 3rd/Vulkan-Headers
+	path = src/3rd/header_only/Vulkan-Headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers.git
 [submodule "3rd/EASTL"]
-	path = 3rd/EASTL
+	path = src/3rd/EASTL/EASTL
 	url = https://github.com/electronicarts/EASTL.git
 [submodule "3rd/EABase"]
-	path = 3rd/EABase
+	path = src/3rd/EASTL/EABase
 	url = https://github.com/electronicarts/EABase.git
 [submodule "3rd/flecs/flecs"]
-	path = 3rd/flecs/flecs
+	path = src/3rd/flecs/flecs
 	url = https://github.com/SanderMertens/flecs.git
 [submodule "3rd/volk/volk"]
-	path = 3rd/volk/volk
+	path = src/3rd/volk/volk
 	url = https://github.com/zeux/volk.git
 [submodule "3rd/glm/glm"]
-	path = 3rd/glm/glm
+	path = src/3rd/glm/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "src/3rd/GLFW/glfw"]
+	path = src/3rd/GLFW/glfw
+	url = https://github.com/glfw/glfw.git

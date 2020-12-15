@@ -6,7 +6,7 @@
 #include "common/CamControl.h"
 #include "components/Camera.h"
 #include "components/Transform.h"
-#include "render/Uniform.h"
+#include "graphic/vk_render/Uniform.h"
 
 #include "components/resource/MaterialInfoComp.h"
 #include "components/resource/MeshInfoComp.h"
@@ -15,7 +15,7 @@
 
 #include "components/RenderHandler.h"
 
-#include "volk/volk_imp.h"
+#include "volk_imp.h"
 
 #include "common/InputState.h"
 
