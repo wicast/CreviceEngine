@@ -230,7 +230,7 @@ void HelloTriangleApplication::setupECS() {
   obj.set<Transform>(t);
 
   //TODO get rid from asset
-  obj.set<MeshInfoComp>(MeshInfoComp{2,true,true});
+  obj.set<MeshInfoComp>(MeshInfoComp{5,true,true});
   obj.set<MaterialInfoComp>(MaterialInfoComp{3,4,true,true,false});
 }
 

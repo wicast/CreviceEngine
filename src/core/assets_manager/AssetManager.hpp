@@ -7,7 +7,8 @@
 // TODO ad-hoc asset mapping
 constexpr auto MODEL_PATH_tmp = "../../../../models/monkey.obj";
 constexpr auto MODEL2_PATH_tmp = "../../../../models/box2.obj";
-constexpr auto APPLE_MODEL_PATH_tmp = "../../../../models/Mandalorian.obj";
+constexpr auto APPLE_MODEL_PATH_tmp = "../../../../models/apple.obj";
+constexpr auto HAPPY_MODEL_PATH = "../../../../models/happy.obj";
 constexpr auto TEXTURE_PATH_tmp = "../../../../textures/badApple.png";
 constexpr auto SPEC_TEXTURE_PATH_tmp =
     "../../../../textures/container2_specular.png";
@@ -21,7 +22,8 @@ class AssetManager {
       {1, MODEL2_PATH_tmp},
       {2, APPLE_MODEL_PATH_tmp},
       {3, TEXTURE_PATH_tmp},
-      {4, SPEC_TEXTURE_PATH_tmp}};
+      {4, SPEC_TEXTURE_PATH_tmp},
+      {5, HAPPY_MODEL_PATH}};
 
  public:
   eastl::string getPathByRID(RID rid) { return assetPathMap[rid]; }

@@ -1,1 +1,3 @@
 [Mandalorian & Grogu | The Fortnite Season 6 Skin](https://sketchfab.com/3d-models/mandalorian-grogu-the-fortnite-season-6-skin-25ee6c50c91443a4beb6e12fb7cea666) -- "Mandalorian & Grogu | The Fortnite Season 6 Skin" by SketchSupreme is licensed under Creative Commons Attribution. https://skfb.ly/6X6ZA To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0/.
+
+[Happy Buddha](http://graphics.stanford.edu/data/3Dscanrep/) -- From The Stanford 3D Scanning Repository
