@@ -38,6 +38,8 @@ void SetRenderHandler(flecs::world& world) {
   auto renderServer = RenderServer::getInstance();
   auto gpuRManager = renderServer->gpuRManager;
   mRendergraph->setGpuRManager(gpuRManager);
+  mRendergraph->setWindowContext(renderServer->defaultWindowContext);
+  
 
   // TODO rewrite rendergraph usage
 
@@ -51,7 +53,7 @@ void SetRenderHandler(flecs::world& world) {
   swapChainAtt.format = renderServer->swapChainFormat();
   auto swapId = mRendergraph->addAttachment(swapChainAtt);
   auto swapChainImgViews = gpuRManager->createFRImageView(
-      renderServer->windowContext->swapChainImageViews);
+      renderServer->defaultWindowContext->swapChainImageViews);
   mRendergraph->setExternalImageView(swapId, swapChainImgViews);
 
   crevice::RGAttachment depthAtt{};
@@ -63,8 +65,8 @@ void SetRenderHandler(flecs::world& world) {
   depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   auto depId = mRendergraph->addAttachment(depthAtt);
   auto depViews =
-      crevice::Vector<VkImageView>(renderServer->swapChainSize(),
-                                   renderServer->windowContext->depthImageView);
+      crevice::Vector<VkImageView>(renderServer->defaultWindowContext->swapChainSize,
+                                   renderServer->defaultWindowContext->depthImageView);
   auto depImgViews = gpuRManager->createFRImageView(depViews);
   mRendergraph->setExternalImageView(depId, depImgViews);
 
@@ -146,7 +148,7 @@ void setupPerpassRenderAble(flecs::iter it, Camera cam[]) {
 
   // create buffer descriptorSet
   cameraRenderable.bufferDescriptor =
-      renderServer->gpuRManager->createFRDescriptorSet(
+      renderServer->gpuRManager->createFRDescriptorSet( renderServer->defaultWindowContext->swapChainSize,
           *setLayouts[0], renderHandler->cameraUniformBuffers,
           sizeof(UniformBufferObject));
 
@@ -226,7 +228,7 @@ void updatePerObjRenderAbleDescriptor(flecs::iter it,
     // get mesh
     auto mesh1 = meshes[i].mesh;
     auto meshRes =
-        FrameResource<VkMesh>(mesh1, GpuResourceManager::swapChainSize);
+        FrameResource<VkMesh>(mesh1, renderServer->defaultWindowContext->swapChainSize);
     // get mesh tex
     auto diffuseTex =
         *(texs[i].textureLoaded[mat.obj1TexId]);
@@ -242,7 +244,7 @@ void updatePerObjRenderAbleDescriptor(flecs::iter it,
     renderableObj.mesh = meshRes;
     // TODO setLayout location
     renderableObj.texDescriptor =
-        renderServer->gpuRManager->createFRDescriptorSet(*setLayouts[1], {}, 0,
+        renderServer->gpuRManager->createFRDescriptorSet(renderServer->defaultWindowContext->swapChainSize,*setLayouts[1], {}, 0,
                                                          {diffuseTex, specTex});
 
     renderList.push_back(renderableObj);

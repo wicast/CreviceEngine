@@ -71,7 +71,7 @@ void RenderPass::generateDescriptorSetLayout(GpuResourceManager& gManager) {
 
   for (auto inKey : perObjInputKeys) {
     Vector<ShaderSlotType> bufferKeys;
-    auto inx =0;
+    auto inx = 0;
     for (auto key : inKey.keys) {
       if (key == crevice::ShaderSlotType::TextureSample2D) {
         VkDescriptorSetLayoutBinding perTexBinding = {};
@@ -113,7 +113,7 @@ void RenderPass::generateDescriptorSetLayout(GpuResourceManager& gManager) {
   // TODO if no buffer
   mSetLayouts.push_back(gManager.addDescriptorSetLayout(bufferLayoutInfo));
 
-//TODO if no perpassimage
+  // TODO if no perpassimage
   // VkDescriptorSetLayoutCreateInfo perPassTexLayoutInfo{};
   // perPassTexLayoutInfo.sType =
   //     VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -131,8 +131,9 @@ void RenderPass::generateDescriptorSetLayout(GpuResourceManager& gManager) {
   mSetLayouts.push_back(gManager.addDescriptorSetLayout(perObjTexLayoutInfo));
 }
 
-void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
-  auto chainSize = GpuResourceManager::swapChainSize;
+void RenderPass::genreatePipeline(GpuResourceManager& gManager,
+                                  VkWindowContext* windowContext) {
+  auto chainSize = windowContext->swapChainSize;
 
   auto shaderPack =
       gManager.createShaderPack(std::string(std::get<0>(shaderAsset).data()),
@@ -174,8 +175,6 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
   inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-  auto windowContext = gManager.vkContext->windowContext;
 
   VkViewport viewport = {};
   viewport.x = 0.0f;
@@ -299,18 +298,19 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager) {
 
 void RenderPass::compile(GpuResourceManager& gManager,
                          //  VectorMap<uint32_t, uint32_t> attachmentMap,
-                         SharedPtr<VkRenderPass> vkRenderPass) {
+                         SharedPtr<VkRenderPass> vkRenderPass,
+                         VkWindowContext* windowContext) {
   // set RenderPass
   mRenderPass = vkRenderPass;
 
   generateDescriptorSetLayout(gManager);
   // TODO generate shader header
 
-  genreatePipeline(gManager);
+  genreatePipeline(gManager, windowContext);
 }
 
 void RenderPass::recordFrameWithSubpass(uint64_t frame,
-                                      VkCommandBuffer commandBuffer) {
+                                        VkCommandBuffer commandBuffer) {
   // bind pipeline
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *mPipeline);
 
@@ -331,20 +331,19 @@ void RenderPass::recordFrameWithSubpass(uint64_t frame,
 
     // -- bind perobj descriptor
     Vector<VkDescriptorSet> desc;
-    if (renderable.bufferDescriptor.prepared)
-    {
-       auto bufDesc =  renderable.bufferDescriptor.getRes(frame);
-       desc.push_back(*bufDesc);
+    if (renderable.bufferDescriptor.prepared) {
+      auto bufDesc = renderable.bufferDescriptor.getRes(frame);
+      desc.push_back(*bufDesc);
     }
-    if (renderable.texDescriptor.prepared)
-    {
+    if (renderable.texDescriptor.prepared) {
       /* code */
       auto texDesc = renderable.texDescriptor.getRes(frame);
       desc.push_back(*texDesc);
     }
-   
+
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            *mPipelineLayout, 1,desc.size(), desc.data(), 0, nullptr);
+                            *mPipelineLayout, 1, desc.size(), desc.data(), 0,
+                            nullptr);
     // -- draw
     vkCmdDrawIndexed(commandBuffer, mesh->indicesSize, 1, 0, 0, 0);
   }

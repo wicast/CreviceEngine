@@ -6,6 +6,9 @@ end
 
 includes("3rd")
 
+-- includes("qt_editor")
+-- includes("editor_api")
+
 target("cvContainer")
     add_deps("glfw3", "volk")
     set_kind("static")
@@ -30,3 +33,8 @@ target("cvComponents")
     add_deps("cvVkRender", "flecs")
     add_files("components/**.cpp")
     add_includedirs(".", {public=true})
+
+
+target("editorApi")
+    add_deps("cvVkRender", "cvcore")
+    set_kind("shared")

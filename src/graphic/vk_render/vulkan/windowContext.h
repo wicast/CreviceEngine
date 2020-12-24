@@ -18,12 +18,14 @@
  * @brief Window Context
  * 
  */
-class WindowContext {
+class VkWindowContext {
  private:
   /* data */
 
  public:
+  VkSurfaceKHR surface;
   VkSwapchainKHR swapChain;
+  uint8_t swapChainSize;
   crevice::Vector<VkImage> swapChainImages;
   VkPresentModeKHR swapChainPresentMode;
   VkFormat swapChainImageFormat;

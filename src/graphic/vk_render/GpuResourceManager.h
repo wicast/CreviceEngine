@@ -14,7 +14,6 @@
 #include <shared_mutex>
 
 #include "common/Resource.h"
-#include "glfw/glfwContainerImpl.h"
 #include "Context.h"
 #include "FrameResource.h"
 #include "ShaderPack.h"
@@ -33,7 +32,7 @@ class GpuResourceManager {
  public:
   VkContext* vkContext;
 
-  static uint8_t swapChainSize;
+  // static uint8_t swapChainSize;
 
   crevice::HashMap<RID, CommandBuffers> commandBuffers;
 
@@ -188,16 +187,12 @@ class GpuResourceManager {
                               VkImageAspectFlags aspectFlags,
                               uint32_t mipLevels);
 
-  void createSwapChainImageViews(WindowContext& windowContext,
+  void createSwapChainImageViews(VkWindowContext& windowContext,
                                  uint32_t mipLevels = 1);
 
   uint32_t findMemoryType(uint32_t typeFilter,
                           VkMemoryPropertyFlags properties);
 
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                              GLFWwindow* window);
-  void createSwapChain(crevice::GLFWContainer& container,
-                       WindowContext& windowContext);
 
   void createBuffer(VkDeviceSize size,
                     VkBufferUsageFlags usage,
@@ -254,14 +249,14 @@ class GpuResourceManager {
                            crevice::Vector<VkBuffer> uniformBuffers,
                            std::vector<RID> imageIds);
 
-  crevice::FrameResource<VkDescriptorSet> createFRDescriptorSet(
+  crevice::FrameResource<VkDescriptorSet> createFRDescriptorSet(uint8_t swapChainSize,
       VkDescriptorSetLayout layout,
       crevice::Vector<VkBuffer> buffers = {},
       VkDeviceSize bufferBlockSize = 0,
       crevice::Vector<crevice::VkTexture> images = {});
 
   RID createIndexedDrawCommandBuffers(
-      WindowContext windowContext,
+      VkWindowContext windowContext,
       RID meshObjId,
       RID descriptorSets,
       VkRenderPass renderPass,

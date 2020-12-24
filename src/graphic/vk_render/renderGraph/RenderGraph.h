@@ -1,12 +1,12 @@
 /**
  * @file RenderGraph.h
  * @author wicast (wicast@hotmail.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2020-11-25
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
 
 #pragma once
@@ -24,14 +24,14 @@
 
 /**
  * @brief crevice namespace
- * 
+ *
  */
 namespace crevice {
 
 /**
  * @brief Render Graph class
  * This implements the render graph in vulkan
- * 
+ *
  */
 class RenderGraph {
  private:
@@ -64,9 +64,10 @@ class RenderGraph {
  private:
   VectorSet<uint32_t> orphanNodes;
 
-  // TOOD better way to manage resource;
+  // TODO better way to manage resource;
   GpuResourceManager* mGpuRManager;
   VkContext* vkContext;
+  VkWindowContext* mWindowContext;
 
   VectorMap<uint32_t, FrameResource<VkImageView>> externalImageViews;
   VectorMap<uint32_t, FrameResource<VkTexture>> internalImages;
@@ -77,48 +78,50 @@ class RenderGraph {
   Vector<VkSemaphore> imageAvailableSemaphores;
   Vector<VkSemaphore> renderFinishedSemaphores;
   size_t currentFrame = 0;
-  Vector<VkFence> imagesInFlight;
-  Vector<VkFence> inFlightFences;
+  eastl::vector<VkFence> imagesInFlight;
+  eastl::vector<VkFence> inFlightFences;
 
   // TODO
   bool framebufferResized = false;
 
  public:
   /**
-  * @brief Set the Gpu Resource Manager object
-  * 
-  * @param man 
-  */
+   * @brief Set the Gpu Resource Manager object
+   *
+   * @param man
+   */
   void setGpuRManager(GpuResourceManager* man) { mGpuRManager = man; };
+
+  void setWindowContext(VkWindowContext* context) { mWindowContext = context; }
 
   /**
    * @brief add a renderPass
-   * 
-   * @param pass 
-   * @return uint32_t 
+   *
+   * @param pass
+   * @return uint32_t
    */
   uint32_t addPass(SharedPtr<RenderPass> pass);
 
   /**
    * @brief remove a renderPass
-   * 
-   * @param passId 
+   *
+   * @param passId
    */
   void removePass(uint32_t passId);
 
   /**
    * @brief Get the Pass object
-   * 
-   * @param passId 
-   * @return SharedPtr<RenderPass> 
+   *
+   * @param passId
+   * @return SharedPtr<RenderPass>
    */
   SharedPtr<RenderPass> getPass(uint32_t passId);
 
   /**
    * @brief Set the External Image View object
-   * 
-   * @param attachId 
-   * @param view 
+   *
+   * @param attachId
+   * @param view
    */
   void setExternalImageView(uint32_t attachId,
                             FrameResource<VkImageView> view) {
@@ -127,89 +130,88 @@ class RenderGraph {
 
   /**
    * @brief Create a Render Pass Instance With Sub Pass object
-   * 
+   *
    */
   void createRenderPassInstanceWithSubPass();
 
   /**
    * @brief Set the Output Pass object
-   * 
-   * @param passId 
+   *
+   * @param passId
    */
   void setOutputPass(uint32_t passId) { outputNodes.insert(passId); }
 
   /**
    * @brief remove Output Pass
-   * 
-   * @param passId 
+   *
+   * @param passId
    */
   void removeOutputPass(uint32_t passId) { outputNodes.erase(passId); }
 
   /**
    * @brief add a attachment
-   * 
-   * @param attachment 
-   * @return uint32_t 
+   *
+   * @param attachment
+   * @return uint32_t
    */
   uint32_t addAttachment(RGAttachment attachment);
 
   /**
    * @brief remove a attachment
-   * 
-   * @param attachId 
+   *
+   * @param attachId
    */
   void removeAttachment(uint32_t attachId);
 
   /**
    * @brief link two Pass Node
-   * 
-   * @param passId1 
-   * @param passId2 
+   *
+   * @param passId1
+   * @param passId2
    */
   void linkNode(uint32_t passId1, uint32_t passId2);
 
   /**
    * @brief unlink two Pass Node
-   * 
-   * @param passId1 
-   * @param passId2 
+   *
+   * @param passId1
+   * @param passId2
    */
   void detachNode(uint32_t passId1, uint32_t passId2);
 
-
   /**
    * @brief compile render graph to vulkan SubPass
-   * 
+   *
    */
   void compileWithSubPass();
 
   /**
    * @brief Create a Sync Obj object
-   * 
+   *
    */
   void createSyncObj();
 
   /**
    * @brief Create a Command Buffer object
-   * 
+   *
    */
   void createCommandBuffer();
 
   /**
-   * @brief 
-   * 
+   * @brief
+   *
    */
   void analyzeExecutionOrder();
 
   /**
    * @brief Create a Frame Buffer For Sub Pass object
-   * 
+   *
    */
   void createFrameBufferForSubPass();
 
   /**
    * @brief Create a Internal Image Views object
-   * 
+   *
    */
   void createInternalImageViews();
 
@@ -221,53 +223,52 @@ class RenderGraph {
 
   /**
    * @brief update RenderData
-   * 
-   * @param perpassList 
-   * @param renderList 
+   *
+   * @param perpassList
+   * @param renderList
    */
   void updateRenderData(Vector<PerPassRenderAble> perpassList,
                         Vector<RenderAble> renderList);
 
-
-  //TODO delete render data
-  void deleteRenderDate();                        
+  // TODO delete render data
+  void deleteRenderDate();
 
   /**
    * @brief record Frame With Subpass
-   * 
-   * @param frame 
-   * @param imageIndex 
+   *
+   * @param frame
+   * @param imageIndex
    */
   void recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex);
 
   /**
-   * @brief 
-   * 
-   * @param frame 
-   * @param imageIndex 
+   * @brief
+   *
+   * @param frame
+   * @param imageIndex
    */
   void submit(uint64_t frame, uint32_t& imageIndex);
 
   /**
-   * @brief 
-   * 
-   * @param frame 
-   * @param imageIndex 
+   * @brief
+   *
+   * @param frame
+   * @param imageIndex
    */
   void present(uint64_t frame, uint32_t& imageIndex);
 
   /**
-   * @brief 
-   * 
-   * @param frame 
+   * @brief
+   *
+   * @param frame
    */
   void drawFrame(uint64_t frame);
 
   /**
    * @brief Get the Descriptor Set Layouts object
-   * 
-   * @param passId 
-   * @return Vector<SharedPtr<VkDescriptorSetLayout>> 
+   *
+   * @param passId
+   * @return Vector<SharedPtr<VkDescriptorSetLayout>>
    */
   Vector<SharedPtr<VkDescriptorSetLayout>> getDescriptorSetLayouts(
       uint32_t passId) {
@@ -275,14 +276,14 @@ class RenderGraph {
   };
 
   /**
-   * @brief 
-   * 
+   * @brief
+   *
    */
   void clear();
 
   /**
    * @brief Construct a new Render Graph object
-   * 
+   *
    */
   RenderGraph() {
     mAttachTotal = 0;
@@ -291,7 +292,7 @@ class RenderGraph {
 
   /**
    * @brief Destroy the Render Graph object
-   * 
+   *
    */
   ~RenderGraph() {}
 };

@@ -1,25 +1,25 @@
 /**
  * @file RenderPass.h
  * @author wicast (wicast@hotmail.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2020-11-25
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
 
 #pragma once
 
-#include "volk_imp.h"
 #include <tuple>
 
-#include "GpuResourceManager.h"
-#include "descriptor/ShaderInputKey.h"
-#include "stl/CreviceSTL.h"
 #include "FrameResource.h"
-#include "descriptor/VertexInputInfo.h"
+#include "GpuResourceManager.h"
 #include "RenderAble.h"
+#include "descriptor/ShaderInputKey.h"
+#include "descriptor/VertexInputInfo.h"
+#include "stl/CreviceSTL.h"
+#include "volk_imp.h"
 
 namespace crevice {
 
@@ -27,26 +27,28 @@ namespace crevice {
 
 /**
  * @brief Render pass object
- * 
+ *
  */
 class RenderPass {
+ private:
+
  public:
   /**
    * @brief attachment ids for input
-   * 
+   *
    */
   VectorSet<uint32_t> inputAttachments;
 
   /**
    * @brief attachment ids for output
-   * 
+   *
    */
   VectorSet<uint32_t> outputAttachments;
   // uint32_t attachmentsDependency;
 
   /**
-   * @brief 
-   * 
+   * @brief
+   *
    */
   VertexInputInfo vertexInputInfoDesc;
 
@@ -55,24 +57,24 @@ class RenderPass {
   // int perPassTextureDes;//shadowMap,depthBuffer,etc. This may related to slot
   // in renderPass
   // pair by render pass assign component
-  
+
   /**
    * @brief perpass input value keys
-   * 
+   *
    */
   // TODO same key can only appear once, so better use set
   Vector<ShaderInputKey> perPassInputKeys;
-  
+
   /**
    * @brief Used for render to texture
-   * 
+   *
    */
   VectorSet<uint32_t> innerImage;
 
   // int perObjLayout;
   /**
    * @brief this is from Material and Transform
-   * 
+   *
    */
   Vector<ShaderInputKey> perObjInputKeys;
   // TODO
@@ -80,7 +82,7 @@ class RenderPass {
 
   /**
    * @brief shaders
-   * 
+   *
    */
   std::tuple<String, String> shaderAsset;
 
@@ -95,28 +97,28 @@ class RenderPass {
   // instance data
   /**
    * @brief VkDescriptorSetLayouts
-   * 
+   *
    */
   Vector<SharedPtr<VkDescriptorSetLayout>> mSetLayouts;
 
   /**
    * @brief vulkan render pass
-   * 
+   *
    */
   SharedPtr<VkRenderPass> mRenderPass;
 
   /**
    * @brief vulkan pipeline
-   * 
+   *
    */
   SharedPtr<VkPipeline> mPipeline;
 
   /**
    * @brief vulkan PipelineLayout
-   * 
+   *
    */
   SharedPtr<VkPipelineLayout> mPipelineLayout;
-  //Framebuffer index from render graph
+  // Framebuffer index from render graph
 
   // TODO this must be frame resource
   PerPassRenderAble mPerpassRenderable;
@@ -124,100 +126,103 @@ class RenderPass {
 
   /**
    * @brief change pass name
-   * 
-   * @param name 
+   *
+   * @param name
    */
   void changeName(String name) { mName = name; }
 
   /**
    * @brief add a tag
-   * 
-   * @param tag 
+   *
+   * @param tag
    */
   void addTag(String tag) { tags.emplace(tag); }
 
   /**
    * @brief remove a Tag
-   * 
-   * @param tag 
+   *
+   * @param tag
    */
   void removeTag(String tag) { tags.erase(tag); }
 
   /**
    * @brief change Shader
-   * 
-   * @param vert 
-   * @param frag 
+   *
+   * @param vert
+   * @param frag
    */
   void changeShader(String vert, String frag) { shaderAsset = {vert, frag}; }
 
   /**
-   * @brief generateVertexInputInfo 
-   * 
-   * @return std::tuple<VkVertexInputBindingDescription, Vector<VkVertexInputAttributeDescription>> 
+   * @brief generateVertexInputInfo
+   *
+   * @return std::tuple<VkVertexInputBindingDescription,
+   * Vector<VkVertexInputAttributeDescription>>
    */
- std::tuple<VkVertexInputBindingDescription, Vector<VkVertexInputAttributeDescription>> generateVertexInputInfo();
+  std::tuple<VkVertexInputBindingDescription,
+             Vector<VkVertexInputAttributeDescription>>
+  generateVertexInputInfo();
   void generateDescriptorSetLayout(GpuResourceManager& gManager);
-  Vector<SharedPtr<VkDescriptorSetLayout>> getDescriptorSetLayouts(){
+  Vector<SharedPtr<VkDescriptorSetLayout>> getDescriptorSetLayouts() {
     return mSetLayouts;
   };
 
   /**
    * @brief genreatePipeline
-   * 
-   * @param gManager 
+   *
+   * @param gManager
    */
-  void genreatePipeline(GpuResourceManager& gManager);
-  
+  void genreatePipeline(GpuResourceManager& gManager,
+                        VkWindowContext* windowContext);
+
   /**
    * @brief compile single pass
-   * 
-   * @param gManager 
-   * @param vkRenderPass 
+   *
+   * @param gManager
+   * @param vkRenderPass
    */
   void compile(GpuResourceManager& gManager,
-              //  VectorMap<uint32_t, uint32_t> attachmentMap,
-               SharedPtr<VkRenderPass> vkRenderPass);
-
+               SharedPtr<VkRenderPass> vkRenderPass,
+               VkWindowContext* windowContext);
 
   /**
    * @brief add Perpass RenderAble
-   * 
-   * @param pa 
+   *
+   * @param pa
    */
-  void addPerpassRenderAble(PerPassRenderAble pa) {mPerpassRenderable = pa;};
+  void addPerpassRenderAble(PerPassRenderAble pa) { mPerpassRenderable = pa; };
 
   /**
-   * @brief 
-   * 
-   * @param ra 
+   * @brief
+   *
+   * @param ra
    */
-  void addRenderAble(RenderAble ra) {mRenderList.push_back(ra);};
+  void addRenderAble(RenderAble ra) { mRenderList.push_back(ra); };
 
   /**
-   * @brief 
-   * 
-   * @param frame 
+   * @brief
+   *
+   * @param frame
    */
   void updateRenderList(uint64_t frame);
 
   /**
-   * @brief 
-   * 
-   * @param frame 
-   * @param commandBuffer 
+   * @brief
+   *
+   * @param frame
+   * @param commandBuffer
    */
-  void recordFrameWithSubpass(uint64_t frame,VkCommandBuffer commandBuffer);
+  void recordFrameWithSubpass(uint64_t frame, VkCommandBuffer commandBuffer);
 
   /**
-   * @brief 
-   * 
+   * @brief
+   *
    */
   RenderPass(/* args */) {}
 
   /**
    * @brief Destroy the Render Pass object
-   * 
+   *
    */
   ~RenderPass() {}
 };

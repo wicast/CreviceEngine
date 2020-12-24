@@ -164,6 +164,7 @@ void HelloTriangleApplication::processInput(GLFWwindow* window) {
 void HelloTriangleApplication::serverSetup() {
   container = crevice::GLFWContainer(WIDTH, HEIGHT, "Vulkan");
   {
+    //TODO more than glfw binding
     using namespace std::placeholders;
     container.inputProcessor = std::bind(
         &HelloTriangleApplication::processInput, this, std::placeholders::_1);

@@ -57,11 +57,12 @@ glm::mat4 Camera::GetViewMatrix() {
 }
 
 glm::mat4 Camera::GetProjMatrix() {
+  //TODO this should use data from specific rendertarget
   auto rs = crevice::RenderServer::getInstance();
   auto proj =
       glm::perspective(glm::radians(45.f),
-                       rs->windowContext->swapChainExtent.width /
-                           (float)rs->windowContext->swapChainExtent.height,
+                       rs->defaultWindowContext->swapChainExtent.width /
+                           (float)rs->defaultWindowContext->swapChainExtent.height,
                        0.1f, 20.0f);
   proj[1][1] *= -1;
   return proj;

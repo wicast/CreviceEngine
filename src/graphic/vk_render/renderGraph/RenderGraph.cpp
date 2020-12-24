@@ -62,7 +62,7 @@ void RenderGraph::compileWithSubPass() {
   // compile sub passes
   for (auto passId : mExeOrder) {
     auto pass = renderPasses[passId];
-    pass->compile(*mGpuRManager, renderPassInsts[0]);
+    pass->compile(*mGpuRManager, renderPassInsts[0], mWindowContext);
   }
 }
 
@@ -72,7 +72,7 @@ void RenderGraph::createSyncObj() {
   imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
   renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
   inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-  imagesInFlight.resize(mGpuRManager->swapChainSize, VK_NULL_HANDLE);
+  imagesInFlight.resize(mWindowContext->swapChainSize, VK_NULL_HANDLE);
 
   VkSemaphoreCreateInfo semaphoreInfo = {};
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -95,7 +95,7 @@ void RenderGraph::createSyncObj() {
 void RenderGraph::createCommandBuffer() {
   // TODO different renderpass with different commandbuffer
   mCommandBuffers.push_back(
-      mGpuRManager->createCommandBuffers(GpuResourceManager::swapChainSize));
+      mGpuRManager->createCommandBuffers(mWindowContext->swapChainSize));
 }
 
 void RenderGraph::createRenderPassInstanceWithSubPass() {
@@ -290,12 +290,12 @@ void RenderGraph::analyzeExecutionOrder() {
 void RenderGraph::createFrameBufferForSubPass() {
   createInternalImageViews();
 
-  auto width = mGpuRManager->vkContext->windowContext->swapChainExtent.width;
-  auto height = mGpuRManager->vkContext->windowContext->swapChainExtent.height;
+  auto width = mWindowContext->swapChainExtent.width;
+  auto height = mWindowContext->swapChainExtent.height;
 
   Vector<VkFramebufferCreateInfo> frameBufferCIs{};
 
-  auto swapSize = GpuResourceManager::swapChainSize;
+  auto swapSize = mWindowContext->swapChainSize;
   Vector<Vector<VkImageView>> views(swapSize);
   for (size_t i = 0; i < swapSize; i++) {
     for (auto attId : attsUsing) {
@@ -347,11 +347,11 @@ void RenderGraph::createInternalImageViews() {
       }
 
       auto width =
-          mGpuRManager->vkContext->windowContext->swapChainExtent.width;
+          mWindowContext->swapChainExtent.width;
       auto height =
-          mGpuRManager->vkContext->windowContext->swapChainExtent.height;
+          mWindowContext->swapChainExtent.height;
       internalImages[usingId] = mGpuRManager->createFrameResourceEmptyTexture(
-          width, height, usage, GpuResourceManager::swapChainSize);
+          width, height, usage, mWindowContext->swapChainSize);
     }
   }
 
@@ -380,13 +380,12 @@ void RenderGraph::drawFrame(uint64_t frame) {
 
 void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
   auto vkContext = mGpuRManager->vkContext;
-  auto windowContext = vkContext->windowContext;
 
   vkWaitForFences(vkContext->device, 1, &inFlightFences[currentFrame], VK_TRUE,
                   UINT64_MAX);
 
   VkResult vkResult = vkAcquireNextImageKHR(
-      vkContext->device, windowContext->swapChain, UINT64_MAX,
+      vkContext->device, mWindowContext->swapChain, UINT64_MAX,
       imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
   if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
     // TODO recreate swapchains
@@ -429,7 +428,7 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
   renderPassInfo.framebuffer = **(mFramebuffers[0].getForUpdate(frame));
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent =
-      mGpuRManager->vkContext->windowContext->swapChainExtent;
+      mWindowContext->swapChainExtent;
 
   // TODO clear color setup
   Vector<VkClearValue> clearValues = {};
@@ -473,7 +472,6 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
 // vulkan can submit multiple commandBuffers
 void RenderGraph::submit(uint64_t frame, uint32_t& imageIndex) {
   auto vkContext = mGpuRManager->vkContext;
-  auto windowContext = vkContext->windowContext;
 
   VkSubmitInfo submitInfo = {};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -511,7 +509,6 @@ void RenderGraph::submit(uint64_t frame, uint32_t& imageIndex) {
 
 void RenderGraph::present(uint64_t frame, uint32_t& imageIndex) {
   auto vkContext = mGpuRManager->vkContext;
-  auto windowContext = vkContext->windowContext;
 
   VkPresentInfoKHR presentInfo = {};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -521,7 +518,7 @@ void RenderGraph::present(uint64_t frame, uint32_t& imageIndex) {
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = renderFinishSemaphores;
 
-  VkSwapchainKHR swapChains[] = {windowContext->swapChain};
+  VkSwapchainKHR swapChains[] = {mWindowContext->swapChain};
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapChains;
   presentInfo.pImageIndices = &imageIndex;
