@@ -13,11 +13,11 @@
 
 #include <tuple>
 
-#include "FrameResource.h"
-#include "GpuResourceManager.h"
-#include "RenderAble.h"
-#include "descriptor/ShaderInputKey.h"
-#include "descriptor/VertexInputInfo.h"
+#include "../FrameResource.h"
+#include "../GpuResourceManager.h"
+#include "../RenderAble.h"
+#include "../descriptor/ShaderInputKey.h"
+#include "../descriptor/VertexInputInfo.h"
 #include "stl/CreviceSTL.h"
 #include "volk_imp.h"
 
@@ -213,6 +213,11 @@ class RenderPass {
    * @param commandBuffer
    */
   void recordFrameWithSubpass(uint64_t frame, VkCommandBuffer commandBuffer);
+
+
+  void destoryGraphicPieline(GpuResourceManager& gManager) {
+    vkDestroyPipeline(gManager.vkContext->device, *mPipeline, nullptr);
+  }
 
   /**
    * @brief

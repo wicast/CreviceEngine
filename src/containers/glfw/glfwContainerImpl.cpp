@@ -33,7 +33,7 @@ void GLFWContainer::setUpInput(void* userPointer) {
   glfwSetWindowUserPointer(window, userPointer);
   glfwSetFramebufferSizeCallback(window,
                                  GLFWContainer::framebufferResizeCallback);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, GLFWContainer::mouse_callback_dispatch);
 }
 

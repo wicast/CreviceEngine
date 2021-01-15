@@ -1,7 +1,7 @@
 #pragma once
 #include "assets_manager/AssetManager.hpp"
 #include "common/Resource.h"
-#include "common/ResourceManager.h"
+#include "resource/ResourceManager.h"
 #include "eastl/string.h"
 
 /**

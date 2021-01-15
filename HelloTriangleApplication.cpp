@@ -5,10 +5,11 @@
 #include "HelloTriangleApplication.h"
 
 #include "common/InputState.h"
-#include "systems/default_render_sys.h"
-#include "systems_cust/cust_system.h"
-#include "systems/sys_asset_loader.hpp"
 #include "components/ecs_register_comp.h"
+#include "systems/default_render_sys.h"
+#include "systems/sys_asset_loader.hpp"
+#include "usr/adhoc_codegen/cust_system.h"
+#include "usr/user_data_setup.hpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -117,8 +118,7 @@ void HelloTriangleApplication::cleanup() {
   // glfwTerminate();
 }
 
-void HelloTriangleApplication::mouse_callback(GLFWwindow* window,
-                                              double xpos,
+void HelloTriangleApplication::mouse_callback(GLFWwindow* window, double xpos,
                                               double ypos) {
   // TODO this should in input server
   // if (renderServer->windowContext->firstMouse)
@@ -138,7 +138,7 @@ void HelloTriangleApplication::mouse_callback(GLFWwindow* window,
 
 void HelloTriangleApplication::processInput(GLFWwindow* window) {
   crevice::InputState::states.clear();
-  //TODO key mapping
+  // TODO key mapping
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     crevice::InputState::states.emplace(GLFW_KEY_ESCAPE);
 
@@ -164,7 +164,7 @@ void HelloTriangleApplication::processInput(GLFWwindow* window) {
 void HelloTriangleApplication::serverSetup() {
   container = crevice::GLFWContainer(WIDTH, HEIGHT, "Vulkan");
   {
-    //TODO more than glfw binding
+    // TODO more than glfw binding
     using namespace std::placeholders;
     container.inputProcessor = std::bind(
         &HelloTriangleApplication::processInput, this, std::placeholders::_1);
@@ -185,54 +185,18 @@ void HelloTriangleApplication::serverSetup() {
   assetResourceBridge->setup(rManager, assetManager);
 
   vkResourceBridge = crevice::VkResourceBridge::getInstance();
-  vkResourceBridge->setup(rManager, renderServer->gpuRManager, renderServer->vkContext);
+  vkResourceBridge->setup(rManager, renderServer->gpuRManager,
+                          renderServer->vkContext);
 }
 
 void HelloTriangleApplication::setupECS() {
   ecs_reg_comp(ecs);
-  // ecs.set_target_fps(144);
   SetRenderHandler(ecs);
-
-  ecs.system<Camera>(nullptr, "$RenderHandler")
-      .kind(flecs::OnSet)
-      .iter(setupPerpassRenderAble);
-
-  // ecs.system<Transform, MeshInfoComp, MaterialInfoComp>(nullptr, "$RenderHandler")
-  //     .kind(flecs::OnSet)
-  //     .iter(loadPerObjRenderAbleAsset);
-
-  ecs.system<Transform, VkMeshRes, MaterialInfoComp, VkTextureResComp>(nullptr, "$RenderHandler")
-      .kind(flecs::OnSet)
-      .iter(updatePerObjRenderAbleDescriptor);
-
+  setupDefaultSys(ecs);
   setAssetResourceSystems(ecs);
 
-  // add systems for update
-
-  ecs.system<Camera>().each(updateCamera);
-
-  ecs.system<Transform>().each(updateTransform);
-
-  ecs.system<Camera>(nullptr, "$RenderHandler").iter(updatePerpassRenderAble);
-
-  ecs.system<Transform>(nullptr, "$RenderHandler").iter(updateModelUniform);
-
-  ecs.system<>(nullptr, "$RenderHandler").iter(updateUboBuffer);
-
-  ecs.system<>(nullptr, "$RenderHandler").iter(increaseCurrentFrame);
-
-  // add persistant entities
-  auto cam = ecs.entity();
-  cam.set<Camera>(Camera());
-
-  auto obj = ecs.entity();
-  Transform t{};
-  t.position = {0.0f, 0.0f, -5.0f};
-  obj.set<Transform>(t);
-
-  //TODO get rid from asset
-  obj.set<MeshInfoComp>(MeshInfoComp{5,true,true});
-  obj.set<MaterialInfoComp>(MaterialInfoComp{3,4,true,true,false});
+  usr_ecs_scene_setup(ecs);
+  setCustSys(ecs);
 }
 
 void HelloTriangleApplication::run() {

@@ -1,0 +1,5 @@
+target("usr")
+    set_kind("static")
+    add_deps("cvCore", "cvComponents")
+    add_files("**.cpp")
+    add_includedirs("..", {public=true})

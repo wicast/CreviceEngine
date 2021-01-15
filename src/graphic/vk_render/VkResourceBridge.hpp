@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/ResourceManager.h"
+#include "resource/ResourceManager.h"
 #include "GpuResourceManager.h"
 #include "RenderServer.h"
 

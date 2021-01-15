@@ -1,22 +1,20 @@
 #pragma once
 
-#include "common/AssetResourceBridge.hpp"
-#include "common/ResourceManager.h"
-#include "components/resource/MeshInfoComp.h"
+#include <future>
 
+#include "common/AssetResourceBridge.hpp"
 #include "components/resource/ImageResComp.hpp"
 #include "components/resource/MaterialInfoComp.h"
+#include "components/resource/MeshInfoComp.h"
 #include "components/resource/MeshLoadingSt.hpp"
 #include "components/resource/MeshRes.hpp"
 #include "components/resource/VkMeshLoadingSt.hpp"
 #include "components/resource/VkMeshRes.hpp"
 #include "components/resource/VkTextureResComp.hpp"
-
+#include "flecs.h"
 #include "graphic/vk_render/VkResourceBridge.hpp"
 #include "graphic/vk_render/resource/VkMesh.hpp"
-
-#include <future>
-#include "flecs.h"
+#include "resource/ResourceManager.h"
 
 template <typename R>
 bool is_ready(std::shared_future<R> const& f) {
@@ -148,8 +146,7 @@ void triggerLoadVkTex(flecs::entity e, ImageResComp& imageRes) {
   imageRes.imagesLoadedContinue.clear();
 }
 
-void loadVkTextureFromMem(flecs::entity e,
-                          MaterialInfoComp& matInfo,
+void loadVkTextureFromMem(flecs::entity e, MaterialInfoComp& matInfo,
                           ImageResComp& imageRes,
                           VkTextureResComp& vkTextureRes) {
   if (!matInfo.autoLoadTexGpu) {
@@ -169,13 +166,18 @@ void loadVkTextureFromMem(flecs::entity e,
   if (!vkTextureRes.textureLoading.empty()) {
     for (auto loading : vkTextureRes.textureLoading) {
       if (loading.second.valid() && is_ready(loading.second)) {
-        vkTextureRes.textureLoaded.emplace(loading.first,
-                                                 loading.second.get());
+        vkTextureRes.textureLoaded.emplace(loading.first, loading.second.get());
         vkTextureRes.textureLoading.erase(loading.first);
       }
     }
-    if (imageRes.imagesLoading.empty() &&
-        vkTextureRes.textureLoading.empty() && !matInfo.loaded) {
+    if (imageRes.imagesLoading.empty() && vkTextureRes.textureLoading.empty() &&
+        !matInfo.loaded) {
+      //HACK hardcode check all needed texture
+      if (vkTextureRes.textureLoaded.count(matInfo.obj1TexId) == 0 ||
+          vkTextureRes.textureLoaded.count(matInfo.specTexId) == 0) {
+        return;
+      }
+
       matInfo.loaded = true;
       // HACK Just for trigger OnSet
       e.set<VkTextureResComp>(vkTextureRes);

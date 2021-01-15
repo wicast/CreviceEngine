@@ -5,6 +5,7 @@
 // #include <stb_image.h>
 
 #include "GpuResourceManager.h"
+
 #include "FrameResource.h"
 #include "Uniform.h"
 #include "resource/Model.h"
@@ -133,8 +134,7 @@ void GpuResourceManager::destroyMesh(RID rid) {
 }
 
 crevice::SharedPtr<crevice::ShaderPack> GpuResourceManager::createShaderPack(
-    const std::string& vertPath,
-    const std::string& fragPath) {
+    const std::string& vertPath, const std::string& fragPath) {
   auto vertShaderCode = readFile(vertPath);
   auto fragShaderCode = readFile(fragPath);
 
@@ -187,10 +187,8 @@ void GpuResourceManager::destroyTexture(RID rid) {
   textures.erase(rid);
 }
 
-void GpuResourceManager::createImage(uint32_t width,
-                                     uint32_t height,
-                                     uint32_t mipLevels,
-                                     VkFormat format,
+void GpuResourceManager::createImage(uint32_t width, uint32_t height,
+                                     uint32_t mipLevels, VkFormat format,
                                      VkImageTiling tiling,
                                      VkImageUsageFlags usage,
                                      VkMemoryPropertyFlags properties,
@@ -303,8 +301,7 @@ void GpuResourceManager::createBuffer(VkDeviceSize size,
   vkBindBufferMemory(vkContext->device, buffer, bufferMemory, 0);
 }
 
-void GpuResourceManager::copyBuffer(VkBuffer srcBuffer,
-                                    VkBuffer dstBuffer,
+void GpuResourceManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
                                     VkDeviceSize size) {
   VkCommandBuffer commandBuffer = vkContext->beginSingleTimeCommands();
 
@@ -378,10 +375,8 @@ void GpuResourceManager::copyBuffer(VkBuffer srcBuffer,
 //   return rid;
 // }
 
-void GpuResourceManager::copyBufferToImage(VkBuffer buffer,
-                                           VkImage image,
-                                           uint32_t width,
-                                           uint32_t height) {
+void GpuResourceManager::copyBufferToImage(VkBuffer buffer, VkImage image,
+                                           uint32_t width, uint32_t height) {
   VkCommandBuffer commandBuffer = vkContext->beginSingleTimeCommands();
 
   VkBufferImageCopy region = {};
@@ -403,8 +398,7 @@ void GpuResourceManager::copyBufferToImage(VkBuffer buffer,
   vkContext->endSingleTimeCommands(commandBuffer);
 }
 
-void GpuResourceManager::transitionImageLayout(VkImage image,
-                                               VkFormat format,
+void GpuResourceManager::transitionImageLayout(VkImage image, VkFormat format,
                                                VkImageLayout oldLayout,
                                                VkImageLayout newLayout,
                                                uint32_t mipLevels) {
@@ -467,10 +461,8 @@ void GpuResourceManager::transitionImageLayout(VkImage image,
   vkContext->endSingleTimeCommands(commandBuffer);
 }
 
-void GpuResourceManager::generateMipmaps(VkImage image,
-                                         VkFormat imageFormat,
-                                         int32_t texWidth,
-                                         int32_t texHeight,
+void GpuResourceManager::generateMipmaps(VkImage image, VkFormat imageFormat,
+                                         int32_t texWidth, int32_t texHeight,
                                          uint32_t mipLevels) {
   VkFormatProperties formatProperties;
   vkGetPhysicalDeviceFormatProperties(vkContext->physicalDevice, imageFormat,
@@ -535,10 +527,8 @@ void GpuResourceManager::generateMipmaps(VkImage image,
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr,
                          0, nullptr, 1, &barrier);
 
-    if (mipWidth > 1)
-      mipWidth /= 2;
-    if (mipHeight > 1)
-      mipHeight /= 2;
+    if (mipWidth > 1) mipWidth /= 2;
+    if (mipHeight > 1) mipHeight /= 2;
   }
   barrier.subresourceRange.baseMipLevel = mipLevels - 1;
   barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -577,8 +567,7 @@ void GpuResourceManager::generateMipmaps(VkImage image,
 //   }
 // }
 
-VkImageView GpuResourceManager::createImageView(VkImage image,
-                                                VkFormat format,
+VkImageView GpuResourceManager::createImageView(VkImage image, VkFormat format,
                                                 VkImageAspectFlags aspectFlags,
                                                 uint32_t mipLevels) {
   VkImageViewCreateInfo viewInfo = {};
@@ -602,14 +591,26 @@ VkImageView GpuResourceManager::createImageView(VkImage image,
 }
 
 void GpuResourceManager::createSwapChainImageViews(
-    VkWindowContext& windowContext,
-    uint32_t mipLevels) {
-  windowContext.swapChainImageViews.resize(
-      windowContext.swapChainImages.size());
+    VkWindowContext& windowContext, uint32_t mipLevels) {
+  if (windowContext.swapChainImageViews.empty()) {
+    windowContext.swapChainImageViews.resize(
+        windowContext.swapChainImages.size());
+    for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
+      windowContext.swapChainImageViews[i] = new VkImageView;
+    }
+  }
+
   for (size_t i = 0; i < windowContext.swapChainImages.size(); i++) {
-    windowContext.swapChainImageViews[i] = createImageView(
+    (*windowContext.swapChainImageViews[i]) = createImageView(
         windowContext.swapChainImages[i], windowContext.swapChainImageFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+  }
+}
+
+void GpuResourceManager::destorySwapChainImageViews(
+    VkWindowContext& windowContext) {
+  for (auto view : windowContext.swapChainImageViews) {
+    vkDestroyImageView(vkContext->device, *view, nullptr);
   }
 }
 
@@ -637,8 +638,7 @@ void GpuResourceManager::initDescriptorPool() {
 }
 
 void GpuResourceManager::addDescriptorPool(
-    uint32_t setCount,
-    std::vector<VkDescriptorPoolSize> poolSizes) {
+    uint32_t setCount, std::vector<VkDescriptorPoolSize> poolSizes) {
   VkDescriptorPoolCreateInfo poolInfo = {};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -670,10 +670,8 @@ GpuResourceManager::addDescriptorSetLayout(
 
 // TODO free layout of descriptor set
 RID GpuResourceManager::createDescriptorSets(
-    uint32_t swapChainSize,
-    VkDescriptorSetLayout descriptorSetLayout,
-    crevice::Vector<VkBuffer> uniformBuffers,
-    std::vector<RID> imageIds) {
+    uint32_t swapChainSize, VkDescriptorSetLayout descriptorSetLayout,
+    crevice::Vector<VkBuffer> uniformBuffers, std::vector<RID> imageIds) {
   eastl::vector<VkDescriptorSetLayout> layouts(swapChainSize,
                                                descriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo = {};
@@ -741,10 +739,9 @@ RID GpuResourceManager::createDescriptorSets(
 }
 
 crevice::FrameResource<VkDescriptorSet>
-GpuResourceManager::createFRDescriptorSet(uint8_t swapChainSize,
-    VkDescriptorSetLayout layout,
-    crevice::Vector<VkBuffer> buffers,
-    VkDeviceSize bufferBlockSize,
+GpuResourceManager::createFRDescriptorSet(
+    uint8_t swapChainSize, VkDescriptorSetLayout layout,
+    crevice::Vector<VkBuffer> buffers, VkDeviceSize bufferBlockSize,
     crevice::Vector<crevice::VkTexture> images) {
   if (!buffers.empty() && !images.empty()) {
     throw std::runtime_error(
@@ -825,11 +822,8 @@ GpuResourceManager::createFRDescriptorSet(uint8_t swapChainSize,
 
 // TODO this part should is really dynamic
 RID GpuResourceManager::createIndexedDrawCommandBuffers(
-    VkWindowContext windowContext,
-    RID meshObjId,
-    RID descriptorSets,
-    VkRenderPass renderPass,
-    VkPipeline graphicsPipeline,
+    VkWindowContext windowContext, RID meshObjId, RID descriptorSets,
+    VkRenderPass renderPass, VkPipeline graphicsPipeline,
     VkPipelineLayout pipelineLayout,
     std::vector<VkFramebuffer> swapChainFramebuffers,
     VkClearColorValue clearColor) {
@@ -900,4 +894,51 @@ RID GpuResourceManager::createIndexedDrawCommandBuffers(
   return rid;
 }
 
+void GpuResourceManager::createSwapChainDepthResources(
+    VkWindowContext* windowContext) {
+  VkFormat depthFormat = findDepthFormat();
+  createImage(windowContext->swapChainExtent.width,
+              windowContext->swapChainExtent.height, 1, depthFormat,
+              VK_IMAGE_TILING_OPTIMAL,
+              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, windowContext->depthImage,
+              windowContext->depthImageMemory);
+  windowContext->depthImageView = createImageView(
+      windowContext->depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+  transitionImageLayout(windowContext->depthImage, depthFormat,
+                        VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+}
+
+void GpuResourceManager::destorySwapChainDepthResources(
+    VkWindowContext* windowContext) {
+  vkDestroyImageView(vkContext->device, windowContext->depthImageView, nullptr);
+  vkDestroyImage(vkContext->device, windowContext->depthImage, nullptr);
+  vkFreeMemory(vkContext->device, windowContext->depthImageMemory, nullptr);
+}
+
+VkFormat GpuResourceManager::findSupportedFormat(
+    const std::vector<VkFormat>& candidates, VkImageTiling tiling,
+    VkFormatFeatureFlags features) {
+  for (VkFormat format : candidates) {
+    VkFormatProperties props;
+    vkGetPhysicalDeviceFormatProperties(vkContext->physicalDevice, format,
+                                        &props);
+    if (tiling == VK_IMAGE_TILING_LINEAR &&
+        (props.linearTilingFeatures & features) == features) {
+      return format;
+    } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+               (props.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+  return VK_FORMAT_UNDEFINED;
+}
+
+VkFormat GpuResourceManager::findDepthFormat() {
+  return findSupportedFormat(
+      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+       VK_FORMAT_D24_UNORM_S8_UINT},
+      VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
 // uint8_t GpuResourceManager::swapChainSize = 1;

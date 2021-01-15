@@ -28,7 +28,7 @@
 #include "3rd/volk/volk_imp.h"
 #include "common/CVTimer.h"
 #include "common/GLMath.h"
-#include "common/ResourceManager.h"
+#include "resource/ResourceManager.h"
 #include "common/AssetResourceBridge.hpp"
 #include "assets_manager/AssetManager.hpp"
 #include "components/Camera.h"

@@ -13,7 +13,7 @@
 
 #include "common/GLMath.h"
 
-#include "descriptor/shaderInputKey.h"
+#include "graphic/vk_render/descriptor/shaderInputKey.h"
 
 /**
  * @brief Defines several possible options for camera movement. Used as abstraction to \n

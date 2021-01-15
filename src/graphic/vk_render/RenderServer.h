@@ -11,13 +11,13 @@
 
 #pragma once
 
-#include "Container.h"
+#include "containers/Container.h"
 #include "Context.h"
 #include "GpuResourceManager.h"
 #include "ShaderPack.h"
-#include "common/ResourceManager.h"
-#include "glfw/glfwContainerImpl.h"
-#include "renderGraph/RenderGraph.h"
+#include "resource/ResourceManager.h"
+// #include "containers/glfw/glfwContainerImpl.h"
+// #include "renderGraph/RenderGraph.h"
 #include "resource/Image.h"
 #include "resource/Model.h"
 #include "volk_imp.h"
@@ -37,7 +37,7 @@ class RenderServer {
     return instance;
   }
 
-  void setContainer(GLFWContainer* container) { this->container = container; };
+  void setContainer(Container* container) { this->container = container; };
 
   void init() {
     createObjs();
@@ -47,8 +47,8 @@ class RenderServer {
     createGPUResourceManager();
     createWindowContext();
     createCommandPool();
+    gpuRManager->createSwapChainDepthResources(defaultWindowContext);
 
-    createSwapChainDepthResources();
   };
 
   void waitIdle() { vkDeviceWaitIdle(vkContext->device); }
@@ -74,7 +74,7 @@ class RenderServer {
 
   static size_t currentFrame;
   // TODO use container api
-  GLFWContainer* container;
+  Container* container;
 
   // TODO there should be multiple rendergraph
   //   RenderGraph* mRendergraph;
@@ -86,6 +86,7 @@ class RenderServer {
     gpuRManager = new GpuResourceManager();
     gpuRManager->initManager(vkContext);
     defaultWindowContext = new VkWindowContext{};
+    defaultWindowContext->context = vkContext;
   }
 
   void createVkContext() {
@@ -114,32 +115,33 @@ class RenderServer {
   void createGPUResourceManager() { gpuRManager->initDescriptorPool(); };
 
   void createWindowContext() {
-    vkContext->createSwapChain(*container, *defaultWindowContext);
+    defaultWindowContext->container = container;
+    defaultWindowContext->createSwapChain();
     gpuRManager->createSwapChainImageViews(*defaultWindowContext, 1);
   };
 
   void createCommandPool() { vkContext->createCommandPool(); }
 
-  void createSwapChainDepthResources() {
-    VkFormat depthFormat = findDepthFormat();
-    gpuRManager->createImage(
-        defaultWindowContext->swapChainExtent.width,
-        defaultWindowContext->swapChainExtent.height, 1, depthFormat,
-        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, defaultWindowContext->depthImage,
-        defaultWindowContext->depthImageMemory);
-    defaultWindowContext->depthImageView =
-        gpuRManager->createImageView(defaultWindowContext->depthImage,
-                                     depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-    gpuRManager->transitionImageLayout(
-        defaultWindowContext->depthImage, depthFormat,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
-  }
+  // void createSwapChainDepthResources() {
+  //   VkFormat depthFormat = findDepthFormat();
+  //   gpuRManager->createImage(
+  //       defaultWindowContext->swapChainExtent.width,
+  //       defaultWindowContext->swapChainExtent.height, 1, depthFormat,
+  //       VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+  //       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, defaultWindowContext->depthImage,
+  //       defaultWindowContext->depthImageMemory);
+  //   defaultWindowContext->depthImageView =
+  //       gpuRManager->createImageView(defaultWindowContext->depthImage,
+  //                                    depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+  //   gpuRManager->transitionImageLayout(
+  //       defaultWindowContext->depthImage, depthFormat,
+  //       VK_IMAGE_LAYOUT_UNDEFINED,
+  //       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+  // }
 
-  VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
-                               VkImageTiling tiling,
-                               VkFormatFeatureFlags features);
+  // VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
+  //                              VkImageTiling tiling,
+  //                              VkFormatFeatureFlags features);
 };
 
 }  // namespace crevice

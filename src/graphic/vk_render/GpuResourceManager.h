@@ -13,16 +13,17 @@
 
 #include <shared_mutex>
 
-#include "common/Resource.h"
 #include "Context.h"
 #include "FrameResource.h"
 #include "ShaderPack.h"
+#include "common/Resource.h"
+#include "resource/Model.h"
 #include "resource/VkMesh.hpp"
 #include "resource/VkTexture.hpp"
-#include "resource/Model.h"
 #include "stl/CreviceHashMap.h"
 #include "stl/CreviceSharedPtr.h"
 #include "stl/CreviceVector.h"
+#include "vulkan/windowContext.h"
 
 typedef eastl::vector<VkDescriptorSet> DescriptorSets;
 typedef eastl::vector<VkCommandBuffer> CommandBuffers;
@@ -94,9 +95,9 @@ class GpuResourceManager {
     return crevice::FrameResource<VkCommandBuffer>(commandBuffers);
   }
 
-  crevice::FrameResource<VkImageView> createFRImageView(
-      crevice::Vector<VkImageView> imgViews) {
-    return crevice::FrameResource<VkImageView>(imgViews);
+  crevice::FrameResource<VkImageView*> createFRImageView(
+      crevice::Vector<VkImageView*> imgViews) {
+    return crevice::FrameResource<VkImageView*>(imgViews);
   };
 
   crevice::FrameResource<VkFramebuffer> createFRFramebuffer(
@@ -114,9 +115,7 @@ class GpuResourceManager {
   }
 
   crevice::FrameResource<crevice::VkTexture> createFrameResourceEmptyTexture(
-      uint32_t texWidth,
-      uint32_t texHeight,
-      VkImageUsageFlags usage,
+      uint32_t texWidth, uint32_t texHeight, VkImageUsageFlags usage,
       uint32_t swapSize) {
     auto fRes = crevice::FrameResource<crevice::VkTexture>(true, swapSize);
 
@@ -128,8 +127,18 @@ class GpuResourceManager {
     return fRes;
   }
 
-  crevice::VkTexture createEmptyTexture(uint32_t texWidth,
-                                        uint32_t texHeight,
+  void destoryFrameResourceTexture(
+      crevice::FrameResource<crevice::VkTexture> resImg, uint8_t swapSize) {
+    for (size_t i = 0; i < swapSize; i++) {
+      /* code */
+      auto img = resImg.getForUpdate(i);
+      vkDestroyImageView(vkContext->device, (*img)->textureImageView, nullptr);
+      vkDestroyImage(vkContext->device, (*img)->textureImage, nullptr);
+      vkFreeMemory(vkContext->device, (*img)->textureImageMemory, nullptr);
+    }
+  }
+
+  crevice::VkTexture createEmptyTexture(uint32_t texWidth, uint32_t texHeight,
                                         VkImageUsageFlags usage) {
     crevice::VkTexture newTex{};
 
@@ -165,25 +174,18 @@ class GpuResourceManager {
 
   void destroyShaderPack(crevice::ShaderPack sp);
   crevice::SharedPtr<crevice::ShaderPack> createShaderPack(
-      const std::string& vertPath,
-      const std::string& fragPath);
+      const std::string& vertPath, const std::string& fragPath);
   VkShaderModule createShaderModule(const std::vector<char>& code);
 
   RID createMyTexture(std::string path);
   void destroyTexture(RID rid);
 
-  void createImage(uint32_t width,
-                   uint32_t height,
-                   uint32_t mipLevels,
-                   VkFormat format,
-                   VkImageTiling tiling,
-                   VkImageUsageFlags usage,
-                   VkMemoryPropertyFlags properties,
-                   VkImage& image,
-                   VkDeviceMemory& imageMemory);
+  void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
+                   VkFormat format, VkImageTiling tiling,
+                   VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                   VkImage& image, VkDeviceMemory& imageMemory);
 
-  VkImageView createImageView(VkImage image,
-                              VkFormat format,
+  VkImageView createImageView(VkImage image, VkFormat format,
                               VkImageAspectFlags aspectFlags,
                               uint32_t mipLevels);
 
@@ -193,37 +195,26 @@ class GpuResourceManager {
   uint32_t findMemoryType(uint32_t typeFilter,
                           VkMemoryPropertyFlags properties);
 
-
-  void createBuffer(VkDeviceSize size,
-                    VkBufferUsageFlags usage,
-                    VkMemoryPropertyFlags properties,
-                    VkBuffer& buffer,
+  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                    VkMemoryPropertyFlags properties, VkBuffer& buffer,
                     VkDeviceMemory& bufferMemory);
 
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
   void createTextureSampler(uint32_t mipLevels, VkSampler& obj1TextureSampler);
 
-  void transitionImageLayout(VkImage image,
-                             VkFormat format,
-                             VkImageLayout oldLayout,
-                             VkImageLayout newLayout,
+  void transitionImageLayout(VkImage image, VkFormat format,
+                             VkImageLayout oldLayout, VkImageLayout newLayout,
                              uint32_t mipLevels);
 
-  void copyBufferToImage(VkBuffer buffer,
-                         VkImage image,
-                         uint32_t width,
+  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
                          uint32_t height);
 
-  void generateMipmaps(VkImage image,
-                       VkFormat imageFormat,
-                       int32_t texWidth,
-                       int32_t texHeight,
-                       uint32_t mipLevels);
+  void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth,
+                       int32_t texHeight, uint32_t mipLevels);
 
   inline VkDescriptorPoolSize createDescriptorPoolSize(
-      VkDescriptorType type,
-      uint32_t descriptorCount) {
+      VkDescriptorType type, uint32_t descriptorCount) {
     VkDescriptorPoolSize descriptorPoolSize{};
     descriptorPoolSize.type = type;
     descriptorPoolSize.descriptorCount = descriptorCount;
@@ -237,7 +228,7 @@ class GpuResourceManager {
   crevice::SharedPtr<VkDescriptorSetLayout> addDescriptorSetLayout(
       VkDescriptorSetLayoutCreateInfo layoutInfo);
 
-  // TODO auto recycle resource 
+  // TODO auto recycle resource
   void destoryDescriptorSetLayout(VkDescriptorSetLayout layout) {
     // VkDescriptorSetLayout layout
     vkDestroyDescriptorSetLayout(vkContext->device, layout, nullptr);
@@ -249,18 +240,14 @@ class GpuResourceManager {
                            crevice::Vector<VkBuffer> uniformBuffers,
                            std::vector<RID> imageIds);
 
-  crevice::FrameResource<VkDescriptorSet> createFRDescriptorSet(uint8_t swapChainSize,
-      VkDescriptorSetLayout layout,
-      crevice::Vector<VkBuffer> buffers = {},
-      VkDeviceSize bufferBlockSize = 0,
+  crevice::FrameResource<VkDescriptorSet> createFRDescriptorSet(
+      uint8_t swapChainSize, VkDescriptorSetLayout layout,
+      crevice::Vector<VkBuffer> buffers = {}, VkDeviceSize bufferBlockSize = 0,
       crevice::Vector<crevice::VkTexture> images = {});
 
   RID createIndexedDrawCommandBuffers(
-      VkWindowContext windowContext,
-      RID meshObjId,
-      RID descriptorSets,
-      VkRenderPass renderPass,
-      VkPipeline graphicsPipeline,
+      VkWindowContext windowContext, RID meshObjId, RID descriptorSets,
+      VkRenderPass renderPass, VkPipeline graphicsPipeline,
       VkPipelineLayout pipelineLayout,
       std::vector<VkFramebuffer> swapChainFramebuffers,
       VkClearColorValue clearColor = {0.250f, 0.235f, 0.168f, 1.0f});
@@ -281,10 +268,20 @@ class GpuResourceManager {
     return m;
   }
 
+  VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
+                               VkImageTiling tiling,
+                               VkFormatFeatureFlags features);
+
+  VkFormat findDepthFormat();
+
+  void createSwapChainDepthResources(VkWindowContext* windowContext);
+  void destorySwapChainImageViews(VkWindowContext& windowContext);
+  void destorySwapChainDepthResources(VkWindowContext* windowContext);
+
   /**
    * @brief garbage collection
    * TODO
-   */ 
+   */
   void gc();
 
   template <class T>

@@ -1,36 +1,33 @@
 /**
  * @file default_render_sys.h
  * @author wicast (wicast@hotmail.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2020-11-25
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
-
-#include "flecs.h"
 
 #include "common/CVTimer.h"
 #include "common/CamControl.h"
+#include "common/InputState.h"
 #include "components/Camera.h"
+#include "components/RenderHandler.h"
+#include "components/Transform.h"
 #include "components/resource/MaterialInfoComp.h"
 #include "components/resource/MeshInfoComp.h"
 #include "components/resource/VkMeshRes.hpp"
 #include "components/resource/VkTextureResComp.hpp"
-#include "components/RenderHandler.h"
-#include "components/Transform.h"
+#include "flecs.h"
+#include "graphic/vk_render/RenderServer.h"
 #include "graphic/vk_render/Uniform.h"
 #include "graphic/vk_render/utils/vkUtils.hpp"
 
-#include "graphic/vk_render/RenderServer.h"
-
-#include "common/InputState.h"
-
 /**
  * @brief Set the Render Handler object
- * 
- * @param world 
+ *
+ * @param world
  */
 void SetRenderHandler(flecs::world& world) {
   using namespace crevice;
@@ -39,7 +36,6 @@ void SetRenderHandler(flecs::world& world) {
   auto gpuRManager = renderServer->gpuRManager;
   mRendergraph->setGpuRManager(gpuRManager);
   mRendergraph->setWindowContext(renderServer->defaultWindowContext);
-  
 
   // TODO rewrite rendergraph usage
 
@@ -58,15 +54,15 @@ void SetRenderHandler(flecs::world& world) {
 
   crevice::RGAttachment depthAtt{};
   depthAtt.name = "depth";
-  depthAtt.format = renderServer->findDepthFormat();
+  depthAtt.format = gpuRManager->findDepthFormat();
   depthAtt.externalTexture = true;
   depthAtt.type = crevice::RGAttachmentTypes::DepthStencil;
   depthAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   auto depId = mRendergraph->addAttachment(depthAtt);
-  auto depViews =
-      crevice::Vector<VkImageView>(renderServer->defaultWindowContext->swapChainSize,
-                                   renderServer->defaultWindowContext->depthImageView);
+  auto depViews = crevice::Vector<VkImageView*>(
+      renderServer->defaultWindowContext->swapChainSize,
+      &renderServer->defaultWindowContext->depthImageView);
   auto depImgViews = gpuRManager->createFRImageView(depViews);
   mRendergraph->setExternalImageView(depId, depImgViews);
 
@@ -126,9 +122,9 @@ void SetRenderHandler(flecs::world& world) {
 
 /**
  * @brief Query with $RenderHandler
- * 
- * @param it 
- * @param cam 
+ *
+ * @param it
+ * @param cam
  */
 void setupPerpassRenderAble(flecs::iter it, Camera cam[]) {
   using namespace crevice;
@@ -148,18 +144,18 @@ void setupPerpassRenderAble(flecs::iter it, Camera cam[]) {
 
   // create buffer descriptorSet
   cameraRenderable.bufferDescriptor =
-      renderServer->gpuRManager->createFRDescriptorSet( renderServer->defaultWindowContext->swapChainSize,
-          *setLayouts[0], renderHandler->cameraUniformBuffers,
-          sizeof(UniformBufferObject));
+      renderServer->gpuRManager->createFRDescriptorSet(
+          renderServer->defaultWindowContext->swapChainSize, *setLayouts[0],
+          renderHandler->cameraUniformBuffers, sizeof(UniformBufferObject));
 
   renderHandler->mainRendergraph->updateRenderData({cameraRenderable}, {});
 }
 
 /**
  * @brief Query with $RenderHandler
- * 
- * @param it 
- * @param cams 
+ *
+ * @param it
+ * @param cams
  */
 void updatePerpassRenderAble(flecs::iter it, Camera cams[]) {
   using namespace crevice;
@@ -179,9 +175,9 @@ void updatePerpassRenderAble(flecs::iter it, Camera cams[]) {
 
 /**
  * @brief Query with $RenderHandler
- * 
- * @param it 
- * @param t 
+ *
+ * @param it
+ * @param t
  */
 void updateModelUniform(flecs::iter it, Transform t[]) {
   using namespace crevice;
@@ -198,13 +194,12 @@ void updateModelUniform(flecs::iter it, Transform t[]) {
 /**
  * @brief  This is not perframe \n
  * Query with $RenderHandler
- * @param it 
- * @param objs 
- * @param meshes 
- * @param mats 
+ * @param it
+ * @param objs
+ * @param meshes
+ * @param mats
  */
-void updatePerObjRenderAbleDescriptor(flecs::iter it,
-                                      Transform objs[],
+void updatePerObjRenderAbleDescriptor(flecs::iter it, Transform objs[],
                                       VkMeshRes meshes[],
                                       MaterialInfoComp mats[],
                                       VkTextureResComp texs[]) {
@@ -219,21 +214,23 @@ void updatePerObjRenderAbleDescriptor(flecs::iter it,
   Vector<RenderAble> renderList;
   for (auto i : it) {
     auto mat = mats[i];
-    if (!mat.loaded)
-    {
+    if (!mat.loaded) {
       /* code */
       continue;
     }
-    
+
     // get mesh
     auto mesh1 = meshes[i].mesh;
-    auto meshRes =
-        FrameResource<VkMesh>(mesh1, renderServer->defaultWindowContext->swapChainSize);
+    auto meshRes = FrameResource<VkMesh>(
+        mesh1, renderServer->defaultWindowContext->swapChainSize);
     // get mesh tex
-    auto diffuseTex =
-        *(texs[i].textureLoaded[mat.obj1TexId]);
-    auto specTex =
-        *(texs[i].textureLoaded[mat.specTexId]);
+    // HACK hardcode material texture
+    if (texs[i].textureLoaded.count(mat.obj1TexId) == 0 ||
+        texs[i].textureLoaded.count(mat.specTexId) == 0) {
+      continue;
+    }
+    auto diffuseTex = *(texs[i].textureLoaded[mat.obj1TexId]);
+    auto specTex = *(texs[i].textureLoaded[mat.specTexId]);
 
     RenderAble renderableObj{};
     ShaderInputKey perobjInputKey{};
@@ -244,8 +241,9 @@ void updatePerObjRenderAbleDescriptor(flecs::iter it,
     renderableObj.mesh = meshRes;
     // TODO setLayout location
     renderableObj.texDescriptor =
-        renderServer->gpuRManager->createFRDescriptorSet(renderServer->defaultWindowContext->swapChainSize,*setLayouts[1], {}, 0,
-                                                         {diffuseTex, specTex});
+        renderServer->gpuRManager->createFRDescriptorSet(
+            renderServer->defaultWindowContext->swapChainSize, *setLayouts[1],
+            {}, 0, {diffuseTex, specTex});
 
     renderList.push_back(renderableObj);
   }
@@ -258,8 +256,8 @@ void updatePerObjRenderAbleDescriptor(flecs::iter it,
 
 /**
  * @brief Query with $RenderHandler
- * 
- * @param it 
+ *
+ * @param it
  */
 void updateUboBuffer(flecs::iter it) {
   using namespace crevice;
@@ -280,8 +278,8 @@ void updateUboBuffer(flecs::iter it) {
 
 /**
  * @brief Query with $RenderHandler
- * 
- * @param it 
+ *
+ * @param it
  */
 void increaseCurrentFrame(flecs::iter it) {
   using namespace crevice;
@@ -293,4 +291,28 @@ void increaseCurrentFrame(flecs::iter it) {
   renderHandler->currentImage =
       (renderHandler->currentFrame) % renderServer->swapChainSize();
   renderHandler->currentFrame++;
+}
+
+void setupDefaultSys(flecs::world& ecs) {
+  ecs.system<Camera>(nullptr, "$RenderHandler")
+      .kind(flecs::OnSet)
+      .iter(setupPerpassRenderAble);
+
+  // ecs.system<Transform, MeshInfoComp, MaterialInfoComp>(nullptr,
+  // "$RenderHandler")
+  //     .kind(flecs::OnSet)
+  //     .iter(loadPerObjRenderAbleAsset);
+
+  ecs.system<Transform, VkMeshRes, MaterialInfoComp, VkTextureResComp>(
+         nullptr, "$RenderHandler")
+      .kind(flecs::OnSet)
+      .iter(updatePerObjRenderAbleDescriptor);
+
+  ecs.system<Camera>(nullptr, "$RenderHandler").iter(updatePerpassRenderAble);
+
+  ecs.system<Transform>(nullptr, "$RenderHandler").iter(updateModelUniform);
+
+  ecs.system<>(nullptr, "$RenderHandler").iter(updateUboBuffer);
+
+  ecs.system<>(nullptr, "$RenderHandler").iter(increaseCurrentFrame);
 }

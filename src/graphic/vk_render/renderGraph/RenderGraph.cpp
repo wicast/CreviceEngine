@@ -300,7 +300,8 @@ void RenderGraph::createFrameBufferForSubPass() {
   for (size_t i = 0; i < swapSize; i++) {
     for (auto attId : attsUsing) {
       if (externalImageViews.count(attId) != 0) {
-        views[i].push_back(**(externalImageViews[attId].getForUpdate(i)));
+        // TODO too ugly
+        views[i].push_back(***(externalImageViews[attId].getForUpdate(i)));
       } else if (internalImages.count(attId) != 0) {
         views[i].push_back(
             (**internalImages[attId].getForUpdate(i)).textureImageView);
@@ -319,6 +320,7 @@ void RenderGraph::createFrameBufferForSubPass() {
     frameBufferCIs.push_back(frameBufferCI);
   }
 
+  // TODO
   mFramebuffers.resize(1);
 
   mFramebuffers[0] = mGpuRManager->createFRFramebuffer(frameBufferCIs);
@@ -333,7 +335,7 @@ void RenderGraph::createInternalImageViews() {
   for (auto usingId : attsUsing) {
     auto attach = attachments[usingId];
     // find the image which is internal
-    if (externalImageViews.count(usingId) == 0) {
+    if (internalImages.count(usingId) != 0) {
       VkImageUsageFlags usage;
       if (attsOut.count(usingId) != 0 &&
           attach.type == RGAttachmentTypes::Color) {
@@ -346,10 +348,8 @@ void RenderGraph::createInternalImageViews() {
         usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
       }
 
-      auto width =
-          mWindowContext->swapChainExtent.width;
-      auto height =
-          mWindowContext->swapChainExtent.height;
+      auto width = mWindowContext->swapChainExtent.width;
+      auto height = mWindowContext->swapChainExtent.height;
       internalImages[usingId] = mGpuRManager->createFrameResourceEmptyTexture(
           width, height, usage, mWindowContext->swapChainSize);
     }
@@ -378,6 +378,55 @@ void RenderGraph::drawFrame(uint64_t frame) {
   present(frame, imageIndex);
 }
 
+void RenderGraph::cleanUpResource() {
+  // TODO this impl is very rough
+  auto vkContext = mGpuRManager->vkContext;
+  vkDeviceWaitIdle(vkContext->device);
+  // Destory external&internal image
+  for (auto usingId : attsUsing) {
+    // find the image which is internal
+    if (internalImages.count(usingId) != 0) {
+      auto img = internalImages[usingId];
+      mGpuRManager->destoryFrameResourceTexture(img,
+                                                mWindowContext->swapChainSize);
+    }
+  }
+  mGpuRManager->destorySwapChainDepthResources(mWindowContext);
+
+  // destory framebuffer
+  for (size_t i = 0; i < mWindowContext->swapChainSize; i++) {
+    /* code */
+    auto fb = mFramebuffers[0].getForUpdate(i);
+    vkDestroyFramebuffer(vkContext->device, **fb, nullptr);
+  }
+
+  // destory graphic pipeline
+  for (auto passId : mExeOrder) {
+    auto pass = renderPasses[passId];
+    pass->destoryGraphicPieline(*mGpuRManager);
+  }
+  // swapchain imageview
+  mGpuRManager->destorySwapChainImageViews(*mWindowContext);
+
+  // swapchain
+  mWindowContext->destorySwapChain();
+}
+
+void RenderGraph::swapChainOutOfDate() {
+  cleanUpResource();
+
+  mWindowContext->createSwapChain();
+  mGpuRManager->createSwapChainImageViews(*mWindowContext, 1);
+  mGpuRManager->createSwapChainDepthResources(mWindowContext);
+
+  createFrameBufferForSubPass();
+
+  for (auto passId : mExeOrder) {
+    auto pass = renderPasses[passId];
+    pass->genreatePipeline(*mGpuRManager, mWindowContext);
+  }
+}
+
 void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
   auto vkContext = mGpuRManager->vkContext;
 
@@ -389,7 +438,7 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
       imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
   if (vkResult == VK_ERROR_OUT_OF_DATE_KHR) {
     // TODO recreate swapchains
-    // recreateSwapChain();
+    swapChainOutOfDate();
     return;
   } else if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR) {
     throw std::runtime_error("failed to acquire swap chain image!");
@@ -427,8 +476,7 @@ void RenderGraph::recordFrameWithSubpass(uint64_t frame, uint32_t& imageIndex) {
   renderPassInfo.renderPass = *renderPassInsts[0];
   renderPassInfo.framebuffer = **(mFramebuffers[0].getForUpdate(frame));
   renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent =
-      mWindowContext->swapChainExtent;
+  renderPassInfo.renderArea.extent = mWindowContext->swapChainExtent;
 
   // TODO clear color setup
   Vector<VkClearValue> clearValues = {};
@@ -529,7 +577,7 @@ void RenderGraph::present(uint64_t frame, uint32_t& imageIndex) {
       framebufferResized) {
     framebufferResized = false;
     // TODO recreate swapchains
-    // recreateSwapChain();
+    swapChainOutOfDate();
   } else if (vkResult != VK_SUCCESS) {
     throw std::runtime_error("failed to present swap chain image!");
   }

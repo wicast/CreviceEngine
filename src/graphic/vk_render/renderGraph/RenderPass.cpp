@@ -254,7 +254,7 @@ void RenderPass::genreatePipeline(GpuResourceManager& gManager,
   pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(_desLayout.size());
   pipelineLayoutInfo.pSetLayouts = _desLayout.data();
 
-  VkPipelineLayout _pipelineLayout;
+  VkPipelineLayout _pipelineLayout{};
 
   if (vkCreatePipelineLayout(gManager.vkContext->device, &pipelineLayoutInfo,
                              nullptr, &_pipelineLayout) != VK_SUCCESS) {

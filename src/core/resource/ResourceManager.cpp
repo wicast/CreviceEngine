@@ -1,4 +1,4 @@
-#include "common/ResourceManager.h"
+#include "resource/ResourceManager.h"
 
 crevice::SharedPtr<Mesh> ResourceManager::addMesh(RID rid, Mesh mesh) {
   std::unique_lock lock(meshMutex);

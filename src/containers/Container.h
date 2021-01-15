@@ -26,11 +26,11 @@ class Container {
   /* data */
 
  public:
-  void createWindow(int width, int height, const char* title);
-  void createSurface(VkInstance instance, VkSurfaceKHR* surface,
-                     const VkAllocationCallbacks* allocator = nullptr);
-  void getFramebufferSize(int* width, int* height);
-  const char** getVkRequiredInstanceExtensions(uint32_t* count);
+  virtual void createWindow(int width, int height, const char* title)=0;
+  virtual void createSurface(VkInstance instance, VkSurfaceKHR* surface,
+                     const VkAllocationCallbacks* allocator = nullptr)=0;
+  virtual void getFramebufferSize(int* width, int* height)=0;
+  virtual const char** getVkRequiredInstanceExtensions(uint32_t* count)=0;
 };
 
 }  // namespace crevice

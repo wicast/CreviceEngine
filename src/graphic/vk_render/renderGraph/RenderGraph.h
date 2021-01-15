@@ -11,10 +11,10 @@
 
 #pragma once
 
-#include "FrameResource.h"
-#include "RenderAble.h"
-#include "renderGraph/RGAttachment.h"
-#include "renderGraph/RenderPass.h"
+#include "../FrameResource.h"
+#include "../RenderAble.h"
+#include "RGAttachment.h"
+#include "RenderPass.h"
 #include "stl/CreviceDeque.h"
 #include "stl/CreviceHashMap.h"
 #include "stl/CreviceHashSet.h"
@@ -64,12 +64,12 @@ class RenderGraph {
  private:
   VectorSet<uint32_t> orphanNodes;
 
-  // TODO better way to manage resource;
   GpuResourceManager* mGpuRManager;
-  VkContext* vkContext;
+  // TODO the context should access alone
+  // VkContext* vkContext;
   VkWindowContext* mWindowContext;
 
-  VectorMap<uint32_t, FrameResource<VkImageView>> externalImageViews;
+  VectorMap<uint32_t, FrameResource<VkImageView*>> externalImageViews;
   VectorMap<uint32_t, FrameResource<VkTexture>> internalImages;
 
   Vector<FrameResource<VkFramebuffer>> mFramebuffers;
@@ -124,7 +124,7 @@ class RenderGraph {
    * @param view
    */
   void setExternalImageView(uint32_t attachId,
-                            FrameResource<VkImageView> view) {
+                            FrameResource<VkImageView*> view) {
     externalImageViews[attachId] = view;
   }
 
@@ -274,6 +274,10 @@ class RenderGraph {
       uint32_t passId) {
     return renderPasses[passId]->getDescriptorSetLayouts();
   };
+
+  void cleanUpResource();
+
+  void swapChainOutOfDate();
 
   /**
    * @brief

@@ -18,10 +18,12 @@
 #include <stdexcept>
 #include <vector>
 
+#include "containers/Container.h"
 #include "utils/MutexUtil.hpp"
 #include "volk_imp.h"
-#include "vulkan/windowContext.h"
-#include "glfw/glfwContainerImpl.h"
+#include "stl/CreviceSTL.h"
+// #include "vulkan/windowContext.h"
+// #include "containers/glfw/glfwContainerImpl.h"
 
 // TODO more configureable
 const std::vector<const char*> validationLayers = {
@@ -267,6 +269,7 @@ class VkContext {
   // TODO hardcode for testing
   static eastl::vector<size_t> queueFamCount;
 
+  //TODO multi commandpool
   VkCommandPool commandPool;
   VkCommandPool singleTimeOpCommandPool;
 
@@ -308,75 +311,75 @@ class VkContext {
     return indices;
   }
 
-  void createSwapChain(crevice::GLFWContainer& container,
-                       VkWindowContext& windowContext) {
-    SwapChainSupportDetails swapChainSupport =
-        vkUtil::querySwapChainSupport(physicalDevice, windowContext.surface);
+  // void createSwapChain(crevice::Container& container,
+  //                      VkWindowContext& windowContext) {
+  //   SwapChainSupportDetails swapChainSupport =
+  //       vkUtil::querySwapChainSupport(physicalDevice, windowContext.surface);
 
-    VkSurfaceFormatKHR surfaceFormat =
-        vkUtil::chooseSwapSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode =
-        vkUtil::chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent =
-        chooseSwapExtent(swapChainSupport.capabilities, &container);
+  //   VkSurfaceFormatKHR surfaceFormat =
+  //       vkUtil::chooseSwapSurfaceFormat(swapChainSupport.formats);
+  //   VkPresentModeKHR presentMode =
+  //       vkUtil::chooseSwapPresentMode(swapChainSupport.presentModes);
+  //   VkExtent2D extent =
+  //       chooseSwapExtent(swapChainSupport.capabilities, &container);
 
-    // TODO select swapchain buffer size
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-    if (swapChainSupport.capabilities.maxImageCount > 0 &&
-        imageCount > swapChainSupport.capabilities.maxImageCount) {
-      imageCount = swapChainSupport.capabilities.maxImageCount;
-    }
+  //   // TODO select swapchain buffer size
+  //   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+  //   if (swapChainSupport.capabilities.maxImageCount > 0 &&
+  //       imageCount > swapChainSupport.capabilities.maxImageCount) {
+  //     imageCount = swapChainSupport.capabilities.maxImageCount;
+  //   }
 
-    windowContext.swapChainSize = imageCount;
+  //   windowContext.swapChainSize = imageCount;
 
-    VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
-    swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapChainCreateInfo.surface = windowContext.surface;
-    swapChainCreateInfo.minImageCount = imageCount;
-    swapChainCreateInfo.imageFormat = surfaceFormat.format;
-    swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-    swapChainCreateInfo.imageExtent = extent;
-    swapChainCreateInfo.imageArrayLayers = 1;
-    swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  //   VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
+  //   swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  //   swapChainCreateInfo.surface = windowContext.surface;
+  //   swapChainCreateInfo.minImageCount = imageCount;
+  //   swapChainCreateInfo.imageFormat = surfaceFormat.format;
+  //   swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+  //   swapChainCreateInfo.imageExtent = extent;
+  //   swapChainCreateInfo.imageArrayLayers = 1;
+  //   swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = queueIndices;
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
-                                     indices.presentFamily.value()};
+  //   QueueFamilyIndices indices = queueIndices;
+  //   uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
+  //                                    indices.presentFamily.value()};
 
-    if (indices.graphicsFamily != indices.presentFamily) {
-      swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-      swapChainCreateInfo.queueFamilyIndexCount = 2;
-      swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
-    } else {
-      swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-      swapChainCreateInfo.queueFamilyIndexCount = 0;      // Optional
-      swapChainCreateInfo.pQueueFamilyIndices = nullptr;  // Optional
-    }
-    swapChainCreateInfo.preTransform =
-        swapChainSupport.capabilities.currentTransform;
-    swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapChainCreateInfo.presentMode = presentMode;
-    swapChainCreateInfo.clipped = VK_TRUE;
-    swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+  //   if (indices.graphicsFamily != indices.presentFamily) {
+  //     swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+  //     swapChainCreateInfo.queueFamilyIndexCount = 2;
+  //     swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
+  //   } else {
+  //     swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  //     swapChainCreateInfo.queueFamilyIndexCount = 0;      // Optional
+  //     swapChainCreateInfo.pQueueFamilyIndices = nullptr;  // Optional
+  //   }
+  //   swapChainCreateInfo.preTransform =
+  //       swapChainSupport.capabilities.currentTransform;
+  //   swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  //   swapChainCreateInfo.presentMode = presentMode;
+  //   swapChainCreateInfo.clipped = VK_TRUE;
+  //   swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(device, &swapChainCreateInfo, nullptr,
-                             &windowContext.swapChain) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create swap chain!");
-    }
+  //   if (vkCreateSwapchainKHR(device, &swapChainCreateInfo, nullptr,
+  //                            &windowContext.swapChain) != VK_SUCCESS) {
+  //     throw std::runtime_error("failed to create swap chain!");
+  //   }
 
-    vkGetSwapchainImagesKHR(device, windowContext.swapChain, &imageCount,
-                            nullptr);
-    windowContext.swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, windowContext.swapChain, &imageCount,
-                            windowContext.swapChainImages.data());
+  //   vkGetSwapchainImagesKHR(device, windowContext.swapChain, &imageCount,
+  //                           nullptr);
+  //   windowContext.swapChainImages.resize(imageCount);
+  //   vkGetSwapchainImagesKHR(device, windowContext.swapChain, &imageCount,
+  //                           windowContext.swapChainImages.data());
 
-    windowContext.swapChainImageFormat = surfaceFormat.format;
-    windowContext.swapChainExtent = extent;
-    windowContext.swapChainPresentMode = presentMode;
+  //   windowContext.swapChainImageFormat = surfaceFormat.format;
+  //   windowContext.swapChainExtent = extent;
+  //   windowContext.swapChainPresentMode = presentMode;
 
-    windowContext.lastX = windowContext.swapChainExtent.width / 2;
-    windowContext.lastY = windowContext.swapChainExtent.width / 2;
-  }
+  //   windowContext.lastX = windowContext.swapChainExtent.width / 2;
+  //   windowContext.lastY = windowContext.swapChainExtent.width / 2;
+  // }
 
   bool isDevicePresentable(VkPhysicalDevice device, VkSurfaceKHR surface) {
     auto deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -537,28 +540,28 @@ class VkContext {
     }
   }
 
-  // TODO no binding of glfw
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                              crevice::GLFWContainer* container) {
-    if (capabilities.currentExtent.width != UINT32_MAX) {
-      return capabilities.currentExtent;
-    } else {
-      int width, height;
-      container->getFramebufferSize(&width, &height);
+  // // TODO no binding of glfw
+  // VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+  //                             crevice::Container* container) {
+  //   if (capabilities.currentExtent.width != UINT32_MAX) {
+  //     return capabilities.currentExtent;
+  //   } else {
+  //     int width, height;
+  //     container->getFramebufferSize(&width, &height);
 
-      VkExtent2D actualExtent = {static_cast<uint32_t>(width),
-                                 static_cast<uint32_t>(height)};
+  //     VkExtent2D actualExtent = {static_cast<uint32_t>(width),
+  //                                static_cast<uint32_t>(height)};
 
-      actualExtent.width = std::max(
-          capabilities.minImageExtent.width,
-          std::min(capabilities.maxImageExtent.width, actualExtent.width));
-      actualExtent.height = std::max(
-          capabilities.minImageExtent.height,
-          std::min(capabilities.maxImageExtent.height, actualExtent.height));
+  //     actualExtent.width = std::max(
+  //         capabilities.minImageExtent.width,
+  //         std::min(capabilities.maxImageExtent.width, actualExtent.width));
+  //     actualExtent.height = std::max(
+  //         capabilities.minImageExtent.height,
+  //         std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
-      return actualExtent;
-    }
-  }
+  //     return actualExtent;
+  //   }
+  // }
 
   void createCommandPool() {
     QueueFamilyIndices queueFamilyIndices = queueIndices;
@@ -616,7 +619,8 @@ class VkContext {
     submitInfo.pCommandBuffers = &commandBuffer;
 
     vkQueueSubmit(singleOpQueue, 1, &submitInfo, singleOpFence);
-    vkWaitForFences(device, 1, &singleOpFence, VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &singleOpFence, VK_TRUE,
+                    UINT64_MAX);  // Prevent unfinished work
     vkFreeCommandBuffers(device, singleTimeOpCommandPool, 1, &commandBuffer);
     singleOpQueueLock.unlockLow();
   }

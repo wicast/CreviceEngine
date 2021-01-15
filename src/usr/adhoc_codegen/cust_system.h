@@ -19,13 +19,6 @@
 
 #include "common/InputState.h"
 
-// const std::string MODEL_PATH_tmp = "../../../../models/monkey.obj";
-// const std::string MODEL2_PATH_tmp = "../../../../models/box2.obj";
-// const std::string APPLE_MODEL_PATH_tmp = "../../../../models/apple.obj";
-// const std::string TEXTURE_PATH_tmp = "../../../../textures/badApple.png";
-// const std::string SPEC_TEXTURE_PATH_tmp =
-//     "../../../../textures/container2_specular.png";
-
 void updateCamera(flecs::entity e, Camera& cam) {
   using namespace crevice;
   // TODO add command mapping
@@ -81,3 +74,10 @@ void updateTransform(flecs::entity e, Transform& t) {
 //   //   mat.specTexId = specTexId;
 //   // }
 // }
+
+
+void setCustSys(flecs::world& ecs) {
+    ecs.system<Camera>().each(updateCamera);
+
+  ecs.system<Transform>().each(updateTransform);
+}
