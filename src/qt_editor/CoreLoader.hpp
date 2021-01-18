@@ -12,7 +12,7 @@ class CoreLoader {
  private:
   // TODO get coreDll from path system
   std::string _dllpath =
-      "D:/Coding/VK/MyVKLearn/build/windows/x64/debug/engineApi.dll";
+      "engineApi.dll";
 #ifdef _WIN32
   HINSTANCE hDLL;
 #endif

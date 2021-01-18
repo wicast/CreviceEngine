@@ -16,7 +16,7 @@ void usr_ecs_scene_setup(flecs::world& ecs) {
   t.position = {0.0f, 0.0f, -5.0f};
   obj.set<Transform>(t);
 
-  // TODO get rid from asset
+  // TODO get RID from asset
   // obj.set<MeshInfoComp>(MeshInfoComp{5, true, true});
   obj.set<MeshInfoComp>(MeshInfoComp{0, true, true});
   obj.set<MaterialInfoComp>(MaterialInfoComp{3, 4, true, true, false});

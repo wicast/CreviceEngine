@@ -3,7 +3,7 @@
 int main(int argc, char const *argv[]) {
   HINSTANCE hDLL;
   hDLL = LoadLibrary(
-      TEXT("D:/Coding/VK/MyVKLearn/build/windows/x64/debug/editorApi.dll"));
+      TEXT("editorApi.dll"));
 
   PFN_get_crevice_render_server_instance get_crevice_render_server_instance =
       (PFN_get_crevice_render_server_instance)GetProcAddress(hDLL, "get_crevice_render_server_instance");
