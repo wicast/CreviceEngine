@@ -1,4 +1,5 @@
 target("EABase")
+    set_kind("headeronly")
     add_includedirs("EABase/include/Common", {public=true})
 
 target("EASTL")

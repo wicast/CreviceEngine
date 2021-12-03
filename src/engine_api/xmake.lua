@@ -3,6 +3,7 @@ includes("../graphic/vk_render", "../core", "../components",
 
 target("engineApiHeader")
     add_includedirs("..", {public=true})
+    set_kind("headeronly")
     -- add_includedirs("../3rd/volk/",
     --                 "../3rd/volk/volk",
     --                 "../3rd/header_only/Vulkan-Headers/include",
