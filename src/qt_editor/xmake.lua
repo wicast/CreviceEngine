@@ -8,7 +8,6 @@ target("qtEditor")
     add_deps("engineApiHeader", "engineApi", "flecs")
     add_files("*.cpp")
     add_files("EngineProxy.hpp", "VKContainerWidget.hpp")
-    set_kind("binary")
 
 
 target("qtEditorTest")
