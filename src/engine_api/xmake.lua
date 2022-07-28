@@ -11,6 +11,7 @@ target("engineApiHeader")
     -- if is_plat("windows") then
     --     add_defines("VK_USE_PLATFORM_WIN32_KHR", {public=true})
     -- end
+    add_headerfiles("*.h", "*.hpp")
     add_deps("volk")
 
 
